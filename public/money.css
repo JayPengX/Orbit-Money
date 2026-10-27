@@ -72,7 +72,9 @@ h1, h2, h3, p { margin: 0; }
 /* ---- 月曆 ---- */
 .mn-cal-card { padding: 6px 8px 10px; border-radius: 22px; background: var(--q-surface); }
 .mn-cal-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 8px 8px; }
-.mn-month { border: 0; background: none; padding: 0; color: var(--q-label); font: 700 19px/24px var(--q-font); }
+.mn-month { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; color: var(--q-label); font: 700 19px/24px var(--q-font); }
+.mn-month i { display: grid; width: 14px; height: 14px; color: var(--q-accent); transform: rotate(90deg); }
+.mn-month svg { width: 14px; height: 14px; stroke-width: 3; }
 .mn-cal-steps { display: flex; gap: 6px; }
 .mn-step { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--q-fill-3); color: var(--q-accent); }
 .mn-step svg { width: 16px; height: 16px; stroke-width: 2.4; }

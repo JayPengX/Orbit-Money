@@ -72,7 +72,7 @@ function acctRow(a, balance) {
   const cards = cardsOf(a.id);
   // (Short: the balance needs its room on a 320 px phone.)
   const one = cards.length === 1 ? cards[0] : null;
-  const sub = !a.inTotal ? W('不計入總資產', 'Not in the total') : cards.length > 1 ? W(`${cards.length} 種付款方式`, `${cards.length} ways to pay`) : one ? `${one.name}${one.last4 ? ` •${one.last4}` : ''}` : a.kind === 'credit' && a.due ? W(`每月 ${a.due} 日繳款`, `due day ${a.due}`) : '';
+  const sub = !a.inTotal ? W('不計入總資產', 'Not in the total') : cards.length > 1 ? W(`${cards.length} 種付款方式`, `${cards.length} ways to pay`) : one ? one.name : a.kind === 'credit' && a.due ? W(`每月 ${a.due} 日繳款`, `due day ${a.due}`) : '';
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openAccount(a.id) }, [
     acctTile(a),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: a.name }), sub ? h('small', { text: sub }) : null]),
@@ -105,7 +105,8 @@ export function openAccount(id, host = null) {
     action('exchange', W('轉帳', 'Transfer'), () => (s.close(), openEntry({ kind: 'move', from: a.id }))),
     a.kind === 'credit' && a.pay && acct(a.pay) ? action('card', W('繳卡費', 'Pay bill'), () => (s.close(), payBill(a, bill))) : null
   ]);
-  const cardSec = a.kind !== 'cash' ? cardsSection(a, () => s) : null;
+  // (A 儲值卡 or 電子支付 is itself the way to pay.)
+  const cardSec = METHODS[a.kind] ? cardsSection(a, () => s) : null;
   const recent = mine.sort((x, y) => y.d.localeCompare(x.d) || (y.t || 0) - (x.t || 0)).slice(0, 40);
   const list = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head' }, [h('h2', { text: W('最近', 'Recent') })]),
@@ -135,10 +136,9 @@ const action = (icon, label, onClick) => h('button', { class: 'mn-action', type:
 // the money still from (or owed on) this account.
 const METHODS = {
   bank: ['金融卡', 'Apple Pay', 'Google Pay', 'LINE Pay', '街口支付', '全支付'],
-  credit: ['實體卡', 'Apple Pay', 'Google Pay', 'Samsung Pay', 'LINE Pay', '街口支付'],
-  wallet: ['手機付款', '實體卡', 'Apple Pay']
+  credit: ['實體卡', 'Apple Pay', 'Google Pay', 'Samsung Pay', 'LINE Pay', '街口支付']
 };
-const methodsFor = a => METHODS[a.kind] || METHODS.wallet;
+const methodsFor = a => METHODS[a.kind] || METHODS.bank;
 const methodNote = a => (a.kind === 'credit' ? W('用它付，記在這張卡', 'Charged to this card') : W('用它付，從這個帳戶扣', 'Paid from this account'));
 
 function cardsSection(a, host) {
@@ -268,7 +268,7 @@ export function openAccountEdit(a, host = null) {
     body.replaceChildren(
       ...[
         kindPick ? field(W('種類', 'Kind'), kindPick) : null,
-        brandGrid ? field(f.kind === 'wallet' ? W('哪一個', 'Which one') : W('銀行', 'Bank'), brandGrid) : null,
+        brandGrid ? field(f.kind === 'ticket' ? W('哪一張', 'Which card') : f.kind === 'wallet' ? W('哪一個', 'Which one') : W('銀行', 'Bank'), brandGrid) : null,
         field(W('名稱', 'Name'), nameIn),
         isNew ? field(f.kind === 'credit' ? W('目前欠款', 'Owed now') : W('目前餘額', 'Balance now'), openIn) : null,
         f.kind === 'credit' ? field(W('繳款帳戶', 'Paid from'), payPick) : null,

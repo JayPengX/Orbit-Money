@@ -52,8 +52,8 @@ export const monthLabel = (ym, { year = true } = {}) => {
 export const KINDS = {
   cash: { zh: '現金', en: 'Cash', icon: 'coin', color: '#34c759' },
   bank: { zh: '銀行帳戶', en: 'Bank accounts', icon: 'bank', color: '#0088ff' },
-  ticket: { zh: '電子票證', en: 'Transit cards', icon: 'ticket', color: '#00c3d0' },
-  wallet: { zh: '電子錢包', en: 'E-wallets', icon: 'phone', color: '#cb30e0' },
+  ticket: { zh: '儲值卡', en: 'Stored-value cards', icon: 'ticket', color: '#00c3d0' },
+  wallet: { zh: '電子支付', en: 'E-wallets', icon: 'phone', color: '#cb30e0' },
   credit: { zh: '信用卡', en: 'Credit cards', icon: 'card', color: '#ff8d28' },
   other: { zh: '其他', en: 'Other', icon: 'wallet', color: '#8e8e93' }
 };
@@ -76,5 +76,7 @@ export const logoFor = a => (a?.brand && brandOf(a.brand) ? logoOf(a.brand) : ''
 export function payLabel(e) {
   if (e.k === 'move') return `${acctName(e.a)} → ${acctName(e.to)}`;
   const c = e.via && card(e.via);
-  return c ? `${acctName(e.a)} · ${c.name}${c.last4 ? ` •${c.last4}` : ''}` : acctName(e.a);
+  // (Short, for a row's line: a card with its last digits says which by itself;
+  // Apple Pay and the like need the account they're on.)
+  return c ? (c.last4 ? `${c.name} •${c.last4}` : `${acctName(e.a)} ${c.name}`) : acctName(e.a);
 }

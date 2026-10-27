@@ -3,7 +3,7 @@
 // (holidays and typhoon days off in red, as a Taiwan calendar has them),
 // and the picked day's entries under it. A swipe across the month goes to
 // the next or the last.
-import { h, icons } from '#kit/ui.mjs';
+import { h, icons, menu } from '#kit/ui.mjs';
 import { dayOffAt, myPlace } from '#kit/dayoff.mjs';
 import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState } from '../lib/books.mjs';
 import { state, W, en, money, short, monthLabel, dayLabel, today } from '../shell.mjs';
@@ -11,13 +11,19 @@ import { entryRow, openEntry } from './entry.mjs';
 
 const WEEK = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['日', '一', '二', '三', '四', '五', '六'];
 
-function goMonth(n) {
-  state.month = shiftMonth(state.month, n);
+function goMonth(n, to = null) {
+  state.month = to || shiftMonth(state.month, n);
   // The day picked moves with it: today in this month, else its 1st.
   state.day = today().startsWith(state.month) ? today() : `${state.month}-01`;
   render();
 }
 let render = () => {};
+// The month label: the last year's months to jump to, this one ticked.
+function pickMonth(anchor) {
+  const cur = today().slice(0, 7);
+  const months = Array.from({ length: 12 }, (_, i) => shiftMonth(cur, -i));
+  menu(anchor, months.map(m => ({ label: monthLabel(m), icon: m === state.month ? '✓' : '', onClick: () => goMonth(0, m) })));
+}
 
 export function renderCal(box) {
   render = () => renderCal(box);
@@ -55,7 +61,7 @@ export function renderCal(box) {
     const off = dayOffAt(day, place);
     const cls = ['mn-day', off && 'off', day === now && 'today', day === state.day && 'on', day > now && 'later'].filter(Boolean).join(' ');
     const heat = v?.out ? (0.08 + 0.3 * Math.sqrt(v.out / most)).toFixed(2) : 0;
-    const btn = h('button', { class: cls, type: 'button', style: heat ? `--heat:${heat}` : null, 'aria-label': `${dayLabel(day)}${v?.out ? ` ${money(v.out)}` : ''}`, 'aria-pressed': String(day === state.day), onclick: () => ((state.day = day), render()) }, [
+    const btn = h('button', { class: cls, type: 'button', style: heat ? `--heat:${heat}` : null, 'aria-label': `${dayLabel(day)}${v?.out ? ` ${money(v.out)}` : ''}`, 'aria-pressed': String(day === state.day), 'data-day': day, onclick: () => pickDay(day) }, [
       h('b', { text: String(d) }),
       v?.out ? h('small', { class: 'num out', text: short(v.out) }) : v?.in ? h('small', { class: 'num in', text: `+${short(v.in)}` }) : h('small', { text: '' })
     ]);
@@ -64,13 +70,31 @@ export function renderCal(box) {
   }
   const step = (dir, label) => h('button', { class: 'mn-step', type: 'button', 'aria-label': label, html: icons.chevron, onclick: () => goMonth(dir) });
   const calHead = h('div', { class: 'mn-cal-head' }, [
-    h('button', { class: 'mn-month', type: 'button', text: monthLabel(ym), onclick: () => !now.startsWith(ym) && ((state.month = now.slice(0, 7)), (state.day = now), render()) }),
+    h('button', { class: 'mn-month', type: 'button', onclick: e => pickMonth(e.currentTarget) }, [monthLabel(ym), h('i', { html: icons.chevron })]),
     h('span', { class: 'mn-cal-steps' }, [step(-1, W('上個月', 'Previous month')), step(1, W('下個月', 'Next month'))])
   ]);
   const grid = h('div', { class: 'mn-cal' }, [...WEEK.map((w, i) => h('span', { class: `mn-w${i === 0 || i === 6 ? ' off' : ''}`, text: w })), ...cells]);
   swipe(grid);
 
-  // The day.
+  // A day picked: its square and the list under the month, the rest left as it is.
+  let daySec = daySection(b, place);
+  const pickDay = day => {
+    state.day = day;
+    for (const c of grid.querySelectorAll('.mn-day')) {
+      const on = c.dataset.day === day;
+      c.classList.toggle('on', on);
+      c.setAttribute('aria-pressed', String(on));
+    }
+    const next = daySection(b, place);
+    daySec.replaceWith(next);
+    daySec = next;
+  };
+
+  box.replaceChildren(hero, h('div', { class: 'mn-cal-card' }, [calHead, grid]), daySec);
+}
+
+// The picked day: its total and its entries, with a row to add one.
+function daySection(b, place) {
   const list = entriesOn(b, state.day);
   const dayOut = list.filter(e => e.k === 'out').reduce((s, e) => s + e.amt, 0);
   const dayIn = list.filter(e => e.k === 'in').reduce((s, e) => s + e.amt, 0);
@@ -83,7 +107,7 @@ export function renderCal(box) {
   const addRow = h('button', { class: 'q-ritem mn-addrow', type: 'button', onclick: () => openEntry({ day: state.day }) }, [h('span', { class: 'mn-addrow-i', html: icons.plus }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: list.length ? W('再記一筆', 'Add another') : W('這天還沒記帳', 'Nothing yet this day') })])]);
   const body = h('div', { class: 'q-rowcard mn-entries' }, [...list.map(e => entryRow(e)), addRow]);
 
-  box.replaceChildren(hero, h('div', { class: 'mn-cal-card' }, [calHead, grid]), h('section', { class: 'mn-day-sec' }, [head, body]));
+  return h('section', { class: 'mn-day-sec' }, [head, body]);
 }
 
 const fig = (label, value, cls = '') => h('div', { class: `mn-fig ${cls}`.trim() }, [h('small', { text: label }), h('b', { class: 'num q-fit', text: value })]);

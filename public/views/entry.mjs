@@ -75,7 +75,8 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   const exprEl = h('small', { class: 'num mn-amount-x' });
   const catTile = h('span', { class: 'mn-amount-tile' });
   const amountRow = h('div', { class: 'mn-amount' }, [catTile, h('div', { class: 'mn-amount-n' }, [exprEl, amountEl])]);
-  const cats = h('div', { class: 'mn-cats', role: 'radiogroup', 'aria-label': W('分類', 'Category') });
+  // (.q-kb-hide: behind the keys while the note is typed, so the sheet fits above them.)
+  const cats = h('div', { class: 'mn-cats q-kb-hide', role: 'radiogroup', 'aria-label': W('分類', 'Category') });
   const moveRow = h('div', { class: 'mn-move' });
   const payBtn = h('button', { class: 'mn-pill', type: 'button', onclick: e => pickPay(e.currentTarget) });
   const dateIn = h('input', { class: 'mn-date', type: 'date', value: f.d, max: '2099-12-31', 'aria-label': W('日期', 'Date') });
@@ -227,7 +228,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     lead,
     detent: 'large',
     cls: 'mn-entry',
-    body: [f.k === 'adj' ? null : kinds, amountRow, cats, moveRow, pills, noteIn, invRow],
+    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, moveRow, pills, noteIn, invRow],
     foot: pad
   });
   paint();
