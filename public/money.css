@@ -233,18 +233,13 @@ h1, h2, h3, p { margin: 0; }
 .mn-budget-edit .q-field { flex: none; width: 112px; min-height: 38px; text-align: right; font-size: 16px; }
 
 /* ---- 發票 ---- */
-.mn-carrier { justify-items: stretch; }
-.mn-carrier .q-hc-eyebrow span, .mn-hero .q-hc-eyebrow span { display: inline-grid; width: 16px; height: 16px; }
+.mn-hero .q-hc-eyebrow span { display: inline-grid; width: 16px; height: 16px; }
 .mn-barcode { display: block; height: 64px; padding: 8px 14px; border-radius: 12px; background: #fff; }
 .mn-barcode svg { display: block; width: 100%; height: 100%; }
 .mn-barcode.big { height: 120px; margin: 8px 0 0; padding: 12px 18px; }
 .mn-carrier-code { font: 700 20px/24px var(--q-font-mono); letter-spacing: 0.12em; text-align: center; }
 .mn-carrier-code.big { display: block; margin-top: 10px; color: var(--q-label); font-size: 24px; }
 .mn-carrier-sheet .mn-hint { margin: 10px 0 16px; text-align: center; }
-.mn-scanrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mn-scanbtn { gap: 8px; min-height: 52px; font-size: 17px; }
-.mn-scanbtn span { display: grid; width: 22px; height: 22px; }
-.mn-scanbtn svg { width: 22px; height: 22px; }
 .mn-drawcard { display: grid; padding: 4px 14px; border-radius: 18px; background: var(--q-surface); }
 .mn-drawrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; }
 .mn-drawrow + .mn-drawrow { border-top: var(--q-hairline) solid var(--q-sep); }
@@ -288,5 +283,16 @@ h1, h2, h3, p { margin: 0; }
 .mn-mailbox small, .mn-confirm small { color: var(--q-label-2); font: var(--q-t-footnote); }
 .mn-confirm { display: grid; justify-items: center; gap: 2px; margin-top: 10px; margin-bottom: 6px; padding: 10px; border-radius: 16px; background: color-mix(in srgb, var(--q-accent) 14%, transparent); }
 .mn-confirm b { font: 700 24px/30px var(--q-font-rounded); letter-spacing: 0.08em; }
-.mn-scanrow + .q-rowcard { margin-top: -4px; }
 .mn-draw-note { margin: 8px 4px 0; }
+/* 發票: the ways in. */
+.mn-in-stat { display: grid; gap: 2px; }
+.mn-in-stat b { color: #fff; font: 700 30px/36px var(--q-font-rounded); }
+.mn-in-stat small { color: rgba(255, 255, 255, 0.72); font: 500 13px/17px var(--q-font); }
+.mn-ways { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mn-ways.one { grid-template-columns: 1fr; }
+.mn-way { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 10px; border: 0; border-radius: 99px; background: rgba(255, 255, 255, 0.1); box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.16); color: #fff; font: 600 15px/1 var(--q-font); white-space: nowrap; }
+.mn-way span { display: grid; width: 18px; height: 18px; color: var(--mn-gold); }
+.mn-way svg { width: 18px; height: 18px; }
+.mn-way:active { transform: scale(0.98); }
+.mn-inhero .mn-hero-tag { justify-self: start; }
+.mn-drawwrap { display: grid; gap: 10px; }

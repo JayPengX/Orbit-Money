@@ -22,6 +22,7 @@ export const GLYPHS = {
   card: g('<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M6.5 15h4"/>'),
   repeat: g('<path d="M4 11V9a3 3 0 0 1 3-3h12l-3-3M20 13v2a3 3 0 0 1-3 3H5l3 3"/>'),
   target: kitIcons.target,
+  mail: g('<path d="M3.5 6.5h17v11h-17zM3.5 7l8.5 6.5L20.5 7"/>'),
   barcode: g('<path d="M4 5v14M7 5v14M10.5 5v14M13 5v14M16.5 5v14M20 5v14"/>')
 };
 const icon = name => GLYPHS[name] || kitIcons[name] || kitIcons.grid;

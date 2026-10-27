@@ -2,7 +2,7 @@
 // scanned in (both QR codes: the number, the seller, every item), and 對獎:
 // each scanned invoice against its draw (財政部's numbers, through the proxy),
 // the prize and where to claim it.
-import { h, icons, tile, sheet, toast, empty } from '#kit/ui.mjs';
+import { h, icons, tile, sheet, toast } from '#kit/ui.mjs';
 import { proxyJson } from '#kit/orbit.mjs';
 import { live } from '../lib/books.mjs';
 import { periodOf, periodDates, prizeOf, CARRIER, cleanCarrier, code39Svg } from '../lib/invoice.mjs';
@@ -61,30 +61,28 @@ export function renderInvoices(box) {
     }
   }
 
-  const hero = carrier
-    ? h('button', { class: 'q-hero-card mn-hero mn-carrier', type: 'button', onclick: () => openCarrier() }, [
-        h('span', { class: 'q-hc-eyebrow' }, [h('span', { html: glyph('barcode') }), W('手機條碼', 'Mobile barcode')]),
-        h('span', { class: 'mn-barcode', html: code39Svg(carrier, { height: 56 }) }),
-        h('b', { class: 'mn-carrier-code', text: carrier })
-      ])
-    : h('section', { class: 'q-hero-card mn-hero' }, [
-        h('span', { class: 'q-hc-eyebrow' }, [h('span', { html: glyph('barcode') }), W('手機條碼', 'Mobile barcode')]),
-        h('b', { class: 'q-hc-title', text: W('結帳時出示載具', 'Show your carrier at the till') }),
-        h('button', { class: 'q-hc-btn mn-hero-btn', type: 'button', text: W('設定手機條碼', 'Set your barcode'), onclick: () => editCarrier() })
-      ]);
-  const scan = h('div', { class: 'mn-scanrow' }, [
-    h('button', { class: 'q-btn primary mn-scanbtn', type: 'button', onclick: () => scanInvoice() }, [h('span', { html: glyph('scan') }), W('掃描發票', 'Scan')]),
-    h('button', { class: 'q-btn glass mn-scanbtn', type: 'button', onclick: () => importCarrier() }, [h('span', { html: glyph('receipt') }), W('匯入載具', 'Import')])
+  // The tab is for bringing purchases in (Jay rarely shows the barcode): the
+  // ways in lead; the barcode and the draw numbers wait at the bottom.
+  const month = today().slice(0, 7);
+  const thisMonth = invoices().filter(e => e.d.startsWith(month));
+  const mailOn = !!state.mail?.address;
+  const way = (glyphName, label, onclick) => h('button', { class: 'mn-way', type: 'button', onclick }, [h('span', { html: glyph(glyphName) }), label]);
+  const hero = h('section', { class: 'q-hero-card mn-hero mn-inhero' }, [
+    h('span', { class: 'q-hc-eyebrow' }, [h('span', { html: glyph('receipt') }), W('帶入消費明細', 'Bring purchases in')]),
+    thisMonth.length
+      ? h('span', { class: 'mn-in-stat' }, [h('b', { class: 'num', text: W(`${thisMonth.length} 張`, `${thisMonth.length}`) }), h('small', { text: W(`這個月帶入 · ${money(thisMonth.reduce((t, e) => t + (e.inv.total ?? e.amt), 0))}`, `invoices this month · ${money(thisMonth.reduce((t, e) => t + (e.inv.total ?? e.amt), 0))}`) })])
+      : h('span', { class: 'mn-in-stat' }, [h('b', { text: W('不用打字', 'No typing') }), h('small', { text: W('店家、金額、品項自動填好', 'Seller, total and items filled in') })]),
+    h('button', { class: 'mn-hero-cta', type: 'button', onclick: () => scanInvoice() }, [h('span', { html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')]),
+    h('div', { class: `mn-ways${mailOn ? '' : ' one'}` }, [
+      way('receipt', W('匯入載具明細', 'Import carrier file'), () => importCarrier()),
+      mailOn ? way('mail', W('信箱匯入', 'By mail'), () => openMailSetup()) : null
+    ]),
+    state.mail?.confirm ? h('span', { class: 'mn-hero-tag', text: W(`Gmail 確認碼 ${state.mail.confirm.code}`, `Gmail code ${state.mail.confirm.code}`) }) : null
   ]);
-
-  // The mail-in address (once the family has a mail domain).
-  const mail = state.mail?.address
-    ? h('button', { class: 'q-ritem chevron mn-row mn-mailrow', type: 'button', onclick: () => openMailSetup() }, [tile(icons.send, '#0a84ff'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('信箱自動匯入', 'Import by mail') }), h('small', { text: state.mail.confirm ? W(`Gmail 確認碼 ${state.mail.confirm.code}`, `Gmail code ${state.mail.confirm.code}`) : W('轉寄財政部的明細信，打開就記好', 'Forward the Ministry’s export: it’s in when you open') })])])
-    : null;
 
   // 對獎.
   const latest = draws[0];
-  const sections = [hero, scan, mail ? h('div', { class: 'q-rowcard' }, [mail]) : null].filter(Boolean);
+  const sections = [hero];
   if (won.length)
     sections.push(
       h('section', { class: 'q-section' }, [
@@ -108,8 +106,16 @@ export function renderInvoices(box) {
       ])
     );
   }
-  if (!periods.length) sections.push(empty({ icon: 'ticket', title: W('還沒有掃過發票', 'No invoices yet'), body: W('紙本發票掃左右兩個 QR code；載具裡的發票從財政部寄的明細檔匯入。開獎時自動對獎。', 'Scan both QR codes on a paper invoice, or import your carrier’s list from the Ministry’s export. Each is checked at the draw.') }));
-  if (latest) sections.push(drawCard(latest));
+  // The rarely used, at the bottom.
+  sections.push(
+    h('section', { class: 'q-section' }, [
+      h('div', { class: 'q-section-head' }, [h('h2', { text: W('其他', 'More') })]),
+      h('div', { class: 'q-rowcard' }, [
+        h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => (carrier ? openCarrier() : editCarrier()) }, [tile(glyph('barcode'), '#3a3a3c'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('手機條碼', 'Mobile barcode') }), h('small', { text: carrier || W('還沒設定', 'Not set') })])]),
+        latest ? h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => sheet({ title: W('中獎號碼', 'Winning numbers'), subtitle: periodName(latest.period), detent: 'medium', body: drawCard(latest) }) }, [tile(icons.trophy, '#f59e0b'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('中獎號碼', 'Winning numbers') }), h('small', { text: periodName(latest.period) })])]) : null
+      ])
+    ])
+  );
   box.replaceChildren(...sections);
 }
 
@@ -126,8 +132,7 @@ function invRow(e, draw) {
 // The newest draw's numbers, as 財政部 publishes them.
 function drawCard(d) {
   const row = (label, nums, sub) => h('div', { class: 'mn-drawrow' }, [h('span', {}, [h('b', { text: label }), sub ? h('small', { text: sub }) : null]), h('span', { class: 'mn-drawnums num' }, nums.map(n => h('span', { text: n })))]);
-  return h('section', { class: 'q-section' }, [
-    h('div', { class: 'q-section-head' }, [h('h2', { text: W('中獎號碼', 'Winning numbers') }), h('span', { class: 'mn-sec-note', text: periodName(d.period) })]),
+  return h('div', { class: 'mn-drawwrap' }, [
     h('div', { class: 'mn-drawcard' }, [
       row(W('特別獎', 'Special'), [d.special], W('1,000 萬', 'NT$10M')),
       row(W('特獎', 'Grand'), [d.grand], W('200 萬', 'NT$2M')),
