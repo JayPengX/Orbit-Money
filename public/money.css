@@ -14,7 +14,7 @@
 html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; background: var(--q-page); color: var(--q-text); line-height: 1.45; }
 button { font: inherit; color: inherit; cursor: pointer; }
-[hidden] { display: none !important; }
+[hidden] { display: none; }
 h1, h2, h3, p { margin: 0; }
 .num { font-variant-numeric: tabular-nums; }
 
@@ -32,6 +32,23 @@ h1, h2, h3, p { margin: 0; }
 /* Every primary button wears the same gold, dark text (white on gold is unreadable). */
 .q-btn.primary { background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45); }
 .q-btn.primary:disabled { opacity: 0.45; }
+/* ---- The focus card (kit .q-focus) as money's black card with gold in it:
+   the same in light and dark, never a white plate (the look before 0fc68be). ---- */
+.q-hero-card,
+.q-focus {
+  --q-hc-a: #15110b;
+  --q-hc-b: #2c2214;
+  --q-hc-glow: #f2b33d;
+  --mn-gold: #f6c453;
+  --mn-gold-2: #e7a524;
+  box-shadow: inset 0 0 0 0.5px rgba(246, 196, 83, 0.35), 0 14px 30px -18px rgba(60, 40, 10, 0.6);
+}
+.q-focus .q-focus-label, .q-hero-card .q-hc-eyebrow { color: var(--mn-gold); }
+.q-focus .q-focus-bar { height: 6px; background: rgba(255, 255, 255, 0.14); }
+.q-focus .q-focus-bar > i { background: linear-gradient(90deg, var(--mn-gold-2), var(--mn-gold)); }
+.q-focus .q-focus-bar.over > i { background: #ff6b5e; }
+.q-focus .q-focus-figs { padding-top: 10px; border-top: 0.5px solid rgba(255, 255, 255, 0.12); }
+.q-focus .q-focus-figs b.in { color: #5fe08a; }
 /* ---- 月曆 ----
    The month's spending is the focus (kit .q-focus, on its card); the
    month is a quiet grid of dates, each day's amount small and grey under it,
@@ -121,7 +138,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-move { display: grid; grid-template-columns: 1fr 20px 1fr; align-items: center; gap: 6px; margin-top: var(--mn-gap); }
 .mn-move-arrow { display: grid; place-items: center; color: var(--q-label-3); }
 .mn-move-arrow svg { width: 18px; height: 18px; }
-.mn-move-pick { display: grid !important; justify-items: start; gap: 0 !important; min-height: 54px !important; padding: 6px 12px !important; }
+.mn-move-pick { display: grid; justify-items: start; gap: 0 !important; min-height: 54px !important; padding: 6px 12px !important; }
 .mn-move-pick small { color: var(--q-label-2); font: 500 12px/14px var(--q-font); }
 .mn-pills { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; margin-top: var(--mn-gap); }
 .mn-pill { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); font: 500 15px/20px var(--q-font); text-align: left; }
@@ -239,14 +256,14 @@ h1, h2, h3, p { margin: 0; }
 .mn-scan-frame { position: absolute; left: 50%; top: 42%; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: min(82vw, 380px); transform: translate(-50%, -50%); }
 .mn-scan-frame i { aspect-ratio: 1; border: 3px solid rgba(255, 255, 255, 0.85); border-radius: 16px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.0); }
 .mn-scan-top { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 14px; }
-.mn-scan-x { width: 40px; height: 40px; border-radius: 50%; background: rgba(0, 0, 0, 0.5) !important; color: #fff !important; }
+.mn-scan-x { width: 40px; height: 40px; border-radius: 50%; background: rgba(0, 0, 0, 0.5); color: #fff !important; }
 .mn-scan-foot { position: absolute; left: 0; right: 0; bottom: 0; display: grid; justify-items: center; gap: 12px; padding: 18px 16px calc(env(safe-area-inset-bottom) + 18px); background: linear-gradient(transparent, rgba(0, 0, 0, 0.75) 30%); }
 .mn-scan-status { font: 600 17px/22px var(--q-font); text-align: center; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
 .mn-scan-chips { display: flex; gap: 8px; }
 .mn-scan-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 12px; border-radius: 99px; background: rgba(255, 255, 255, 0.16); font: 600 13px/1 var(--q-font); }
 .mn-scan-chip.on { background: var(--q-green); }
 .mn-scan-chip svg { width: 14px; height: 14px; stroke-width: 3; }
-.mn-scan-photo { gap: 6px; min-height: 44px; color: #fff !important; }
+.mn-scan-photo { gap: 6px; min-height: 44px; color: #fff; }
 .mn-scan-photo svg { width: 18px; height: 18px; }
 .mn-scan.nocam .mn-scan-frame { display: none; }
 
