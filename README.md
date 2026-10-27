@@ -38,7 +38,7 @@ Your own books for real money: what you spend each day, what each account holds,
 | --- | --- |
 | App | Plain JavaScript (ES modules), HTML and CSS; no framework, no build step, no runtime dependencies |
 | Platform | Installable web app with a service worker; the camera reads QR codes with BarcodeDetector, else jsQR |
-| Shared | Look, Orbit Pass and the carrier CSV reader from the kit in [Shared-Proxy](https://github.com/JayPengX/Shared-Proxy) |
+| Shared | Look, Orbit Pass and the carrier CSV reader from the kit in [Orbit-Core](https://github.com/JayPengX/Orbit-Core) |
 | Data | Invoice draws (財政部) and store names (經濟部 GCIS) through the Orbit proxy on Cloudflare Workers |
 | Storage | The books on the Orbit Pass (`m1:` + gzip, up to 1 MB) |
 | Tests | `node --test` on the books and invoices |
@@ -72,10 +72,10 @@ MAP.md                   how it works
 
 ## Getting started
 
-The app loads the shared kit from a sibling folder, so clone this repo next to [Shared-Proxy](https://github.com/JayPengX/Shared-Proxy):
+The app loads the shared kit from a sibling folder, so clone this repo next to [Orbit-Core](https://github.com/JayPengX/Orbit-Core):
 
 ```bash
-git clone https://github.com/JayPengX/Shared-Proxy.git
+git clone https://github.com/JayPengX/Orbit-Core.git
 git clone https://github.com/JayPengX/Orbit-Money.git
 cd Orbit-Money
 ```
@@ -83,25 +83,25 @@ cd Orbit-Money
 Requirements: Node.js 22 or newer. There is nothing to install: no framework, no `node_modules`.
 
 ```bash
-npm test   # links ../Shared-Proxy/kit as .kit, then runs node --test
+npm test   # links ../Orbit-Core/kit as .kit, then runs node --test
 ```
 
 See it on a phone-sized screen, signed in with a made-up wallet (needs Playwright):
 
 ```bash
 # a screenshot, saved in /tmp/orbit-preview
-node ../Shared-Proxy/tools/preview.mjs money --width 375
+node ../Orbit-Core/tools/preview.mjs money --width 375
 # serve it, then open http://localhost:8123/Orbit-Money/
-node ../Shared-Proxy/tools/preview.mjs money --serve --port 8123
+node ../Orbit-Core/tools/preview.mjs money --serve --port 8123
 ```
 
-`--dark`, `--lang en`, `--webkit` (Safari's engine) and the other flags are listed in [Shared-Proxy/tools/README.md](https://github.com/JayPengX/Shared-Proxy/blob/main/tools/README.md).
+`--dark`, `--lang en`, `--webkit` (Safari's engine) and the other flags are listed in [Orbit-Core/tools/README.md](https://github.com/JayPengX/Orbit-Core/blob/main/tools/README.md).
 
 See it with made-up books instead of an empty one:
 
 ```bash
 node tools/sample-books.mjs > /tmp/books.txt
-node ../Shared-Proxy/tools/preview.mjs money cal accts stats inv --webkit --width 320 --payload /tmp/books.txt
+node ../Orbit-Core/tools/preview.mjs money cal accts stats inv --webkit --width 320 --payload /tmp/books.txt
 ```
 
 ## Deploying
@@ -125,6 +125,6 @@ QR reading falls back to [jsQR](https://github.com/cozmo/jsQR) (Apache-2.0), kep
 | [Orbit Beats](https://github.com/JayPengX/Orbit-Beats) | Endless music and your own beats |
 | [Orbit Law](https://github.com/JayPengX/Orbit-Law) | Laws, rulings and bills, linked |
 | [Orbit Money](https://github.com/JayPengX/Orbit-Money) | Your own books |
-| [Shared-Proxy](https://github.com/JayPengX/Shared-Proxy) | The kit, the Orbit Pass and the Workers behind them all |
+| [Orbit-Core](https://github.com/JayPengX/Orbit-Core) | The kit, the Orbit Pass and the Workers behind them all |
 
 How it was all built, in pictures and numbers: [jaypengx.com/showcase](https://jaypengx.com/showcase/).

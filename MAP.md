@@ -31,7 +31,7 @@ Live: https://jaypengx.com/money/
   address (`<box>@MAIL_DOMAIN`, the Worker's `money-mail.js`) and added on
   the next open. Each invoice is `inv-<number>`, so nothing comes in twice.
   The category is guessed from the store and items (`lib/cats.mjs guessCat`).
-- **Proxy** (`https://invoice.orbit/…` through `proxyJson`, Shared-Proxy
+- **Proxy** (`https://invoice.orbit/…` through `proxyJson`, Orbit-Core
   `invoice.js`): `win.json` the last draws (財政部's invoice.xml),
   `seller.json?ids=` names behind 統編 (經濟部 GCIS).
 - **Logos** (`img/brand/`, `lib/logos.mjs`): each bank's or wallet's own
