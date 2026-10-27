@@ -27,9 +27,11 @@ Live: https://orbit.jaypengx.com/money/
   (`vendor/jsqr.mjs`, Apache-2.0) on the frame and each half.
 - **載具** (a person can't get 財政部's AppID): the CSV the 電子發票平台
   exports (查詢消費發票 › 匯出) read by `#kit/carrier-csv.mjs`, picked in
-  the app (`views/carrier-import.mjs`) or forwarded to the Pass's own
+  the app (`views/carrier-import.mjs`) or mailed to the Pass's own
   address (`<box>@MAIL_DOMAIN`, the Worker's `money-mail.js`) and added on
-  the next open. Each invoice is `inv-<number>`, so nothing comes in twice.
+  the next open: the person sets that address as the 手機條碼's email on
+  the platform with 消費發票彙整通知 on, so 財政部 mails it weekly by itself;
+  財政部's check of the address shows in the app as 完成驗證. Each invoice is `inv-<number>`, so nothing comes in twice.
   The category is guessed from the store and items (`lib/cats.mjs guessCat`).
 - **Proxy** (`https://invoice.orbit/…` through `proxyJson`, Orbit-Core
   `invoice.js`): `win.json` the last draws (財政部's invoice.xml),
