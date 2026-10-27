@@ -14,7 +14,8 @@ import { passSync } from '#kit/pass-sync.mjs';
 import { orbitSession, tabBar, topActions, installGate, watchUpdates, keepOffline, storedAccount, cachedPayload, schedulePush, setNotifyOn, enablePush } from '#kit/orbit.mjs';
 import { decodeBooks, encodeBooks, mergeBooks, runRepeats, upgradeBooks, put } from './lib/books.mjs';
 import { state, hooks, lang, W, today, dayLabel } from './shell.mjs';
-import { useCats, upgradeCats, passes, remindTimes, catOf, subOf, catName } from './lib/cats.mjs';
+import { useCats, upgradeCats } from './lib/cats.mjs';
+import { reminders, remindTimes, upgradeRenew } from './lib/renew.mjs';
 import { renderCal } from './views/calendar.mjs';
 import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
@@ -73,18 +74,23 @@ document.addEventListener('visibilitychange', () => document.visibilityState ===
 hooks.changed = () => (stamp++, pass.changed(), keepLocal(), sync({ soon: true }), render(), plan());
 
 // 到期提醒 as phone notices (kind 'renew', its switch in the Pass sheet): each
-// pass at the times its own settings say (更多 › 到期提醒, lib/cats.mjs remindTimes).
+// reminder at the times it's set to (更多 › 到期提醒, lib/renew.mjs remindTimes).
 function plan() {
   const now = Date.now();
-  const items = passes(state.books, today()).filter(p => p.left >= 0).flatMap(p => {
-    const name = catName(subOf(p.sub) || catOf(p.cat), lang);
-    const last = dayLabel(p.end, { week: false });
-    return remindTimes(p).map(({ n, at }) =>
-      n
-        ? { at, title: W(n === 1 ? `${name} 明天到期` : `${name} ${n} 天後到期`, n === 1 ? `${name} ends tomorrow` : `${name} ends in ${n} days`), body: W(`${last}是最後一天，記得續購。`, `${last} is its last day.`), tag: `renew:${p.id}:${p.end}:${n}`, kind: 'renew', hash: 'cal' }
-        : { at, title: W(`${name} 今天到期`, `${name} ends today`), body: W('今天是最後一天。', 'Today is its last day.'), tag: `renew:${p.id}:${p.end}:0`, kind: 'renew', hash: 'cal' }
-    );
-  });
+  const items = reminders(state.books, today())
+    .filter(x => x.left != null && x.left >= 0)
+    .flatMap(x => {
+      const { r, due } = x;
+      const day = dayLabel(due, { week: false });
+      return remindTimes(r, x).map(({ n, at }) => ({
+        at,
+        title: r.roll ? W(n ? `${r.name} ${n === 1 ? '明天' : `${n} 天後`}續訂` : `${r.name} 今天續訂`, n ? `${r.name} renews in ${n} day${n === 1 ? '' : 's'}` : `${r.name} renews today`) : W(n ? `${r.name} ${n === 1 ? '明天' : `${n} 天後`}到期` : `${r.name} 今天到期`, n ? `${r.name} ends in ${n} day${n === 1 ? '' : 's'}` : `${r.name} ends today`),
+        body: r.roll ? W(`${day}會自動扣款。`, `Charged on ${day}.`) : W(n ? `${day}是最後一天，記得續。` : '今天是最後一天。', n ? `${day} is its last day.` : 'Today is its last day.'),
+        tag: `renew:${r.id}:${due}:${n}`,
+        kind: 'renew',
+        hash: 'cal'
+      }));
+    });
   schedulePush(q, items.filter(x => x.at > now));
 }
 // Notices turned on from the app (月曆's 提醒我): this phone asked, the pass's switch on.
@@ -110,7 +116,7 @@ function settle() {
   }
   if (runRepeats(b, today())) changed = true;
   // (Books from before a change in what entries mean, brought up to date.)
-  if (upgradeBooks(b) + upgradeCats(b)) changed = true;
+  if (upgradeBooks(b) + upgradeCats(b) + upgradeRenew(b)) changed = true;
   return changed;
 }
 

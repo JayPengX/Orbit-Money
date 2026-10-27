@@ -29,6 +29,9 @@ for (let i = 0; i < 26; i++) {
 put(b, 'entries', { id: 'e-sal', d: addDays(day, -20), k: 'in', amt: 52000, cat: 'salary', note: '十月薪水', a: 'a1', via: '', to: '', t: now }, now);
 put(b, 'entries', { id: 'inv-AB12345678', d: addDays(day, -2), k: 'out', amt: 85, cat: 'food', note: '全家便利商店', a: 'cash', via: '', to: '', inv: { no: 'AB12345678', day: addDays(day, -2), sid: '16446274', seller: '全家便利商店', total: 85, items: [{ name: '拿鐵', qty: 1, price: 55 }, { name: '茶葉蛋', qty: 1, price: 30 }] }, t: now }, now);
 put(b, 'entries', { id: 'e-tpass', d: addDays(day, -27), k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', note: '', a: 'a1', via: 'c1', to: '', t: now }, now);
+put(b, 'renew', { id: 'tpass', name: 'TPASS', start: '', n: 30, unit: 'day', roll: false, cat: 'transport', sub: 'transport:tpass', on: true, at: [1, 0] }, now);
+put(b, 'renew', { id: 'rm-ai', name: 'Claude Pro', start: addDays(day, -25), n: 1, unit: 'month', roll: true, cat: '', sub: '', on: true, at: [1] }, now);
+put(b, 'renew', { id: 'rm-gym', name: '健身房會員', start: addDays(day, -300), n: 1, unit: 'year', roll: false, cat: '', sub: '', on: true, at: [7, 1] }, now);
 put(b, 'cats', { id: 'transport:youbike', pay: { a: 'a2', via: '' }, unit: 5 }, now);
 put(b, 'budgets', { id: 'b-all', cat: '', amt: 20000 }, now);
 put(b, 'budgets', { id: 'b-food', cat: 'food', amt: 6000 }, now);

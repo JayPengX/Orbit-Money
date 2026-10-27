@@ -23,10 +23,11 @@ Live: https://orbit.jaypengx.com/money/
   `r-<id>-<day>`). Every total goes through `lines` (one function: a spend
   less what came back, its fee, an income). `upgradeBooks` / `upgradeCats`
   bring older books up on open (退款 income → money back for its likeliest
-  spend; 訂閱/遊戲 from 娛樂 to 數位). 到期提醒: a sub with `days` (TPASS 30)
-  counts down on 月曆 and sends a notice (`renew`) the evening before and the
-  morning of its last day; 更多 › 到期提醒 (views/renew.mjs) sets the start day
-  (shows where it comes from), the days, and when to be told. Every record has `u`; a removal is a tombstone kept 120
+  spend; 訂閱/遊戲 from 娛樂 to 數位). 到期提醒 (`renew`, lib/renew.mjs): any pass, subscription,
+  membership or card fee, each with its start, how long it lasts, whether it
+  renews itself, the category whose spend restarts it, and when to be told;
+  `upgradeRenew` turns the old TPASS setting into the first item. Due ones show
+  on 月曆 and become notices (`renew`); 更多 › 到期提醒 (views/renew.mjs) edits them. Every record has `u`; a removal is a tombstone kept 120
   days; two devices merge record by record, newest `u` wins. Stored on the
   Pass as `m1:` + gzip base64 (`orbit-money`, 1 MB).
 - **發票** (`lib/invoice.mjs`, tested): both QR codes of a paper

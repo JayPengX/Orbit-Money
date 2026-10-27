@@ -158,18 +158,14 @@ export function openCats(kind = 'out') {
 function defText(c) {
   const pay = c.pay?.a && acct(c.pay.a) ? (c.pay.via && card(c.pay.via) ? `${acct(c.pay.a).name} · ${card(c.pay.via).name}` : acct(c.pay.a).name) : '';
   const amt = c.unit > 0 ? W(`${money(c.unit)} 一單位`, `${money(c.unit)} a unit`) : c.amt > 0 ? W(`固定 ${money(c.amt)}`, `always ${money(c.amt)}`) : '';
-  const days = c.days > 0 ? W(`${c.days} 天到期提醒`, `reminds after ${c.days} days`) : '';
-  return [pay, amt, days].filter(Boolean).join(' · ');
+  return [pay, amt].filter(Boolean).join(' · ');
 }
 
 // 自動帶入: the way to pay and the amount a category (or a sub) fills in when
 // it's picked. Nothing until the person sets it; the entry can still change both.
 function openDefaults(c, done) {
   const b = state.books;
-  const f = { pay: c.pay?.a ? { a: c.pay.a, via: c.pay.via || '' } : null, mode: c.unit > 0 ? 'unit' : c.amt > 0 ? 'amt' : 'none', n: String(c.unit || c.amt || ''), days: c.days > 0 ? String(c.days) : '' };
-  // 到期提醒: what it buys lasts this many days (a TPASS 30); 月曆 counts down, a notice the day before.
-  const daysIn = h('input', { class: 'q-field num', type: 'text', inputmode: 'numeric', maxlength: '3', placeholder: W('不提醒', 'No reminder'), value: f.days, 'aria-label': W('有效天數', 'Lasts (days)') });
-  daysIn.addEventListener('input', () => (f.days = daysIn.value));
+  const f = { pay: c.pay?.a ? { a: c.pay.a, via: c.pay.via || '' } : null, mode: c.unit > 0 ? 'unit' : c.amt > 0 ? 'amt' : 'none', n: String(c.unit || c.amt || '') };
   const payBtn = h('button', { class: 'mn-pill', type: 'button' });
   const paintPay = () => payBtn.replaceChildren(h('span', { class: 'mn-pill-t', text: (f.pay && payOptions({ all: true }).find(o => o.a === f.pay.a && o.via === f.pay.via)?.label) || W('不指定', 'Any') }), h('i', { html: icons.chevron }));
   payBtn.onclick = e => menu(e.currentTarget, [{ label: W('不指定', 'Any'), icon: f.pay ? '' : '✓', onClick: () => ((f.pay = null), paintPay()) }, ...payOptions({ keep: f.pay ? [f.pay.a, f.pay.via] : [] }).map(o => ({ label: o.label, icon: f.pay?.a === o.a && f.pay?.via === o.via ? '✓' : '', onClick: () => ((f.pay = { a: o.a, via: o.via }), paintPay()) }))]);
@@ -193,7 +189,7 @@ function openDefaults(c, done) {
   const field = (label, ctl) => h('div', { class: 'mn-field' }, [h('span', { class: 'mn-field-l', text: label }), ctl]);
   const s = sheet({
     title: W(`${catName(c, lang)} 自動帶入`, `${catName(c, lang)}: fill in`),
-    body: [h('div', { class: 'mn-form' }, [field(W('付款方式', 'Paid with'), payBtn), field(W('金額', 'Amount'), modes), num, hint, field(W('到期提醒（有效天數）', 'Reminder (lasts days)'), daysIn)])],
+    body: [h('div', { class: 'mn-form' }, [field(W('付款方式', 'Paid with'), payBtn), field(W('金額', 'Amount'), modes), num, hint])],
     foot: h('div', { class: 'q-sheet-foot' }, [
       h('button', {
         class: 'q-btn primary',
@@ -202,8 +198,7 @@ function openDefaults(c, done) {
         onclick: () => {
           const v = Math.round(Number(String(f.n).replace(/[^\d]/g, '')) || 0);
           if (f.mode !== 'none' && !(v > 0)) return toast(W('請填金額', 'Fill in the amount'), { tone: 'bad' });
-          const days = Math.min(400, Math.round(Number(String(f.days).replace(/[^\d]/g, '')) || 0));
-          saveCat(b, { id: c.id, pay: f.pay, amt: f.mode === 'amt' ? v : 0, unit: f.mode === 'unit' ? v : 0, days });
+          saveCat(b, { id: c.id, pay: f.pay, amt: f.mode === 'amt' ? v : 0, unit: f.mode === 'unit' ? v : 0 });
           changed();
           s.close();
           done();

@@ -31,13 +31,12 @@ const icon = name => GLYPHS[name] || kitIcons[name] || kitIcons.grid;
 
 // Spending. `subs`: the finer kinds most people keep apart (Jay 2026-10-27:
 // 餐飲 into meals, his monthly TPASS under 交通), each picked or not.
-const S = (cat, list) => list.map(([key, zh, en, more]) => ({ id: `${cat}:${key}`, zh, en, parent: cat, ...more }));
+const S = (cat, list) => list.map(([key, zh, en]) => ({ id: `${cat}:${key}`, zh, en, parent: cat }));
 export const OUT = [
   { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['breakfast', '早餐', 'Breakfast'], ['lunch', '午餐', 'Lunch'], ['dinner', '晚餐', 'Dinner'], ['late', '宵夜', 'Late night'], ['snack', '點心', 'Snacks'], ['out', '聚餐', 'Eating out']]) },
   { id: 'drink', zh: '飲料', en: 'Drinks', icon: 'cup', color: '#ac7f5e', subs: S('drink', [['coffee', '咖啡', 'Coffee'], ['tea', '手搖飲', 'Bubble tea']]) },
-  // (The family's Orbit Transit: TPASS and every way it rides. A TPASS runs
-  // 30 days from its first day: days, for 到期提醒.)
-  { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS', { days: 30 }], ['mrt', '捷運', 'MRT'], ['bus', '公車', 'Bus'], ['youbike', 'YouBike', 'YouBike'], ['thsr', '高鐵', 'High-speed rail'], ['tra', '台鐵', 'Railway'], ['coach', '客運', 'Coach'], ['taxi', '計程車', 'Taxi']]) },
+  // (The family's Orbit Transit: TPASS and every way it rides.)
+  { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['mrt', '捷運', 'MRT'], ['bus', '公車', 'Bus'], ['youbike', 'YouBike', 'YouBike'], ['thsr', '高鐵', 'High-speed rail'], ['tra', '台鐵', 'Railway'], ['coach', '客運', 'Coach'], ['taxi', '計程車', 'Taxi']]) },
   { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55', subs: S('shop', [['clothes', '服飾', 'Clothes'], ['tech', '3C', 'Tech'], ['online', '網購', 'Online'], ['beauty', '美妝', 'Beauty']]) },
   { id: 'daily', zh: '日用品', en: 'Household', icon: 'basket', color: '#00c3d0', subs: S('daily', [['grocery', '超市', 'Groceries'], ['supplies', '生活用品', 'Supplies']]) },
   { id: 'home', zh: '居住', en: 'Housing', icon: 'home', color: '#6155f5', subs: S('home', [['rent', '房租', 'Rent'], ['fee', '管理費', 'Building fee'], ['loan', '房貸', 'Mortgage'], ['fix', '修繕', 'Repairs']]) },
@@ -112,63 +111,6 @@ export function defaultsOf(cat, sub = '') {
   return { pay: x.pay?.a ? x.pay : c.pay?.a ? c.pay : null, ...(amtOf(x) || amtOf(c) || { amt: 0, unit: 0 }) };
 }
 export const catsFor = kind => catList(kind === 'in' ? 'in' : 'out');
-// How many days what it buys lasts (a TPASS 30; 0 none), a sub's own over its category's.
-export function daysOf(cat, sub = '') {
-  const x = sub && table.get(sub)?.parent === cat ? table.get(sub) : null;
-  return Number(x?.days) || Number(table.get(cat)?.days) || 0;
-}
-
-// ---- 到期提醒 ------------------------------------------------------------------------
-
-// What's bought for a while (a TPASS 30 days): a category or sub with `days`.
-// Each kind's own settings in books.cats: start (the day the current one
-// began, set by hand: one bought before the books, or first ridden later
-// than bought), remind { on, at: days before its last day, 0 that morning }.
-export const passKinds = () => [...table.values()].filter(c => Number(c.days) > 0 && !c.hidden);
-export function remindOf(id) {
-  const r = table.get(id)?.remind;
-  return { on: r?.on !== false, at: Array.isArray(r?.at) ? r.at.filter(n => [0, 1, 3].includes(n)) : [1, 0] };
-}
-// Each kind's current one: from the latest of its spends (its own `from`, the
-// day it began, else its day) or the start set by hand, whichever is later;
-// its last day and the days left (0 its last day, below 0 run out). Shown
-// until a week after it ran out (`all`: every kind, started or not). Soonest first.
-const dayGap = (a, b) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
-const kindOf = (cat, sub) => (sub && table.get(sub)?.parent === cat && Number(table.get(sub).days) ? sub : cat);
-export function passes(books, today, { all = false } = {}) {
-  const last = new Map();
-  for (const e of live(books.entries)) {
-    if (e.k !== 'out' || !daysOf(e.cat, e.sub)) continue;
-    const id = kindOf(e.cat, e.sub);
-    const start = e.from || e.d;
-    if (!last.has(id) || start > last.get(id).start) last.set(id, { id, e, start, src: 'entry' });
-  }
-  const out = [];
-  for (const k of passKinds()) {
-    let x = last.get(k.id) || null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(k.start || '') && (!x || k.start > x.start)) x = { id: k.id, e: x?.e || null, start: k.start, src: 'set' };
-    const cat = k.parent || k.id;
-    const sub = k.parent ? k.id : '';
-    if (!x) {
-      if (all) out.push({ id: k.id, cat, sub, days: Number(k.days), start: '', end: '', left: null, src: '', e: null });
-      continue;
-    }
-    const end = addDays(x.start, Number(k.days) - 1);
-    const left = dayGap(today, end);
-    if (all || left >= -7) out.push({ ...x, cat, sub, days: Number(k.days), end, left });
-  }
-  return out.sort((a, b) => (a.left ?? 9999) - (b.left ?? 9999));
-}
-
-// When a kind's notices go out (ms, Taiwan time): each day before its last
-// day it's set to remind, at 20:00; its last day itself at 08:00.
-export const remindTimes = p =>
-  !p?.end || !remindOf(p.id).on
-    ? []
-    : remindOf(p.id)
-        .at.slice()
-        .sort((a, b) => b - a)
-        .map(n => ({ n, at: Date.parse(n ? `${addDays(p.end, -n)}T20:00:00+08:00` : `${p.end}T08:00:00+08:00`) }));
 
 // ---- Changing them ------------------------------------------------------------------
 // (Each a change to the books; the caller saves. Nothing with history is ever

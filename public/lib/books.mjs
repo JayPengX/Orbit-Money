@@ -41,11 +41,12 @@
 //            month is shorter), the weekday (0 Sunday) or 'MM-DD'; from: the first day.
 //   cats     { id: { id, k, parent, zh, icon, color, order, hidden, into } } the
 //            person's own categories and changes to the built-in ones (lib/cats.mjs).
+//   renew    { id: { id, name, start, n, unit, roll, cat, sub, on, at } } 到期提醒 (lib/renew.mjs).
 //   carrier  { code, u } the 手機條碼 (載具).
 
 import { addDays } from '#kit/format.mjs';
 
-export const COLLECTIONS = ['accts', 'cards', 'entries', 'budgets', 'recur', 'cats'];
+export const COLLECTIONS = ['accts', 'cards', 'entries', 'budgets', 'recur', 'cats', 'renew'];
 // Removed records are kept this long (a device away longer than this can't
 // bring one back: by then its copy is older than the removal).
 export const KEEP_GONE_MS = 120 * 86_400_000;
@@ -54,7 +55,7 @@ export const KEEP_GONE_MS = 120 * 86_400_000;
 export const ACCOUNT_KINDS = ['cash', 'bank', 'credit', 'ticket', 'wallet'];
 export const groupOf = kind => (ACCOUNT_KINDS.includes(kind) ? kind : 'wallet');
 
-export const emptyBooks = () => ({ accts: {}, cards: {}, entries: {}, budgets: {}, recur: {}, cats: {}, carrier: null, st: 0, opt: {} });
+export const emptyBooks = () => ({ accts: {}, cards: {}, entries: {}, budgets: {}, recur: {}, cats: {}, renew: {}, carrier: null, st: 0, opt: {} });
 
 let seq = 0;
 export const newId = (now = Date.now()) => `${now.toString(36)}${(seq++ % 1296).toString(36).padStart(2, '0')}${Math.random().toString(36).slice(2, 6)}`;

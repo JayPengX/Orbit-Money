@@ -164,10 +164,6 @@ h1, h2, h3, p { margin: 0; }
 .mn-x-refund { display: flex; grid-template-columns: none; min-height: 44px; padding: 4px 12px; border-radius: var(--q-r-cell); background: var(--q-surface); }
 .mn-refund-amt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .mn-refund-amt .mn-subchip { min-height: 44px; padding: 0 14px; line-height: 44px; }
-.mn-renews { margin-top: var(--q-s-4); }
-.mn-renew .q-btn { flex: none; }
-.mn-renew.soon .q-ritem-title { color: var(--q-red); }
-.mn-owed-total { color: var(--q-label-2); font: 500 15px/20px var(--q-font-rounded); }
 .mn-pill { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); font: 500 15px/20px var(--q-font); text-align: left; }
 .mn-pill > span:first-child:not(.mn-pill-t, .mn-logo, .q-tile) { display: grid; flex: none; width: 18px; height: 18px; color: var(--q-label-2); }
 .mn-pill svg { width: 18px; height: 18px; }
@@ -393,15 +389,28 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-form input[type='date'] { width: 100%; min-width: 0; max-width: 100%; }
 .mn-weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .mn-weekdays .mn-subchip { padding: 0; font-size: 13px; }
-/* 到期提醒 (views/renew.mjs). */
+/* 到期提醒 (views/renew.mjs): its days left as the focus, then grouped rows as Settings has them. */
 .mn-renew-open { border: 0; background: none; padding: 0; text-align: left; color: inherit; font: inherit; }
-.mn-pass-head { display: grid; gap: 4px; padding: 4px 0 16px; text-align: center; }
-.mn-pass-status { font: 700 22px/28px var(--q-font-rounded); }
-.mn-pass-status.soon { color: var(--q-red); }
-.mn-pass-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 8px; }
-.mn-pass-row .q-field { min-height: 44px; }
-.mn-pass-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: var(--q-r-cell); background: var(--q-surface); }
-.mn-pass-switch .mn-field-l { color: var(--q-label); font: 500 16px/20px var(--q-font); }
-.mn-pass-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.mn-pass-chips[hidden] { display: none; }
-.mn-pass-when { display: grid; gap: 10px; }
+/* (A long sheet on a small phone scrolls; nothing in it is squeezed.) */
+.mn-rm > * { flex-shrink: 0; }
+/* (The sheet's cards keep 16px under each, the kit's; the focus too.) */
+.mn-rm > .mn-rm-focus { margin: 4px 0 var(--q-s-4); }
+.mn-rm-card { grid-template-columns: minmax(0, 1fr); }
+.mn-rm-row { position: relative; min-height: 48px; }
+.mn-rm-row .q-ritem-value { color: var(--q-label-2); }
+.mn-rm-row > .q-switch { flex: none; }
+.mn-rm-in { flex: 1 1 55%; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label); font: 400 17px/22px var(--q-font); text-align: right; }
+.mn-rm-in::placeholder { color: var(--q-label-3); }
+.mn-rm-name .q-ritem-text { flex: none; }
+.mn-rm-date { cursor: pointer; }
+.mn-rm-check { display: grid; flex: none; place-items: center; width: 22px; height: 22px; color: var(--q-accent); }
+.mn-rm-check svg { width: 20px; height: 20px; stroke-width: 2.6; }
+.mn-rm-at[aria-checked='false'] .q-ritem-title, .mn-rm-at[aria-checked='false'] .q-ritem-value { color: var(--q-label-3); }
+.mn-rm-allow .q-ritem-title { color: var(--q-accent); font-weight: 600; }
+.mn-rm-left { font-weight: 600; }
+.mn-rm-left.soon, .mn-renew.soon .q-ritem-title { color: var(--q-red); }
+.mn-rm-empty { padding: 8px 4px 16px; text-align: center; }
+.mn-rm-list .q-btn { margin-top: var(--q-s-4); }
+.mn-renews { margin-top: var(--q-s-4); }
+.mn-renew .q-btn { flex: none; }
+.mn-owed-total { color: var(--q-label-2); font: 500 15px/20px var(--q-font-rounded); }
