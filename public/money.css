@@ -258,34 +258,6 @@ h1, h2, h3, p { margin: 0; }
 .mn-import-list .q-ritem-title, .mn-import-list small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mn-steps { display: grid; gap: 10px; margin-top: 6px; padding-left: 22px; font: var(--q-t-body); }
 .mn-steps a { color: var(--q-accent); font-weight: 600; }
-.mn-accent { color: var(--q-accent); }
-/* Mail-in: where it stands, then three steps that tick themselves off. */
-.mn-mailstate { display: flex; align-items: center; gap: 12px; padding: 4px 4px 12px; }
-.mn-mailstate-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--q-label-3, var(--q-label-2)); }
-.mn-mailstate-dot.wait { background: var(--q-accent); animation: mn-pulse 1.6s ease-in-out infinite; }
-.mn-mailstate-dot.ok { background: var(--q-green, #30d158); }
-@keyframes mn-pulse { 50% { opacity: 0.35; } }
-@media (prefers-reduced-motion: reduce) { .mn-mailstate-dot.wait { animation: none; } }
-.mn-mailstate-t { display: grid; gap: 2px; min-width: 0; }
-.mn-mailstate-t b { color: var(--q-label); font: 600 20px/26px var(--q-font); }
-.mn-mailstate-t small { color: var(--q-label-2); font: var(--q-t-footnote); }
-.mn-msteps { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; counter-reset: mn-step; }
-.mn-mstep { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 4px; counter-increment: mn-step; }
-.mn-mstep + .mn-mstep { border-top: var(--q-hairline) solid var(--q-sep); }
-.mn-mstep-n { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--q-fill, var(--q-surface)); color: var(--q-label-2); font: 600 15px/1 var(--q-font-rounded); }
-.mn-mstep-n::before { content: counter(mn-step); }
-.mn-mstep.now .mn-mstep-n { background: var(--q-accent); color: var(--q-accent-ink); }
-.mn-mstep.done .mn-mstep-n { background: color-mix(in srgb, var(--q-green, #30d158) 20%, transparent); color: var(--q-green, #30d158); }
-.mn-mstep.done .mn-mstep-n::before { content: '✓'; }
-.mn-mstep-t { display: grid; gap: 4px; min-width: 0; padding-top: 3px; }
-.mn-mstep-t > b { color: var(--q-label); font: 600 16px/22px var(--q-font); }
-.mn-mstep-t > small { color: var(--q-label-2); font: var(--q-t-footnote); }
-.mn-mailbox { display: grid; gap: 2px; justify-items: start; width: 100%; margin-top: 4px; padding: 10px 12px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); text-align: left; }
-.mn-mailbox span { max-width: 100%; white-space: nowrap; font: 600 16px/22px var(--q-font-mono, ui-monospace, monospace); }
-.mn-mailbox small { color: var(--q-label-2); font: var(--q-t-footnote); }
-.mn-mailnote { display: grid; gap: 2px; margin: 8px 4px 0; padding: 10px 12px; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); text-decoration: none; }
-.mn-mailnote small { color: var(--q-label-2); font: var(--q-t-footnote); }
-.mn-linkbtn { padding: 0; border: 0; background: none; color: var(--q-accent); font: inherit; }
 .mn-draw-note { margin: 8px 4px 0; }
 .mn-drawwrap { display: grid; gap: 10px; }
 .mn-drawhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 0 6px; border-bottom: var(--q-hairline) solid var(--q-sep); }
@@ -362,10 +334,3 @@ h1, h2, h3, p { margin: 0; }
 /* A new account's kind: four across, one row. */
 .mn-kinds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .mn-kinds .q-chip { justify-content: center; min-width: 0; padding-inline: 4px; }
-/* Mail-in: the person's own inbox for 財政部's mail. */
-.mn-fwd { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 10px; padding: 0 4px; }
-.mn-fwd-row { display: flex; gap: 8px; }
-.mn-fwd-in { flex: 1; width: 0; min-width: 0; height: 44px; padding: 0 12px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); font: 16px/22px var(--q-font); }
-.mn-fwd-save { flex: none; width: auto; min-width: 0; padding: 0 16px; }
-.mn-fwd-row > * { margin: 0; }
-.mn-fwd-note { color: var(--q-label-2); font: var(--q-t-footnote); }

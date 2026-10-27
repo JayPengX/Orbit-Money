@@ -1,29 +1,25 @@
 // 更多: everything that isn't the books themselves (Jay 2026-10-27: 發票 is
 // one feature, so the tab holds them all). First the ways purchases come in
-// without typing (a paper invoice scanned, a picture read, the 載具 file, the
-// mail-in), any prize to claim, then the tools as rows: 對獎, the 手機條碼,
-// the categories, the repeats, the accounts put away, the books as a file.
+// without typing (a paper invoice scanned, a picture read, the 載具 file),
+// any prize to claim, then the tools as rows: 對獎, the 手機條碼, the categories, the repeats, the accounts put away, the books as a file.
 import { h, toast } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph } from '../lib/cats.mjs';
 import { state, W, today, acctName, card, allAccounts } from '../shell.mjs';
 import { scanInvoice, invoiceState, wonCard, openInvoices, openBarcode } from './invoices.mjs';
-import { importCarrier, openMailSetup, mailLabel, mailStage } from './carrier-import.mjs';
+import { importCarrier } from './carrier-import.mjs';
 import { readPicture } from './read.mjs';
 import { openCats } from './cat-edit.mjs';
 import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
 
 export function renderMore(box) {
-  const way = (glyphName, label, onclick, value = '', tone = '') => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'mn-addrow-i mn-quiet', html: glyph(glyphName) }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), value ? h('span', { class: `q-ritem-value ${tone}`.trim(), text: value }) : null]);
-  // Mail-in first: set once, the 載具's invoices then come by themselves every month.
-  const stage = mailStage();
+  const way = (glyphName, label, onclick) => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'mn-addrow-i mn-quiet', html: glyph(glyphName) }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })])]);
   // Bringing purchases in without typing: a plain section like the tools
   // below (Jay 10-27: no display headline), the scan button, then the other ways.
   const ways = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('帶入消費', 'Bring purchases in') })]),
     h('button', { class: 'q-btn primary block mn-scanbtn', type: 'button', onclick: () => scanInvoice() }, [h('span', { class: 'mn-btn-glyph', html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')]),
     h('div', { class: 'q-rowcard mn-ways' }, [
-      way('mail', W('載具自動記帳', 'Carrier by mail'), () => openMailSetup(), mailLabel(), stage === 'on' ? '' : stage === 'check' || stage === 'off' ? 'mn-accent' : ''),
       way('camera', W('截圖・收據', 'Screenshot'), () => readPicture()),
       way('receipt', W('載具檔案', 'Carrier file'), () => importCarrier())
     ])

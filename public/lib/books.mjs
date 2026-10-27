@@ -461,3 +461,30 @@ export async function decodeBooks(payload) {
     return null;
   }
 }
+
+// ---- A 載具's invoices against what was logged by hand ----------------------------
+// A purchase typed in that day has no invoice number, so a 載具 file or the
+// monthly mail would add it again. Each invoice is matched first to an
+// unclaimed spending entry of the same amount on its day (else the day after,
+// else the day before: logged late or early); a match just gets the invoice
+// (for 對獎 and the items), and only the rest are offered as new.
+// → { attach: [[entryId, invoice]], fresh: [invoice] }, invoices already in left out.
+export function matchInvoices(books, list) {
+  const all = live(books.entries);
+  const have = new Set(all.map(e => e.inv?.no).filter(Boolean));
+  const free = all.filter(e => e.k === 'out' && !e.inv?.no);
+  const used = new Set();
+  const attach = [];
+  const fresh = [];
+  for (const i of list) {
+    if (i.void || (i.no && (have.has(i.no) || books.entries[`inv-${i.no}`]))) continue;
+    const amt = Math.round(i.total);
+    const on = day => free.find(e => !used.has(e.id) && e.d === day && e.amt === amt);
+    const e = on(i.day) || on(addDays(i.day, 1)) || on(addDays(i.day, -1));
+    if (e && i.no) {
+      used.add(e.id);
+      attach.push([e.id, i]);
+    } else if (!e) fresh.push(i);
+  }
+  return { attach, fresh };
+}

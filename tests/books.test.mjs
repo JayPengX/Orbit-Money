@@ -206,3 +206,15 @@ test('自動加值 with nothing behind it: the card’s balance goes up, nobody 
   assert.equal(t1.in, t0.in);
   assert.equal(t1.out, t0.out + 15);
 });
+
+test('a 載具 invoice matches what was logged by hand (same amount, its day or next to it); only the rest are new', () => {
+  const b = B.emptyBooks();
+  B.put(b, 'entries', { id: 'e1', d: '2026-11-03', k: 'out', amt: 85, cat: 'food', a: 'cash' }, 1);
+  B.put(b, 'entries', { id: 'e2', d: '2026-11-04', k: 'out', amt: 240, cat: 'move', a: 'cash' }, 1);
+  B.put(b, 'entries', { id: 'e3', d: '2026-11-03', k: 'out', amt: 85, cat: 'food', a: 'cash', inv: { no: 'AA00000009' } }, 1);
+  const inv = (no, day, total) => ({ no, day, total, items: [], seller: '' });
+  const { attach, fresh } = B.matchInvoices(b, [inv('AA00000001', '2026-11-03', 85), inv('AA00000002', '2026-11-03', 240), inv('AA00000003', '2026-11-03', 85), inv('AA00000009', '2026-11-03', 85)]);
+  assert.deepEqual(attach.map(([id, i]) => [id, i.no]), [['e1', 'AA00000001'], ['e2', 'AA00000002']]);
+  // A second 85 that day has no hand entry left: new. One already in: left out.
+  assert.deepEqual(fresh.map(i => i.no), ['AA00000003']);
+});

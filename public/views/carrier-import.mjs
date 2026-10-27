@@ -5,11 +5,10 @@
 // imported, or imported and then deleted) is left alone, so the same file
 // can come in again and again.
 import { h, icons, sheet, toast, menu } from '#kit/ui.mjs';
-import { live, put, autoReload } from '../lib/books.mjs';
+import { live, put, autoReload, matchInvoices } from '../lib/books.mjs';
 import { parseCarrierCsv, csvText } from '../lib/invoice.mjs';
 import { guessCat, guessSub, glyph } from '../lib/cats.mjs';
-import { workerJson } from '#kit/orbit.mjs';
-import { state, hooks, W, money, dayLabel, saved } from '../shell.mjs';
+import { state, W, money, dayLabel, saved } from '../shell.mjs';
 import { payOptions, lastPay } from './entry.mjs';
 import { shortName } from './invoices.mjs';
 
@@ -46,15 +45,25 @@ export function importCarrier() {
   });
 }
 
-// The invoices not in the books yet (nor voided, nor imported and deleted).
+// The invoices not in the books yet (nor voided, nor imported and deleted),
+// after any that match a purchase logged by hand get it attached (lib/books.mjs
+// matchInvoices: a typed-in purchase has no number, so it would come in twice).
 // One with no number (a receipt read from a picture): not when an entry of
 // that day, amount and store is there already (the same picture read twice).
-function newOnes(list) {
+// → { fresh, attached }.
+function sortOut(list) {
   const b = state.books;
   const all = live(b.entries);
-  const have = new Set(all.map(e => e.inv?.no).filter(Boolean));
   const same = i => all.some(e => e.k === 'out' && e.d === i.day && e.amt === Math.round(i.total) && e.note === (shortName(i.seller) || i.items[0]?.name || ''));
-  return list.filter(i => !i.void && (i.no ? !have.has(i.no) && !b.entries[idOf(i.no)] : !same(i)));
+  const { attach, fresh } = matchInvoices(b, list.filter(i => i.no));
+  if (attach.length) {
+    const now = Date.now();
+    for (const [id, i] of attach) put(b, 'entries', { ...b.entries[id], inv: { no: i.no, day: i.day, sid: i.sid || '', seller: shortName(i.seller), total: i.total, items: i.items, from: i.from || 'carrier' } }, now);
+    b.st = Math.round(now / 1000);
+    saved();
+  }
+  const loose = list.filter(i => !i.no && !i.void && !same(i));
+  return { fresh: [...fresh, ...loose].sort((x, y) => x.day.localeCompare(y.day)), attached: attach.length };
 }
 // Each invoice a spending entry, paid from `pay` ({ a, via }); how many.
 function addInvoices(list, pay) {
@@ -73,68 +82,11 @@ function addInvoices(list, pay) {
   return list.length;
 }
 
-// ---- By mail ------------------------------------------------------------------------
-// The account's own address (the Worker's money-mail.js), given to the 電子發票
-// 平台 as the 手機條碼's email with 消費發票彙整通知 on: the platform mails the
-// 載具's invoices there every month by itself, and they go straight into the
-// books the next time the app opens (paid from the account last used), then
-// are dropped from the box. state.mail: { address, note, got } once asked
-// (note: 財政部's last mail without invoices, such as the check of the
-// address; got: when invoices last came).
-let mailAt = 0;
-export async function checkMail({ force = false } = {}) {
-  if (!force && Date.now() - mailAt < 60_000) return;
-  mailAt = Date.now();
-  const r = await workerJson('/money-mail', 'op=box');
-  if (!r) return;
-  state.mail = mailOf(r);
-  const items = Array.isArray(r.items) ? r.items : [];
-  if (items.length) {
-    const fresh = newOnes(items);
-    const pay = lastPay();
-    if (fresh.length) {
-      addInvoices(fresh, { a: pay?.a || 'cash', via: pay?.via || '' });
-      toast(W(`載具匯入 ${fresh.length} 筆`, `${fresh.length} carrier invoice${fresh.length === 1 ? '' : 's'} added`));
-      saved();
-    }
-    await workerJson('/money-mail', 'op=took', { body: JSON.stringify({ upto: Math.max(...items.map(i => i.at || 0)) }) });
-  }
-  if (state.tab === 'more') hooks.render?.();
-}
-export async function newAddress() {
-  const r = await workerJson('/money-mail', 'op=new', { body: '{}' });
-  if (r) state.mail = mailOf(r);
-  return Boolean(r);
-}
-const mailOf = r => ({ address: r.address || '', note: r.note || null, got: r.got || null, fwd: r.fwd || '', sent: r.sent || null });
-
-// Where mail-in stands, for 更多's row and the sheet: 'off' (address not
-// given yet), 'check' (財政部's check of the address is here to tap), 'wait'
-// (given, no invoices yet), 'on' (invoices came).
-const seen = (k, v) => {
-  try {
-    if (v !== undefined) localStorage.setItem(`mn-mail-${k}`, v);
-    return localStorage.getItem(`mn-mail-${k}`) || '';
-  } catch {
-    return '';
-  }
-};
-export function mailStage(m = state.mail || {}) {
-  if (m.got) return 'on';
-  if (m.note?.link && seen('checked') !== String(m.note.at)) return 'check';
-  return m.note || seen('given') === m.address ? 'wait' : 'off';
-}
-export function mailLabel(m = state.mail || {}) {
-  const stage = mailStage(m);
-  if (stage === 'on') return W('每月自動', 'Monthly');
-  if (stage === 'check') return W('去驗證', 'Confirm');
-  if (stage === 'wait') return W('等第一封信', 'Waiting');
-  return W('未設定', 'Not set');
-}
-
 // The invoices to add, looked over first: a 載具 file's, or a picture's (讀圖).
 export function review(list, { title = W('匯入載具發票', 'Import carrier invoices'), what = W('這個檔案的發票都記過了。', 'Every invoice in this file is already in.') } = {}) {
-  const fresh = newOnes(list);
+  const sorted = sortOut(list);
+  const fresh = sorted.fresh;
+  const attached = sorted.attached;
   const voided = list.filter(i => i.void).length;
   const pay = lastPay();
   const f = { a: pay?.a || 'cash', via: pay?.via || '' };
@@ -145,7 +97,7 @@ export function review(list, { title = W('匯入載具發票', 'Import carrier i
   const paintPay = () => payPill.replaceChildren(h('span', { class: 'mn-pill-t', text: payOptions().find(o => o.a === f.a && o.via === f.via)?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron }));
   payPill.onclick = e => menu(e.currentTarget, payOptions().map(o => ({ label: o.label, icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((f.a = o.a), (f.via = o.via), paintPay()) })));
   paintPay();
-  const skipped = list.length - fresh.length - voided;
+  const skipped = list.length - fresh.length - voided - sorted.attached;
   const s = sheet({
     title,
     detent: 'large',
@@ -155,7 +107,7 @@ export function review(list, { title = W('匯入載具發票', 'Import carrier i
         h('div', {}, [h('small', { text: W('新的', 'New') }), h('b', { class: 'num', text: String(fresh.length) })]),
         h('div', {}, [h('small', { text: W('金額', 'Total') }), h('b', { class: 'num', text: money(sum) })])
       ]),
-      h('p', { class: 'mn-hint', text: [from ? `${dayLabel(from, { week: false })} – ${dayLabel(to, { week: false })}` : '', skipped ? W(`${skipped} 張記過了`, `${skipped} already in`) : '', voided ? W(`${voided} 張作廢`, `${voided} voided`) : ''].filter(Boolean).join(' · ') }),
+      h('p', { class: 'mn-hint', text: [from ? `${dayLabel(from, { week: false })} – ${dayLabel(to, { week: false })}` : '', attached ? W(`${attached} 張對上你記的帳`, `${attached} matched what you logged`) : '', skipped ? W(`${skipped} 張記過了`, `${skipped} already in`) : '', voided ? W(`${voided} 張作廢`, `${voided} voided`) : ''].filter(Boolean).join(' · ') }),
       fresh.length ? h('div', { class: 'mn-field' }, [h('span', { class: 'mn-field-l', text: W('從哪裡付', 'Paid from') }), payPill]) : null,
       fresh.length
         ? h('div', { class: 'q-rowcard mn-import-list' }, fresh.slice(-40).reverse().map(i => h('div', { class: 'q-ritem' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: shortName(i.seller) || i.items[0]?.name || i.no }), h('small', { text: `${dayLabel(i.day, { week: false })} · ${i.items.slice(0, 3).map(x => x.name).join('、') || i.no}` })]), h('span', { class: 'q-ritem-value num', text: money(i.total) })])))
@@ -169,134 +121,12 @@ export function review(list, { title = W('匯入載具發票', 'Import carrier i
             text: W(`記下 ${fresh.length} 筆`, `Add ${fresh.length}`),
             onclick: () => {
               addInvoices(fresh, f);
-              s.close();
               toast(W(`記好 ${fresh.length} 筆`, `${fresh.length} added`));
+              s.close();
               saved();
             }
           })
         ])
       : null
   });
-}
-
-// Mail-in in three taps: copy the address, give it to the 電子發票平台 (as
-// the 手機條碼's email, with 消費發票彙整通知 on), tap 財政部's check when it
-// lands here. The steps tick themselves off, the one button is always the
-// next thing to do, and the top says where it stands, checked every 15
-// seconds while the sheet is open.
-export async function openMailSetup() {
-  if (!state.mail?.address) await checkMail({ force: true });
-  const m = () => state.mail || {};
-  const status = h('div', { class: 'mn-mailstate' });
-  const steps = h('ol', { class: 'mn-msteps' });
-  const note = h('div');
-  // The person's own inbox: 財政部's mail is copied there, so giving the
-  // platform this address loses nothing.
-  const fwdIn = h('input', { class: 'mn-fwd-in', type: 'email', inputmode: 'email', autocomplete: 'email', placeholder: W('你的信箱（選填）', 'Your email (optional)'), value: state.mail?.fwd || '' });
-  const fwdNote = h('small', { class: 'mn-fwd-note' });
-  const fwdSave = h('button', { class: 'q-btn glass mn-fwd-save', type: 'button', text: W('儲存', 'Save') });
-  fwdSave.onclick = async () => {
-    const to = fwdIn.value.trim();
-    fwdSave.disabled = true;
-    const r = await workerJson('/money-mail', 'op=fwd', { body: JSON.stringify({ to }) });
-    fwdSave.disabled = false;
-    if (!r || r.error) return toast(W('這個信箱不行', 'That address won’t work'), { tone: 'bad' });
-    state.mail = { ...state.mail, fwd: r.fwd || '', sent: null };
-    toast(r.fwd ? W('之後財政部的信也會寄一份到這裡', 'Ministry mail will be copied there') : W('不再轉寄', 'Copies off'));
-    paint();
-  };
-  const fwd = h('div', { class: 'mn-fwd' }, [h('span', { class: 'mn-field-l', text: W('也寄一份到我的信箱', 'Also send a copy to my inbox') }), h('div', { class: 'mn-fwd-row' }, [fwdIn, fwdSave]), fwdNote]);
-  const foot = h('div', { class: 'q-sheet-foot' });
-  const copy = () =>
-    navigator.clipboard?.writeText(m().address).then(
-      () => (seen('copied', m().address), toast(W('已複製地址', 'Address copied')), paint()),
-      () => {}
-    );
-  const openPlatform = () => {
-    seen('given', m().address);
-    window.open(PLATFORM, '_blank', 'noopener');
-    paint();
-  };
-  const confirm = () => {
-    seen('checked', String(m().note.at));
-    window.open(m().note.link, '_blank', 'noopener');
-    paint();
-  };
-  const step = (done, now, title, extra) => h('li', { class: `mn-mstep${done ? ' done' : ''}${now ? ' now' : ''}` }, [h('span', { class: 'mn-mstep-n', 'aria-hidden': 'true' }), h('div', { class: 'mn-mstep-t' }, [h('b', { text: title }), extra])]);
-  const paint = () => {
-    const { address, note: n, got } = m();
-    const stage = mailStage();
-    const copied = seen('copied') === address;
-    const given = stage !== 'off';
-    status.replaceChildren(
-      h('span', { class: `mn-mailstate-dot ${stage === 'on' ? 'ok' : stage === 'off' ? '' : 'wait'}`, 'aria-hidden': 'true' }),
-      h('div', { class: 'mn-mailstate-t' }, [
-        h('b', { text: stage === 'on' ? W('✓ 已收到', '✓ Received') : stage === 'check' ? W('財政部的驗證信到了', 'The check arrived') : given ? W('等第一封信', 'Waiting for the first mail') : W('還沒設定', 'Not set up yet') }),
-        h('small', {
-          text:
-            stage === 'on'
-              ? W(`上次 ${dayLabel(new Date(got.at + 8 * 3600_000).toISOString().slice(0, 10), { week: false })} · ${got.n} 張 · 之後每月自動`, `Last ${dayLabel(new Date(got.at + 8 * 3600_000).toISOString().slice(0, 10), { week: false })} · ${got.n} · monthly now`)
-              : stage === 'check'
-                ? W('點下面的「完成驗證」就好', 'Tap “Confirm” below')
-                : given
-                  ? W('財政部每月寄一次明細，到了會自動記好', 'The Ministry mails your invoices monthly; they’ll be added')
-                  : W('設定一次，載具發票每月自動記好', 'Set it once: carrier invoices come in every month')
-        })
-      ])
-    );
-    steps.replaceChildren(
-      step(copied || given, !copied && !given, W('複製你的專屬地址', 'Copy your own address'), h('button', { class: 'mn-mailbox', type: 'button', onclick: copy }, [h('span', { class: 'q-fit', text: address || W('取得地址中…', 'Getting your address…') }), h('small', { text: W('點一下複製', 'Tap to copy') })])),
-      step(given, copied && !given, W('到電子發票平台貼上', 'Paste it on the e-invoice platform'), h('small', { text: W('用手機條碼登入，把手機條碼的電子信箱改成這個地址，再打開「消費發票彙整通知」（明細寄到這個信箱）', 'Sign in with your barcode, change its email to this address, then turn on the invoice summary (it goes to that email)') })),
-      step(stage === 'on' || (n?.link && stage !== 'check'), stage === 'check', W('點財政部的驗證信', 'Tap the Ministry’s check'), h('small', { text: n?.link ? (n.code ? W(`驗證碼 ${n.code}`, `Code ${n.code}`) : n.subject || '') : W('驗證信會直接出現在這裡', 'It shows up right here') }))
-    );
-    const { fwd: to, sent } = m();
-    fwdNote.textContent = !to
-      ? W('財政部的信（中獎通知等）照樣收得到', 'Keep getting the Ministry’s mail (prize notices too)')
-      : sent && !sent.ok
-        ? W('轉寄還沒開通，信都有記下，開通後會寄', 'Copies aren’t on yet; mail is still recorded')
-        : W(`財政部的信會寄一份到 ${to}`, `The Ministry’s mail is copied to ${to}`);
-    // 財政部's other mail (a prize notice) once it's set up: shown, never lost.
-    note.replaceChildren(...(stage === 'on' && n && n.at > got.at - 1 ? [h('a', { class: 'mn-mailnote', href: n.link || PLATFORM, target: '_blank', rel: 'noopener' }, [h('small', { text: W('財政部來信', 'From the Ministry') }), h('span', { text: n.subject || W('打開', 'Open') })])] : []));
-    const [label, act, cls] =
-      stage === 'on'
-        ? [W('完成', 'Done'), () => s.close(), 'glass']
-        : stage === 'check'
-          ? [W('完成驗證', 'Confirm'), confirm, 'primary']
-          : !copied && !given
-            ? [W('複製地址', 'Copy address'), copy, 'primary']
-            : [W('開啟電子發票平台', 'Open the e-invoice platform'), openPlatform, given ? 'glass' : 'primary'];
-    foot.replaceChildren(h('button', { class: `q-btn ${cls} block`, type: 'button', text: label, onclick: act, disabled: address ? null : '' }));
-  };
-  const s = sheet({
-    title: W('載具發票自動記帳', 'Carrier invoices by mail'),
-    cls: 'mn-import mn-mail',
-    body: [
-      status,
-      steps,
-      fwd,
-      note,
-      h('p', { class: 'mn-hint' }, [
-        W('這個地址只屬於你的 Orbit Pass，只收財政部的明細。', 'The address is your Orbit Pass’s alone and only reads the Ministry’s invoices. '),
-        h('button', { class: 'mn-linkbtn', type: 'button', text: W('換一個地址', 'New address'), onclick: renew })
-      ])
-    ],
-    foot
-  });
-  async function renew(e) {
-    const btn = e.currentTarget;
-    btn.disabled = true;
-    if (await newAddress()) {
-      toast(W('換好了：到電子發票平台改成新地址', 'Done: give the platform the new address'));
-      paint();
-    }
-    btn.disabled = false;
-  }
-  paint();
-  // While it's open: the check or the first mail may land any moment.
-  const tick = setInterval(async () => {
-    if (!s.el.isConnected || !s.el.open) return clearInterval(tick);
-    if (document.visibilityState !== 'visible') return;
-    await checkMail({ force: true });
-    paint();
-  }, 15_000);
 }

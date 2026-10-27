@@ -20,7 +20,6 @@ import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
 import { loadDraws } from './views/invoices.mjs';
 import { renderMore } from './views/more.mjs';
-import { checkMail } from './views/carrier-import.mjs';
 import { openEntry } from './views/entry.mjs';
 
 document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
@@ -70,7 +69,7 @@ function sync({ soon = false } = {}) {
   if (!state.loaded) return Promise.resolve();
   return pass.sync();
 }
-document.addEventListener('visibilitychange', () => (document.visibilityState === 'hidden' ? sync() : state.loaded && checkMail()));
+document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && sync());
 hooks.changed = () => (stamp++, pass.changed(), keepLocal(), sync({ soon: true }), render());
 hooks.render = () => render();
 
@@ -146,8 +145,6 @@ async function boot() {
   pass.watch();
   await sync();
   for (const item of first?.inbox || []) q.dropInbox(item.id).catch(() => {});
-  // 載具 invoices that came by mail.
-  checkMail({ force: true });
 }
 if (!gated) boot();
 
