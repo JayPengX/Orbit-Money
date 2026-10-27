@@ -318,7 +318,7 @@ h1, h2, h3, p { margin: 0; }
 /* 記一筆 beside the tabs: the primary gold. */
 .q-tab-action { background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5); }
 /* 更多: the way in, then plain rows. */
-.mn-scanbtn { margin-top: var(--q-s-3); }
+.mn-scanbtn { margin-bottom: var(--q-s-3); }
 .mn-scanbtn { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .mn-quiet { color: var(--q-label-2); }
 /* 讀圖. */

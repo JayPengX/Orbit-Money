@@ -6,7 +6,7 @@
 import { h, toast } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph } from '../lib/cats.mjs';
-import { state, W, money, today, acctName, card, allAccounts } from '../shell.mjs';
+import { state, W, today, acctName, card, allAccounts } from '../shell.mjs';
 import { scanInvoice, invoiceState, wonCard, openInvoices, openBarcode } from './invoices.mjs';
 import { importCarrier, openMailSetup, mailLabel, mailStage } from './carrier-import.mjs';
 import { readPicture } from './read.mjs';
@@ -14,22 +14,15 @@ import { openCats } from './cat-edit.mjs';
 import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
 
 export function renderMore(box) {
-  const month = today().slice(0, 7);
-  const brought = live(state.books.entries).filter(e => e.inv?.no && e.d.startsWith(month));
-  const total = brought.reduce((t, e) => t + (e.inv.total ?? e.amt), 0);
-  // The focal point open on the page: bringing a purchase in without typing.
-  const hero = h('section', { class: 'q-focus mn-focus' }, [
-    h('span', { class: 'q-focus-label', text: W('帶入消費，不用打字', 'Bring purchases in') }),
-    brought.length ? h('b', { class: 'q-focus-value q-fit', text: W(`${brought.length} 張發票`, `${brought.length} invoice${brought.length === 1 ? '' : 's'}`) }) : h('b', { class: 'q-focus-value q-words q-fit', text: W('店家、金額、品項', 'Store, total, items') }),
-    h('span', { class: 'q-focus-sub', text: brought.length ? W(`這個月帶入 · ${money(total)}`, `this month · ${money(total)}`) : W('自動填好，記下前先看過', 'filled in for you to check') }),
-    h('button', { class: 'q-btn primary block mn-scanbtn', type: 'button', onclick: () => scanInvoice() }, [h('span', { class: 'mn-btn-glyph', html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')])
-  ]);
   const way = (glyphName, label, onclick, value = '', tone = '') => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'mn-addrow-i mn-quiet', html: glyph(glyphName) }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), value ? h('span', { class: `q-ritem-value ${tone}`.trim(), text: value }) : null]);
   // Mail-in first: set once, the 載具's invoices then come by themselves every week.
   const stage = mailStage();
+  // Bringing purchases in without typing: a plain section like the tools
+  // below (Jay 10-27: no display headline), the scan button, then the other ways.
   const ways = h('section', { class: 'q-section' }, [
-    h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('其他帶入方式', 'Other ways in') })]),
-    h('div', { class: 'q-rowcard' }, [
+    h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('帶入消費', 'Bring purchases in') })]),
+    h('button', { class: 'q-btn primary block mn-scanbtn', type: 'button', onclick: () => scanInvoice() }, [h('span', { class: 'mn-btn-glyph', html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')]),
+    h('div', { class: 'q-rowcard mn-ways' }, [
       way('mail', W('載具自動記帳', 'Carrier by mail'), () => openMailSetup(), mailLabel(), stage === 'on' ? '' : stage === 'check' || stage === 'off' ? 'mn-accent' : ''),
       way('camera', W('截圖・收據', 'Screenshot'), () => readPicture()),
       way('receipt', W('載具檔案', 'Carrier file'), () => importCarrier())
@@ -55,7 +48,7 @@ export function renderMore(box) {
       tool(W('匯出', 'Export'), 'CSV', () => exportCsv())
     ])
   ]);
-  box.replaceChildren(hero, ...(won ? [won] : []), ways, tools);
+  box.replaceChildren(...(won ? [won] : []), ways, tools);
 }
 
 // The books as a spreadsheet: every entry, oldest first (shared on a phone, saved elsewhere).
