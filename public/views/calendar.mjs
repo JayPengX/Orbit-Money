@@ -1,5 +1,6 @@
 // 月曆, the home: the month's spending (and its budget) on top,
-// the month with each day's spending in its square, warmer the more it was
+// the month with each day's spending under its date, the days over the
+// budget's daily share in the accent,
 // (holidays and typhoon days off in red, as a Taiwan calendar has them),
 // and the picked day's entries under it. A swipe across the month goes to
 // the next or the last.
@@ -35,32 +36,36 @@ export function renderCal(box) {
   const budget = budgetState(b, ym, now).find(x => !x.cat);
   const place = myPlace('work');
 
-  // The hero: the month's spending, what's left of the budget, income and
-  // what's left over (記一筆 is the round button beside the tabs).
-  const hero = h('section', { class: 'q-hero-card mn-hero' }, [
-    h('span', { class: 'q-hc-eyebrow' }, [W(`${monthLabel(ym, { year: false })}支出`, `Spent in ${monthLabel(ym, { year: false })}`)]),
-    h('b', { class: 'mn-hero-big num q-fit', text: money(t.out) }),
+  // The focal point, open on the page: the month's spending, a thin bar
+  // for the budget with what's left under it, then income and what's left
+  // over as two quiet figures (記一筆 is the round button beside the tabs).
+  const hero = h('section', { class: 'q-focus mn-focus' }, [
+    h('span', { class: 'q-focus-label', text: W(`${monthLabel(ym, { year: false })}支出`, `Spent in ${monthLabel(ym, { year: false })}`) }),
+    h('b', { class: 'q-focus-value q-fit', text: money(t.out) }),
+    budget ? h('div', { class: `q-focus-bar${budget.left < 0 ? ' over' : ''}`, role: 'progressbar', 'aria-valuenow': String(Math.round(budget.share * 100)) }, [h('i', { style: `width:${Math.min(100, budget.share * 100)}%` })]) : null,
     budget
-      ? h('div', { class: 'mn-hero-budget' }, [
-          h('div', { class: `mn-bar${budget.left < 0 ? ' over' : ''}`, role: 'progressbar', 'aria-valuenow': String(Math.round(budget.share * 100)) }, [h('i', { style: `width:${Math.min(100, budget.share * 100)}%` })]),
-          h('small', { class: 'num', text: budget.left >= 0 ? (budget.perDay && now.startsWith(ym) ? W(`預算剩 ${money(budget.left)} · 每天 ${money(budget.perDay)}`, `${money(budget.left)} left · ${money(budget.perDay)} a day`) : W(`預算剩 ${money(budget.left)}`, `${money(budget.left)} left`)) : W(`超出預算 ${money(-budget.left)}`, `${money(-budget.left)} over budget`) })
-        ])
+      ? h('span', { class: 'q-focus-sub', text: budget.left >= 0 ? (budget.perDay && now.startsWith(ym) ? W(`預算還剩 ${money(budget.left)}，每天 ${money(budget.perDay)}`, `${money(budget.left)} left, ${money(budget.perDay)} a day`) : W(`預算還剩 ${money(budget.left)}`, `${money(budget.left)} left`)) : W(`超出預算 ${money(-budget.left)}`, `${money(-budget.left)} over budget`) })
       : null,
-    h('div', { class: 'mn-hero-figs two' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }))])
+    h('div', { class: 'q-focus-figs' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }), t.net > 0 ? 'in' : '')])
   ]);
 
-  // The month's squares: each day's spending, its square warmer the more it was.
+  // The month's few big days show their amount in the accent: over twice
+  // the budget's daily share (no budget: twice the daily average), and only
+  // the five biggest of those, so the colour still points at something.
+  const share = budget ? budget.amt / monthDays(ym) : t.out / Math.max(1, Object.keys(days).length);
+  const big = Object.entries(days).filter(([, v]) => v.out > 2 * share).sort((x, y) => y[1].out - x[1].out).slice(0, 5);
+  const loud = new Set(big.map(([d]) => d));
+
+  // The month: each day's spending under its date.
   const n = monthDays(ym);
   const offset = new Date(`${ym}-01T12:00:00Z`).getUTCDay();
-  const most = Math.max(1, ...Object.values(days).map(v => v.out || 0));
   const cells = [];
   for (let d = 1; d <= n; d++) {
     const day = `${ym}-${String(d).padStart(2, '0')}`;
     const v = days[day];
     const off = dayOffAt(day, place);
-    const cls = ['mn-day', off && 'off', day === now && 'today', day === state.day && 'on', day > now && 'later'].filter(Boolean).join(' ');
-    const heat = v?.out ? (0.08 + 0.3 * Math.sqrt(v.out / most)).toFixed(2) : 0;
-    const btn = h('button', { class: cls, type: 'button', style: heat ? `--heat:${heat}` : null, 'aria-label': `${dayLabel(day)}${v?.out ? ` ${money(v.out)}` : ''}`, 'aria-pressed': String(day === state.day), 'data-day': day, onclick: () => pickDay(day) }, [
+    const cls = ['mn-day', off && 'off', day === now && 'today', day === state.day && 'on', day > now && 'later', loud.has(day) && 'loud'].filter(Boolean).join(' ');
+    const btn = h('button', { class: cls, type: 'button', 'aria-label': `${dayLabel(day)}${v?.out ? ` ${money(v.out)}` : ''}`, 'aria-pressed': String(day === state.day), 'data-day': day, onclick: () => pickDay(day) }, [
       h('b', { text: String(d) }),
       v?.out ? h('small', { class: 'num out', text: short(v.out) }) : v?.in ? h('small', { class: 'num in', text: `+${short(v.in)}` }) : h('small', { text: '' })
     ]);
@@ -109,7 +114,7 @@ function daySection(b, place) {
   return h('section', { class: 'mn-day-sec' }, [head, body]);
 }
 
-const fig = (label, value, cls = '') => h('div', { class: `mn-fig ${cls}`.trim() }, [h('small', { text: label }), h('b', { class: 'num q-fit', text: value })]);
+const fig = (label, value, cls = '') => h('div', null, [h('small', { text: label }), h('b', { class: `num ${cls}`.trim(), text: value })]);
 
 // A finger across the month: the next month (left) or the last (right).
 function swipe(el) {

@@ -25,16 +25,18 @@ export function renderAccts(box) {
   const bal = balances(b);
   const w = worth(b);
   const all = openAccounts();
-  const hero = h('section', { class: 'q-hero-card mn-hero' }, [
-    h('span', { class: 'q-hc-eyebrow', text: W('總資產', 'Net worth') }),
-    h('b', { class: 'q-hc-big num q-fit', text: money(w.net) }),
-    h('div', { class: 'mn-hero-figs two' }, [fig(W('資產', 'Assets'), money(w.assets)), fig(W('負債', 'Debts'), money(w.debts))])
+  // The focal point, open on the page: what it all comes to, then the two
+  // halves of it as quiet figures.
+  const hero = h('section', { class: 'q-focus' }, [
+    h('span', { class: 'q-focus-label', text: W('總資產', 'Net worth') }),
+    h('b', { class: 'q-focus-value q-fit', text: money(w.net) }),
+    h('div', { class: 'q-focus-figs' }, [fig(W('資產', 'Assets'), money(w.assets)), fig(W('負債', 'Debts'), money(w.debts))])
   ]);
   const groups = ACCOUNT_KINDS.map(kind => {
     const list = all.filter(a => groupOf(a.kind) === kind);
     if (!list.length) return null;
     return h('section', { class: 'q-section' }, [
-      h('div', { class: 'q-section-head' }, [h('h2', { text: kindName(kind) })]),
+      h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: kindName(kind) })]),
       h('div', { class: 'q-rowcard' }, list.map(a => acctRow(a, bal[a.id] || 0)))
     ]);
   });
@@ -83,7 +85,7 @@ export function openClosed() {
   });
 }
 
-const fig = (label, value) => h('div', { class: 'mn-fig' }, [h('small', { text: label }), h('b', { class: 'num q-fit', text: value })]);
+const fig = (label, value) => h('div', null, [h('small', { text: label }), h('b', { class: 'num', text: value })]);
 
 function acctRow(a, balance) {
   const cards = cardsOf(a.id);
