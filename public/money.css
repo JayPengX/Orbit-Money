@@ -205,9 +205,6 @@ h1, h2, h3, p { margin: 0; }
 .mn-kinds { flex-wrap: wrap; overflow: visible; }
 .mn-foot2 { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
 .mn-big-in { min-height: 52px; font: 600 22px/1.2 var(--q-font-rounded); text-align: center; background: var(--q-surface); }
-.mn-catchips { flex-wrap: wrap; overflow: visible; }
-.mn-chip-i { display: inline-grid; width: 16px; height: 16px; margin-right: 4px; vertical-align: -3px; }
-.mn-chip-i svg { width: 16px; height: 16px; }
 
 /* ---- 統計 ---- */
 .mn-range { margin-top: 4px; }

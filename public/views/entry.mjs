@@ -42,6 +42,12 @@ export function lastPay() {
   return (p && acct(p.a) && payOf(p.a, p.via)) || payOf('cash', '') || payOptions()[0] || null;
 }
 
+// The categories as tiles (two rows across, the picked one lit): the entry
+// sheet's and a repeat's, one look.
+export function catTiles(kind, cur, onPick) {
+  return catsFor(kind).map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
+}
+
 // ---- The keypad's sum ---------------------------------------------------------------
 
 // '120+35-5' → 150 (whole NT$; an unfinished '+' at the end is ignored).
@@ -132,11 +138,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     payBtn.hidden = f.k === 'move';
     if (!cats.hidden && catsKind !== f.k) {
       catsKind = f.k;
-      cats.replaceChildren(
-        ...catsFor(f.k).map(c =>
-          h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === f.cat), onclick: () => ((f.cat = c.id), tick(), paintCat()) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })])
-        )
-      );
+      cats.replaceChildren(...catTiles(f.k, f.cat, id => ((f.cat = id), paintCat())));
       requestAnimationFrame(() => cats.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }));
     } else if (!cats.hidden) paintCat();
     if (!moveRow.hidden) moveRow.replaceChildren(acctPick('a', W('從', 'From')), h('span', { class: 'mn-move-arrow', html: icons.chevron }), acctPick('to', W('到', 'To')));

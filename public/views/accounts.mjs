@@ -6,9 +6,9 @@ import { h, icons, tile, sheet, toggle, toast, empty, segmented, menu } from '#k
 import { ask } from '#kit/orbit.mjs';
 import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, totals, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf } from '../lib/books.mjs';
 import { brandsFor, brandOf } from '../lib/brands.mjs';
-import { catsFor, catOf, catName, glyph, lookOf } from '../lib/cats.mjs';
+import { catName, glyph, lookOf } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, cardsOf, logoFor, card } from '../shell.mjs';
-import { entryRow, openEntry, payOptions } from './entry.mjs';
+import { entryRow, openEntry, payOptions, catTiles } from './entry.mjs';
 
 // An account's picture: its brand's logo, else its kind's tile.
 export function acctTile(a, size = 40) {
@@ -330,7 +330,7 @@ export function openRepeat(r) {
   const body = h('div', { class: 'mn-form' });
   const amtIn = h('input', { class: 'q-field num mn-big-in', type: 'text', inputmode: 'numeric', placeholder: 'NT$', value: f.amt });
   amtIn.addEventListener('input', () => (f.amt = amtIn.value));
-  const noteIn = h('input', { class: 'q-field', type: 'text', maxlength: '40', placeholder: W('名稱（例如：房租、Netflix）', 'Name (e.g. Rent, Netflix)'), value: f.note });
+  const noteIn = h('input', { class: 'q-field', type: 'text', maxlength: '40', placeholder: W('例如：房租、Netflix', 'e.g. Rent, Netflix'), value: f.note });
   noteIn.addEventListener('input', () => (f.note = noteIn.value));
   const fromIn = h('input', { class: 'q-field', type: 'date', value: f.from });
   fromIn.addEventListener('change', () => (f.from = fromIn.value || f.from));
@@ -373,11 +373,12 @@ export function openRepeat(r) {
     body.replaceChildren(
       ...[
         kinds,
+        // (What it is first: the name is what the list shows.)
+        field(W('名稱', 'Name'), noteIn),
         field(W('金額', 'Amount'), amtIn),
-        f.k !== 'move' ? field(W('分類', 'Category'), h('div', { class: 'q-chips mn-catchips' }, catsFor(f.k).map(c => h('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(c.id === f.cat), onclick: () => ((f.cat = c.id), paint()) }, [h('i', { class: 'mn-chip-i', style: `color:${c.color}`, html: glyph(c.icon) }), catName(c, lang)])))) : null,
+        f.k !== 'move' ? field(W('分類', 'Category'), h('div', { class: 'mn-cats', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((f.cat = id), paint())))) : null,
         field(f.k === 'move' ? W('從', 'From') : f.k === 'in' ? W('存入', 'Into') : W('付款方式', 'Paid with'), pick('a', f.k === 'move')),
         f.k === 'move' ? field(W('到', 'To'), pick('to', true)) : null,
-        field(W('名稱', 'Name'), noteIn),
         field(W('多久一次', 'How often'), everySeg),
         field(f.every === 'week' ? W('星期幾', 'Day') : f.every === 'year' ? W('哪一天', 'Date') : W('每月幾號', 'Day of month'), dayCtl),
         field(W('開始', 'Starts'), fromIn)
