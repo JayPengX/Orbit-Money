@@ -27,12 +27,6 @@ Your own books for real money: what you spend each day, what each account holds,
   <img src="docs/screenshots/money-6.webp" width="30%" alt="Log spending in seconds">
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/money-4.webp" width="30%" alt="Where the money goes">
-  <img src="docs/screenshots/money-5.webp" width="30%" alt="Spending by category">
-  <img src="docs/screenshots/money-6.webp" width="30%" alt="Invoices, sorted">
-</p>
-
 <p align="center"><sub>Screenshots use made-up sample books.</sub></p>
 
 ## Features
