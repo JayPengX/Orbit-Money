@@ -5,7 +5,7 @@
 // imported, or imported and then deleted) is left alone, so the same file
 // can come in again and again.
 import { h, icons, sheet, toast, menu } from '#kit/ui.mjs';
-import { live, put } from '../lib/books.mjs';
+import { live, put, autoReload } from '../lib/books.mjs';
 import { parseCarrierCsv, csvText } from '../lib/invoice.mjs';
 import { guessCat, guessSub, glyph } from '../lib/cats.mjs';
 import { workerJson } from '#kit/orbit.mjs';
@@ -65,7 +65,8 @@ function addInvoices(list, pay) {
     const seller = shortName(i.seller);
     const words = `${i.seller} ${i.items.map(x => x.name).join(' ')}`;
     const cat = guessCat(words) || fallback;
-    put(b, 'entries', { id: i.no ? idOf(i.no) : undefined, d: i.day, k: 'out', amt: Math.round(i.total), cat, sub: guessSub(cat, words), note: seller || i.items[0]?.name || '', a: pay.a, via: pay.via || '', to: '', inv: i.no ? { no: i.no, day: i.day, sid: i.sid || '', seller, total: i.total, items: i.items, from: i.from || 'carrier' } : null, t: now + n }, now);
+    const e = put(b, 'entries', { id: i.no ? idOf(i.no) : undefined, d: i.day, k: 'out', amt: Math.round(i.total), cat, sub: guessSub(cat, words), note: seller || i.items[0]?.name || '', a: pay.a, via: pay.via || '', to: '', inv: i.no ? { no: i.no, day: i.day, sid: i.sid || '', seller, total: i.total, items: i.items, from: i.from || 'carrier' } : null, t: now + n }, now);
+    autoReload(b, e, now);
     if (i.sid && seller) state.sellers[i.sid] = i.seller;
   }
   if (list.length) b.st = Math.round(now / 1000);

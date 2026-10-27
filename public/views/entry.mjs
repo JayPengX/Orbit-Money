@@ -4,7 +4,7 @@
 // 發票 it came from. A scanned 發票 opens it filled in.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { put, drop, live, usualFor } from '../lib/books.mjs';
+import { put, drop, live, usualFor, autoReload } from '../lib/books.mjs';
 import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 
@@ -15,7 +15,7 @@ export function entryRow(e, { day = false, inAcct = false, inCat = false } = {})
   const fine = subOf(e.sub);
   // (Inside a category's own list: only its sub.)
   const what = fine ? catName(fine, lang) : inCat ? '' : catName(look, lang);
-  const title = e.note || e.inv?.seller || (e.k === 'move' ? W('轉帳', 'Transfer') : e.k === 'adj' ? W('調整餘額', 'Balance fix') : what || catName(look, lang));
+  const title = e.note || e.inv?.seller || (e.auto === 'reload' ? W('自動加值', 'Auto top-up') : e.k === 'move' ? W('轉帳', 'Transfer') : e.k === 'adj' ? W('調整餘額', 'Balance fix') : what || catName(look, lang));
   // (The category under a note or a store, so a row always says what it was.)
   const named = e.note || e.inv?.seller;
   const sub = [day ? dayLabel(e.d, { week: false }) : '', named && e.k !== 'move' && e.k !== 'adj' ? what : '', inAcct ? state.books.cards?.[e.via]?.name || '' : inCat ? '' : payLabel(e)].filter(Boolean).join(' · ');
@@ -288,7 +288,8 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       inv: f.inv || null,
       t: was?.t || now
     };
-    put(b, 'entries', rec, now);
+    const kept = put(b, 'entries', rec, now);
+    const reloaded = autoReload(b, kept, now);
     if (f.k !== 'move' && f.k !== 'adj') {
       b.opt = { ...b.opt, lastPay: { a: f.a, via: f.via }, lastCat: { ...(b.opt?.lastCat || {}), [f.k]: f.cat } };
       b.st = Math.round(now / 1000);
@@ -296,6 +297,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     state.day = f.d;
     state.month = f.d.slice(0, 7);
     s.close();
+    if (reloaded) return toast(W(`${acct(f.a)?.name} 自動加值 ${money(reloaded)}`, `${acct(f.a)?.name} topped up ${money(reloaded)}`)), saved();
     if (!was && (f.k === 'out' || f.k === 'in') && suggest(rec)) return saved();
     toast(was ? W('已更新', 'Updated') : W('記好了', 'Saved'));
     saved();
@@ -329,6 +331,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
         onclick: async () => {
           if (!(await ask({ title: W('刪除這筆？', 'Delete this entry?'), body: `${money(Math.abs(was.amt))} · ${dayLabel(was.d)}`, ok: W('刪除', 'Delete'), cancel: W('取消', 'Cancel'), danger: true, icon: 'trash' }))) return;
           drop(b, 'entries', was.id);
+          for (const r of live(b.entries)) if (r.for === was.id) drop(b, 'entries', r.id);
           s.close();
           saved();
         }

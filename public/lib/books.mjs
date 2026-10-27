@@ -11,6 +11,7 @@
 //            wallet (電子支付: 悠遊付, LINE Pay…); other, from before, shows as wallet.
 //            open: the balance when it was added (a credit card's: what it owed, negative).
 //            inTotal: counted in the 總資產. brand: a logo key (brands.mjs).
+//            reload: a stored-value card's 自動加值 { on, from, amt, below } (autoReload).
 //            A credit card's pay: the account its bill is paid from; close / due: its
 //            statement and payment days of the month. closed: when it was put
 //            away (封存): out of every picker, its entries and balance kept.
@@ -23,6 +24,7 @@
 //            amt: whole NT$, > 0 (adj: the change, either sign). a: the account it's
 //            paid from or into; via: the card used (a debit card's id); to: a move's
 //            other account. inv: the 發票 it came from ({ no, sid, seller, items }).
+//            auto: 'reload' a card's 自動加值, for: the spend that set it off.
 //            rec: the repeat that made it.
 //   budgets  { id: { id, cat ('' for everything), amt } } a month's limit.
 //   recur    { id: { id, k, amt, cat, sub, a, via, to, note, every, day, from } } every:
@@ -341,6 +343,27 @@ export function cardBill(books, card, today) {
     due = `${dm}-${String(Math.min(dueDay, monthDays(dm))).padStart(2, '0')}`;
   }
   return { closed, opened, bill, paid, left: Math.max(0, bill - paid), due };
+}
+
+// ---- 自動加值 -------------------------------------------------------------------------
+
+// A stored-value card that reloads itself (悠遊卡, 一卡通, icash: a.reload
+// { on, from, amt, below }, the person's own settings; the usual rule is
+// NT$500 when the balance is under NT$100 or short of the fare): a spend that
+// sets it off brings its reload in as a transfer from the account behind it,
+// on the same day, tied to the spend (`for`), so both balances stay right.
+// Run again when the spend changes; its old reload goes first. → the amount reloaded.
+export function autoReload(books, e, now = Date.now()) {
+  for (const r of live(books.entries)) if (r.for === e.id) drop(books, 'entries', r.id, now);
+  const a = books.accts[e.a];
+  const r = a?.reload;
+  if (!e || e.del || e.k !== 'out' || !r?.on || !(r.amt > 0) || !books.accts[r.from] || books.accts[r.from].del || r.from === a.id) return 0;
+  const bal = balances(books, e.d)[a.id];
+  if (bal + e.amt >= (Number(r.below) || 0) && bal >= 0) return 0;
+  let n = 1;
+  while (bal + n * r.amt < 0 && n < 20) n++;
+  put(books, 'entries', { id: `${e.id}-r`, d: e.d, k: 'move', amt: n * r.amt, cat: '', note: '', a: r.from, via: '', to: a.id, auto: 'reload', for: e.id, t: (e.t || now) - 1 }, now);
+  return n * r.amt;
 }
 
 // ---- What's usual ------------------------------------------------------------------

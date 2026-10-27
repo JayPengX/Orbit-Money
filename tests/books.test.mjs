@@ -166,3 +166,27 @@ test('a category’s usual amounts and way to pay, from its own history', () => 
   assert.equal(u.of, 5);
   assert.equal(B.usualFor(b, { k: 'out', cat: 'food' }, '2026-10-27').of, 6);
 });
+
+test('自動加值: a spend that sets it off brings the reload in from the card behind it', () => {
+  const b = sample();
+  B.put(b, 'accts', { id: 'ez', name: '悠遊卡', kind: 'ticket', open: 120, inTotal: true, reload: { on: true, from: 'cc', amt: 500, below: 100 } }, T);
+  const spend = (id, amt) => B.autoReload(b, B.put(b, 'entries', { id, d: '2026-10-25', k: 'out', amt, cat: 'transport', a: 'ez' }, T), T);
+  assert.equal(spend('r1', 15), 0);
+  assert.equal(B.balances(b)['ez'], 105);
+  assert.equal(spend('r1b', 30), 0);
+  // Under NT$100 when it's tapped: NT$500 in, then the fare.
+  assert.equal(spend('r2', 30), 500);
+  assert.equal(B.balances(b)['ez'], 545);
+  assert.equal(b.entries['r2-r'].a, 'cc');
+  assert.equal(b.entries['r2-r'].for, 'r2');
+  // Changed so it no longer does (paid in cash): its reload goes.
+  B.put(b, 'entries', { ...b.entries.r2, a: 'cash' }, T + 1);
+  assert.equal(B.autoReload(b, b.entries.r2, T + 1), 0);
+  assert.ok(b.entries['r2-r'].del);
+  // Short by more than one reload: as many as it takes.
+  assert.equal(spend('r3', 1200), 1500);
+  assert.ok(B.balances(b)['ez'] >= 0);
+  // Off: nothing.
+  B.put(b, 'accts', { ...b.accts.ez, reload: { ...b.accts.ez.reload, on: false } }, T);
+  assert.equal(spend('r4', 5000), 0);
+});

@@ -216,7 +216,6 @@ h1, h2, h3, p { margin: 0; }
 .mn-brand > span:last-child { max-width: 100%; overflow: hidden; color: var(--q-label-2); font: 500 11.5px/14px var(--q-font); text-overflow: ellipsis; white-space: nowrap; }
 .mn-brand[aria-pressed='true'] { box-shadow: inset 0 0 0 2px var(--q-accent); }
 .mn-brand[aria-pressed='true'] > span:last-child { color: var(--q-label); font-weight: 700; }
-.mn-kinds { flex-wrap: wrap; overflow: visible; }
 .mn-foot2 { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
 .mn-big-in { min-height: 52px; font: 600 22px/1.2 var(--q-font-rounded); text-align: center; background: var(--q-surface); }
 
@@ -369,3 +368,6 @@ h1, h2, h3, p { margin: 0; }
 /* 分類 › 自動帶入. */
 .mn-defrow .q-ritem-value { color: var(--q-label-2); font-weight: 500; }
 .mn-units.usual { grid-template-columns: auto repeat(4, minmax(0, 1fr)); }
+/* A new account's kind: four across, one row. */
+.mn-kinds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mn-kinds .q-chip { justify-content: center; min-width: 0; padding-inline: 4px; }
