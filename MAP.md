@@ -1,0 +1,39 @@
+# Orbit Money: the map
+
+Your own books: what you spend each day, what each account holds, and
+whether an invoice won. Real money, kept apart from Orbit's play money.
+Signs in with the Orbit Pass; the books sync on it.
+
+Live: https://jaypengx.com/money/
+
+## How it works
+
+- **Tabs:** 月曆 (the month's spent / income / left and the total budget;
+  each day's spending in its square, days off from `#kit/dayoff.mjs`; a
+  day's entries below) · 帳戶 (總資產, accounts by kind, 固定收支) · 統計
+  (week / month / year, against the last, by category, budgets) · 發票
+  (手機條碼, scan, 載具 import, 對獎). The + adds an entry anywhere.
+- **The books** (`lib/books.mjs`, pure, tested): accounts (cash, bank,
+  電子票證, 電子支付, credit, other; `inTotal: false` keeps one out of
+  總資產), debit cards on a bank, entries (`out`, `in`, `move` between own
+  accounts, `adj` a balance fix), budgets, repeats (added on their day as
+  `r-<id>-<day>`). Every record has `u`; a removal is a tombstone kept 120
+  days; two devices merge record by record, newest `u` wins. Stored on the
+  Pass as `m1:` + gzip base64 (`orbit-money`, 1 MB).
+- **發票** (`lib/invoice.mjs`, tested): both QR codes of a paper
+  電子發票證明聯 (Big5, UTF-8 or Base64 items), the draw and its prizes,
+  the 手機條碼 as a Code 39 barcode (black on white: tills need it).
+  The camera (`views/scan.mjs`) reads with BarcodeDetector, else jsQR
+  (`vendor/jsqr.mjs`, Apache-2.0) on the frame and each half.
+- **載具** (a person can't get 財政部's AppID): the CSV the 電子發票平台
+  exports (查詢消費發票 › 匯出) read by `#kit/carrier-csv.mjs`, picked in
+  the app (`views/carrier-import.mjs`) or forwarded to the Pass's own
+  address (`<box>@MAIL_DOMAIN`, the Worker's `money-mail.js`) and added on
+  the next open. Each invoice is `inv-<number>`, so nothing comes in twice.
+  The category is guessed from the store and items (`lib/cats.mjs guessCat`).
+- **Proxy** (`https://invoice.orbit/…` through `proxyJson`, Shared-Proxy
+  `invoice.js`): `win.json` the last draws (財政部's invoice.xml),
+  `seller.json?ids=` names behind 統編 (經濟部 GCIS).
+- **Logos** (`img/brand/`, `lib/logos.mjs`): each bank's or wallet's own
+  icon (`scripts/brand-logos.mjs`, a few from its App Store app); one with
+  none uses its kind's icon.

@@ -1,39 +1,40 @@
-# Orbit Money
+<p align="center">
+  <img src="public/icons/icon-192.png" width="96" height="96" alt="">
+</p>
 
-Your own books: what you spend each day, what each account holds, and
-whether an invoice won. Real money, kept apart from Orbit's play money.
-Signs in with the Orbit Pass; the books sync on it.
+<h1 align="center">Orbit Money</h1>
 
-Live: https://jaypengx.github.io/Orbit-Money/
+<p align="center">
+  <b>Every dollar, in its place.</b><br>
+  <a href="https://jaypengx.com/money/"><b>jaypengx.com/money</b></a>
+</p>
 
-## How it works
+<p align="center">
+  <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-ES_modules-F7DF1E?logo=javascript&logoColor=000"> <img alt="PWA" src="https://img.shields.io/badge/PWA-works_offline-5A0FC8?logo=pwa&logoColor=fff"> <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=fff"> <img alt="GitHub" src="https://img.shields.io/badge/GitHub-Pages-24292F?logo=github&logoColor=fff"> <img alt="Tests" src="https://img.shields.io/badge/Tests-node_--test-339933?logo=nodedotjs&logoColor=fff">
+</p>
 
-- **Tabs:** 月曆 (the month's spent / income / left and the total budget;
-  each day's spending in its square, days off from `#kit/dayoff.mjs`; a
-  day's entries below) · 帳戶 (總資產, accounts by kind, 固定收支) · 統計
-  (week / month / year, against the last, by category, budgets) · 發票
-  (手機條碼, scan, 載具 import, 對獎). The + adds an entry anywhere.
-- **The books** (`lib/books.mjs`, pure, tested): accounts (cash, bank,
-  電子票證, 電子支付, credit, other; `inTotal: false` keeps one out of
-  總資產), debit cards on a bank, entries (`out`, `in`, `move` between own
-  accounts, `adj` a balance fix), budgets, repeats (added on their day as
-  `r-<id>-<day>`). Every record has `u`; a removal is a tombstone kept 120
-  days; two devices merge record by record, newest `u` wins. Stored on the
-  Pass as `m1:` + gzip base64 (`orbit-money`, 1 MB).
-- **發票** (`lib/invoice.mjs`, tested): both QR codes of a paper
-  電子發票證明聯 (Big5, UTF-8 or Base64 items), the draw and its prizes,
-  the 手機條碼 as a Code 39 barcode (black on white: tills need it).
-  The camera (`views/scan.mjs`) reads with BarcodeDetector, else jsQR
-  (`vendor/jsqr.mjs`, Apache-2.0) on the frame and each half.
-- **載具** (a person can't get 財政部's AppID): the CSV the 電子發票平台
-  exports (查詢消費發票 › 匯出) read by `#kit/carrier-csv.mjs`, picked in
-  the app (`views/carrier-import.mjs`) or forwarded to the Pass's own
-  address (`<box>@MAIL_DOMAIN`, the Worker's `money-mail.js`) and added on
-  the next open. Each invoice is `inv-<number>`, so nothing comes in twice.
-  The category is guessed from the store and items (`lib/cats.mjs guessCat`).
-- **Proxy** (`https://invoice.orbit/…` through `proxyJson`, Shared-Proxy
-  `invoice.js`): `win.json` the last draws (財政部's invoice.xml),
-  `seller.json?ids=` names behind 統編 (經濟部 GCIS).
-- **Logos** (`img/brand/`, `lib/logos.mjs`): each bank's or wallet's own
-  icon (`scripts/brand-logos.mjs`, a few from its App Store app); one with
-  none uses its kind's icon.
+Your own books for real money: what you spend each day, what each account holds, and whether an invoice won. Part of **Orbit**, a family of phone apps for life in Taiwan that share one sign-in, the Orbit Pass. See them all at [jaypengx.com](https://jaypengx.com/).
+
+## What it does
+
+- **Calendar:** each day's spending in its square, with the month's total and budget.
+- **Accounts:** cash, banks, cards and e-wallets, with each bank's own logo.
+- **Stats and budgets** by week, month and year.
+- **Invoices (發票):** scan the QR code, import the e-invoice carrier list, and check the draw.
+- **Syncs** between devices through the Orbit Pass.
+
+## Stack
+
+- Plain JavaScript (ES modules), HTML and CSS: no framework, no build step, no runtime dependencies.
+- An installable phone web app (Add to Home Screen), cached by a service worker.
+- The look, sign-in (the Orbit Pass) and notices come from the shared kit in [Shared-Proxy](https://github.com/JayPengX/Shared-Proxy).
+- Live data goes through the Orbit proxy on Cloudflare Workers (`api.jaypengx.com`). Invoice draws from 財政部, store names from GCIS.
+- Hosted on GitHub Pages and served at jaypengx.com by a Cloudflare Worker; every push to `main` tests and deploys.
+
+## For developers
+
+```bash
+npm test
+```
+
+How it works, file by file, and the decisions still in force: **[MAP.md](MAP.md)**.
