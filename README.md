@@ -17,8 +17,14 @@ Your own books for real money: what you spend each day, what each account holds,
 
 <p align="center">
   <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month on a calendar">
-  <img src="docs/screenshots/money-2.webp" width="30%" alt="Log spending in seconds">
-  <img src="docs/screenshots/money-3.webp" width="30%" alt="Every account together">
+  <img src="docs/screenshots/money-2.webp" width="30%" alt="Invoices checked for prizes">
+  <img src="docs/screenshots/money-3.webp" width="30%" alt="Every item on the receipt">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/money-4.webp" width="30%" alt="Stats and budgets">
+  <img src="docs/screenshots/money-5.webp" width="30%" alt="EasyCard tops itself up">
+  <img src="docs/screenshots/money-6.webp" width="30%" alt="Log spending in seconds">
 </p>
 
 <p align="center">
