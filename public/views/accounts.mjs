@@ -8,7 +8,7 @@ import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, tota
 import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { catName, glyph, lookOf, subsOf, guessCat, guessSub } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, logoFor, card } from '../shell.mjs';
-import { entryRow, openEntry, payOptions, catTiles, subChips, pageDots } from './entry.mjs';
+import { entryRow, openEntry, payOptions, catTiles, subChips } from './entry.mjs';
 
 // An account's picture: its brand's logo, else its kind's tile.
 export function acctTile(a, size = 40) {
@@ -505,9 +505,9 @@ export function openRepeat(r) {
         field(W('金額', 'Amount'), amtIn),
         f.k !== 'move'
           ? (() => {
-              const grid = h('div', { class: 'mn-cats', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())));
+              const grid = h('div', { class: 'mn-cats all', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())));
               requestAnimationFrame(() => grid.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }));
-              return field(W('分類', 'Category'), h('div', {}, [grid, pageDots(grid)]));
+              return field(W('分類', 'Category'), grid);
             })()
           : null,
         f.k !== 'move' && subsOf(f.cat).length ? h('div', { class: 'mn-subs', role: 'group', 'aria-label': W('細項', 'Sub-category') }, subChips(f.cat, f.sub, id => ((f.sub = id), paint()))) : null,

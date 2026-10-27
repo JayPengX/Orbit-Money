@@ -81,17 +81,44 @@ export async function openInvoices() {
     const status = draw ? W(`已開獎 · ${list.filter(e => prizeOf(e.inv.no, draw)).length} 張中獎`, `drawn · ${list.filter(e => prizeOf(e.inv.no, draw)).length} won`) : drawDay > today() ? W(`${dayLabel(drawDay, { week: false })} 開獎`, `drawn ${dayLabel(drawDay, { week: false })}`) : latest && latest.period < p ? W('等待開獎', 'Waiting for the draw') : W('已過領獎期限', 'Past the claim date');
     return h('section', { class: 'q-section' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: periodName(p) }), h('span', { class: 'mn-sec-note', text: status })]), h('div', { class: 'q-rowcard' }, list.map(e => invRow(e, draw)))]);
   });
-  sheet({
+  // This draw's numbers on top (when 財政部's are read), the next draw beside them.
+  const top = latest ? drawCard(latest, { head: true }) : h('div', { class: 'mn-drawcard' }, [drawHead(W('中獎號碼', 'Winning numbers'))]);
+  const s = sheet({
     title: W('發票對獎', 'Invoices'),
     detent: sections.length ? 'large' : '',
-    lead: latest ? h('button', { class: 'q-btn plain small', type: 'button', text: W('中獎號碼', 'Numbers'), onclick: () => openDraw() }) : null,
-    body: sections.length ? sections : [h('p', { class: 'mn-hint', text: W('掃描或匯入的發票會在這裡自動對獎。', 'Invoices you scan or import are checked against each draw here.') })]
+    body: [
+      top,
+      ...(sections.length
+        ? sections
+        : [
+            h('div', { class: 'mn-invempty' }, [
+              tile(glyph('receipt'), '#f59e0b'),
+              h('b', { text: W('還沒有發票', 'No invoices yet') }),
+              h('small', { text: W('掃描或匯入後，開獎自動對獎', 'Checked at every draw for you') }),
+              h('button', { class: 'q-btn primary block', type: 'button', onclick: () => (s.close(), scanInvoice()) }, [h('span', { class: 'mn-btn-glyph', html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')]),
+              h('div', { class: 'mn-invempty-ways' }, [
+                h('button', { class: 'q-btn tinted', type: 'button', onclick: () => (s.close(), import('./read.mjs').then(m => m.readPicture())) }, [h('span', { class: 'mn-btn-glyph', html: glyph('camera') }), W('截圖・收據', 'Screenshot')]),
+                h('button', { class: 'q-btn tinted', type: 'button', onclick: () => (s.close(), import('./carrier-import.mjs').then(m => m.importCarrier())) }, [h('span', { class: 'mn-btn-glyph', html: glyph('receipt') }), W('載具檔案', 'Carrier file')])
+              ])
+            ])
+          ])
+    ]
   });
 }
-export function openDraw() {
-  const latest = (state.draws || [])[0];
-  if (latest) sheet({ title: W('中獎號碼', 'Winning numbers'), subtitle: periodName(latest.period), body: drawCard(latest) });
+// The next draw: the period before this one's (until its 25th), else this one's.
+function nextDraw() {
+  const now = today();
+  const cur = periodOf(now);
+  let y = Number(cur.slice(0, 3));
+  let m = Number(cur.slice(3)) - 2;
+  if (m < 1) (m += 12), (y -= 1);
+  const prev = `${y}${String(m).padStart(2, '0')}`;
+  return [prev, cur].map(p => periodDates(p).draw).find(d => d >= now);
 }
+const drawHead = label => {
+  const next = nextDraw();
+  return h('div', { class: 'mn-drawhead' }, [h('b', { text: label }), next ? h('small', { text: W(`下次開獎 ${dayLabel(next, { week: false })}`, `Next draw ${dayLabel(next, { week: false })}`) }) : null]);
+};
 export const openBarcode = () => (state.books.carrier?.code ? openCarrier() : editCarrier());
 export { periodName };
 
@@ -106,15 +133,16 @@ function invRow(e, draw) {
 }
 
 // The newest draw's numbers, as 財政部 publishes them.
-function drawCard(d) {
+function drawCard(d, { head = false } = {}) {
   const row = (label, nums, sub) => h('div', { class: 'mn-drawrow' }, [h('span', {}, [h('b', { text: label }), sub ? h('small', { text: sub }) : null]), h('span', { class: 'mn-drawnums num' }, nums.map(n => h('span', { text: n })))]);
   return h('div', { class: 'mn-drawwrap' }, [
     h('div', { class: 'mn-drawcard' }, [
+      head ? drawHead(periodName(d.period)) : null,
       row(W('特別獎', 'Special'), [d.special], W('1,000 萬', 'NT$10M')),
       row(W('特獎', 'Grand'), [d.grand], W('200 萬', 'NT$2M')),
       row(W('頭獎', 'First'), d.first, W('20 萬', 'NT$200K'))
     ]),
-    h('p', { class: 'mn-hint mn-draw-note', text: W('頭獎號碼的末 7 到末 3 碼相同，也有 4 萬到 200 元。', 'Matching the last 7 down to 3 digits of a first-prize number wins NT$40,000 down to NT$200.') })
+    h('p', { class: 'mn-hint mn-draw-note', text: W('頭獎末 3 碼相同起，就有 200 元', 'A first prize’s last 3 digits win NT$200') })
   ]);
 }
 

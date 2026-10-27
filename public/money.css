@@ -138,6 +138,9 @@ h1, h2, h3, p { margin: 0; }
 .mn-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--q-fill-2, var(--q-label-4)); transition: background 0.2s; }
 .mn-dots i.on { background: var(--q-label-2); }
 .mn-cats::-webkit-scrollbar { display: none; }
+/* A form that scrolls anyway (固定收支) shows every category, no sideways pages. */
+.mn-cats.all { grid-auto-flow: row; grid-template-rows: none; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; scroll-snap-type: none; }
+.mn-cats.all > .mn-cat-pad { display: none; }
 .mn-cat { display: grid; justify-items: center; gap: 3px; min-width: 0; padding: 5px 0; border: 0; border-radius: 14px; background: none; }
 .mn-subs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .mn-subs[hidden] { display: none; }
@@ -251,7 +254,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-carrier-code { font: 700 20px/24px var(--q-font-mono); letter-spacing: 0.12em; text-align: center; }
 .mn-carrier-code.big { display: block; margin-top: 10px; color: var(--q-label); font-size: 24px; }
 .mn-carrier-sheet .mn-hint { margin: 10px 0 16px; text-align: center; }
-.mn-drawcard { display: grid; padding: 4px 14px; border-radius: 18px; background: var(--q-surface); }
+.mn-drawcard { display: grid; grid-template-columns: minmax(0, 1fr); padding: 4px 14px; border-radius: 18px; background: var(--q-surface); }
 .mn-drawrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; }
 .mn-drawrow + .mn-drawrow { border-top: var(--q-hairline) solid var(--q-sep); }
 .mn-drawrow > span:first-child { display: grid; min-width: 0; }
@@ -309,6 +312,21 @@ h1, h2, h3, p { margin: 0; }
 .mn-way:active { transform: scale(0.98); }
 .mn-inhero .mn-hero-tag { justify-self: start; }
 .mn-drawwrap { display: grid; gap: 10px; }
+.mn-drawhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 0 6px; border-bottom: var(--q-hairline) solid var(--q-sep); }
+.mn-drawhead b { color: var(--mn-gold); font: 700 13px/18px var(--q-font); white-space: nowrap; }
+.mn-drawhead small { color: var(--q-label-2); font: var(--q-t-caption); white-space: nowrap; }
+.mn-drawhead:only-child { border-bottom: 0; padding-bottom: 10px; }
+.mn-invempty { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px; margin-top: 18px; padding: 22px 16px 16px; border-radius: 18px; background: var(--q-surface); text-align: center; }
+.mn-invempty > .q-tile { width: 56px; height: 56px; margin-bottom: 4px; border-radius: 16px; }
+.mn-invempty > .q-tile svg { width: 30px; height: 30px; }
+.mn-invempty b { font: 700 17px/22px var(--q-font); }
+.mn-invempty small { margin-bottom: 8px; color: var(--q-label-2); font: var(--q-t-footnote); }
+.mn-invempty-ways { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.mn-invempty .q-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.mn-invempty .q-btn.block { width: 100%; }
+.mn-invempty-ways .q-btn { flex-direction: column; gap: 4px; height: auto; min-height: 60px; padding: 8px 4px; border-radius: 16px; font-size: 14px; }
+.mn-btn-glyph { display: grid; width: 18px; height: 18px; }
+.mn-btn-glyph svg { width: 18px; height: 18px; }
 /* Typing a note: the phone's keys replace the keypad (both up crushed the sheet). */
 .mn-entry:has(.mn-note:focus) .mn-pad { display: none; }
 .mn-back svg { width: 18px; height: 18px; transform: rotate(180deg); }

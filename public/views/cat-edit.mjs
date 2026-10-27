@@ -11,6 +11,13 @@ import { payOptions } from './entry.mjs';
 
 const changed = () => (useCats(state.books.cats), saved());
 
+// The subs in a line that never runs off: past three, the first two and the count.
+const subLine = c => {
+  const n = c.subs.map(x => catName(x, lang));
+  if (!n.length) return W('沒有細項', 'No subs');
+  return n.length > 3 ? W(`${n.slice(0, 2).join('、')} 等 ${n.length} 項`, `${n.slice(0, 2).join(', ')} +${n.length - 2}`) : n.join(W('、', ', '));
+};
+
 export function openCats(kind = 'out') {
   const b = state.books;
   let k = kind;
@@ -40,7 +47,7 @@ export function openCats(kind = 'out') {
     const rows = catList(k, { all: true }).map(c =>
       h('button', { class: `q-ritem chevron mn-row${c.hidden ? ' mn-hiddencat' : ''}`, type: 'button', onclick: () => ((open = c.id), paint()) }, [
         tile(glyph(c.icon), c.color),
-        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(c, lang) }), h('small', { text: c.hidden ? W('已隱藏', 'Hidden') : c.subs.map(x => catName(x, lang)).join('、') || W('沒有細項', 'No subs') })])
+        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(c, lang) }), h('small', { text: c.hidden ? W('已隱藏', 'Hidden') : subLine(c) })])
       ])
     );
     box.replaceChildren(kinds, h('div', { class: 'q-rowcard' }, rows), h('p', { class: 'mn-hint', text: W('細項讓統計分得更細，例如 交通 › TPASS、餐飲 › 午餐。', 'Subs split the stats finer, like Transport › TPASS or Food › Lunch.') }));
