@@ -4,7 +4,7 @@ Your own books: what you spend each day, what each account holds, and
 whether an invoice won. Real money, kept apart from Orbit's play money.
 Signs in with the Orbit Pass; the books sync on it.
 
-Live: https://jaypengx.com/money/
+Live: https://orbit.jaypengx.com/money/
 
 ## How it works
 
