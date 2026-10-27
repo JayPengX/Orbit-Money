@@ -49,12 +49,15 @@ export function renderMore(box) {
 
 // The books as a spreadsheet: every entry, oldest first (shared on a phone, saved elsewhere).
 async function exportCsv() {
-  const KIND = { out: W('支出', 'Spend'), in: W('收入', 'Income'), move: W('轉帳', 'Transfer'), adj: W('調整餘額', 'Balance fix') };
+  const KIND = { out: W('支出', 'Spend'), in: W('收入', 'Income'), move: W('轉帳', 'Transfer'), adj: W('調整餘額', 'Balance fix'), back: W('退款', 'Refund') };
+  const kindOf = e => (e.k === 'back' && e.why === 'friend' ? W(`${e.who || '朋友'}分攤`, `${e.who || 'Friend'}’s share`) : KIND[e.k] || e.k);
+  // (Another way a spend was paid: 「LINE Points 50」.)
+  const also = e => (Array.isArray(e.also) ? e.also.map(p => `${acctName(p.a)} ${p.amt}`).join(' ') : '');
   const q = v => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? ''));
   const rows = live(state.books.entries)
     .sort((a, b) => a.d.localeCompare(b.d) || (a.t || 0) - (b.t || 0))
-    .map(e => [e.d, KIND[e.k] || e.k, e.k === 'out' || e.k === 'in' ? catName(catOf(e.cat), 'zh') : '', subOf(e.sub) ? catName(subOf(e.sub), 'zh') : '', e.k === 'out' ? -e.amt : e.amt, acctName(e.a), e.k === 'move' ? acctName(e.to) : card(e.via)?.name || '', e.note || '', e.inv?.no || '']);
-  const head = W('日期,種類,分類,細項,金額,帳戶,轉入／付款方式,備註,發票號碼', 'Date,Kind,Category,Sub,Amount,Account,To / paid with,Note,Invoice');
+    .map(e => [e.d, kindOf(e), e.k === 'out' || e.k === 'in' || e.k === 'back' ? catName(catOf(e.cat), 'zh') : '', subOf(e.sub) ? catName(subOf(e.sub), 'zh') : '', e.k === 'out' ? -e.amt : e.amt, e.k === 'back' && e.wait ? W('還沒給', 'Not yet') : acctName(e.a), e.k === 'move' ? acctName(e.to) : card(e.via)?.name || '', e.fee ? -e.fee : '', also(e), e.note || '', e.inv?.no || '']);
+  const head = W('日期,種類,分類,細項,金額,帳戶,轉入／付款方式,手續費,另付,備註,發票號碼', 'Date,Kind,Category,Sub,Amount,Account,To / paid with,Fee,Also paid with,Note,Invoice');
   const text = `﻿${[head, ...rows.map(r => r.map(q).join(','))].join('\n')}\n`;
   const name = `orbit-money-${today()}.csv`;
   const file = new File([text], name, { type: 'text/csv' });

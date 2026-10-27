@@ -1,30 +1,63 @@
 // One entry: its row (in every list), and the sheet that adds or changes it:
 // spending, income or a transfer; the amount on the app's own keypad (+ and −
 // add up as you type); the category; how it was paid; the day; a note; the
-// 發票 it came from. A scanned 發票 opens it filled in.
+// 發票 it came from; a fee, a part paid another way (LINE Points), a friend's
+// share. A scanned 發票 opens it filled in. A 退款 has its own small sheet.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { put, drop, live, usualFor, autoReload } from '../lib/books.mjs';
+import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE } from '../lib/books.mjs';
 import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
-import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
+import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 
 // ---- A row ----------------------------------------------------------------------
 
-export function entryRow(e, { day = false, inAcct = false, inCat = false } = {}) {
+// What a row calls an entry: its note, its store, else what it was.
+export function titleOf(e) {
   const look = lookOf(e);
   const fine = subOf(e.sub);
+  return e.note || e.inv?.seller || (e.auto === 'reload' ? W('自動加值', 'Auto top-up') : e.k === 'move' ? W('轉帳', 'Transfer') : e.k === 'adj' ? W('調整餘額', 'Balance fix') : catName(fine || look, lang));
+}
+
+// `line`: one of lib/books.mjs lines (a category's list): its amount, a fee as 手續費.
+export function entryRow(e, { day = false, inAcct = false, inCat = false, line = null } = {}) {
+  if (e.k === 'back') return backRow(e, { day });
+  const look = line?.fee ? catOf(FEE.cat) : lookOf(e);
+  const fine = subOf(line ? line.sub : e.sub);
   // (Inside a category's own list: only its sub.)
   const what = fine ? catName(fine, lang) : inCat ? '' : catName(look, lang);
-  const title = e.note || e.inv?.seller || (e.auto === 'reload' ? W('自動加值', 'Auto top-up') : e.k === 'move' ? W('轉帳', 'Transfer') : e.k === 'adj' ? W('調整餘額', 'Balance fix') : what || catName(look, lang));
+  const fee = line ? 0 : feeOf(e);
+  // (A transfer's fee in its title: an ATM withdrawal's NT$15.)
+  const title = e.k === 'move' && fee && !e.note ? W(`轉帳 · 手續費 ${money(fee)}`, `Transfer · ${money(fee)} fee`) : titleOf(e);
   // (The category under a note or a store, so a row always says what it was.)
-  const named = e.note || e.inv?.seller;
-  const sub = [day ? dayLabel(e.d, { week: false }) : '', named && e.k !== 'move' && e.k !== 'adj' ? what : '', inAcct ? state.books.cards?.[e.via]?.name || '' : inCat ? '' : payLabel(e)].filter(Boolean).join(' · ');
+  const named = e.note || e.inv?.seller || line?.fee;
+  // What came back for it, and its fee, in a few words.
+  const got = e.k === 'out' ? backsFor(state.books, e.id).reduce((n, x) => n + x.amt, 0) : 0;
+  // (Said instead of how it was paid, so the line stays one line.)
+  const extra = [got ? W(`退回 ${money(got)}`, `${money(got)} back`) : '', fee && e.k === 'out' ? W(`手續費 ${money(fee)}`, `fee ${money(fee)}`) : ''].filter(Boolean);
+  const paid = extra.length ? extra.join(' · ') : inAcct ? state.books.cards?.[e.via]?.name || '' : inCat ? '' : payLabel(e);
+  const sub = [day ? dayLabel(e.d, { week: false }) : '', line?.fee || (named && e.k !== 'move' && e.k !== 'adj' && !e.also?.length) ? what : '', paid].filter(Boolean).join(' · ');
   const sign = e.k === 'in' ? 'in' : e.k === 'out' ? 'out' : 'move';
-  const amt = e.k === 'in' ? money(e.amt, { sign: true }) : e.k === 'adj' ? money(e.amt, { sign: true }) : money(e.amt);
+  // (A spend: what it came to, less what came back, its fee with it.)
+  const cost = line ? line.amt : e.k === 'out' ? Math.max(0, e.amt - got) + fee : e.amt;
+  const amt = e.k === 'in' ? money(e.amt, { sign: true }) : e.k === 'adj' ? money(e.amt, { sign: true }) : money(cost);
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openEntry({ entry: e }) }, [
     tile(glyph(look.icon), look.color),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: title }), h('small', {}, [sub, e.inv ? h('i', { class: 'mn-inv-mark', 'aria-label': W('有發票', 'Has invoice'), html: glyph('receipt') }) : null])]),
     h('span', { class: `q-ritem-value num mn-amt ${sign}`, text: amt })
+  ]);
+}
+
+// Money back: a 退款 (opens its own sheet) or a friend's share (opens the spend).
+function backRow(e, { day = false } = {}) {
+  const of = state.books.entries[e.of];
+  const spend = of && !of.del ? of : null;
+  const friend = e.why === 'friend';
+  const title = friend ? W(`${e.who || '朋友'} 分攤`, `${e.who || 'A friend'}’s share`) : W('退款', 'Refund');
+  const sub = [day ? dayLabel(e.d, { week: false }) : '', spend ? titleOf(spend) : '', e.wait ? W('還沒給', 'Not yet') : acctName(e.a)].filter(Boolean).join(' · ');
+  return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => (friend && spend ? openEntry({ entry: spend }) : openRefund({ back: e })) }, [
+    tile(glyph('swap'), '#0891b2'),
+    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: title }), h('small', { text: sub })]),
+    h('span', { class: 'q-ritem-value num mn-amt move', text: `+${money(e.amt)}` })
   ]);
 }
 
@@ -90,7 +123,7 @@ export function sumOf(expr) {
 // ---- The sheet ----------------------------------------------------------------------
 
 // openEntry({ entry }) to change one; { day, kind, inv, amt, note, cat } to add one.
-export function openEntry({ entry = null, day = today(), kind = 'out', inv = null, amt = 0, note = '', from = '', to = '', cat = '' } = {}) {
+export function openEntry({ entry = null, day = today(), kind = 'out', inv = null, amt = 0, note = '', from = '', to = '', cat = '', sub = '' } = {}) {
   const b = state.books;
   const was = entry ? b.entries[entry.id] : null;
   const opt = b.opt || {};
@@ -107,12 +140,18 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     note: was?.note ?? note,
     inv: was?.inv || inv,
     // (auto: the amount is a category's default, so another pick may change it; a key typed keeps it.)
-    auto: false
+    auto: false,
+    // A fee (shown once added), a part paid another way, friends' shares.
+    fee: was?.fee ? String(was.fee) : '',
+    feeOn: Boolean(was?.fee),
+    also: alsoOf(was)[0] ? { ...alsoOf(was)[0], amt: String(alsoOf(was)[0].amt) } : null,
+    friends: (was ? backsFor(b, was.id) : []).filter(x => x.why === 'friend').map(x => ({ id: x.id, who: x.who || '', amt: String(x.amt), a: x.a || 'cash', wait: Boolean(x.wait), d: x.d, was: x }))
   };
+  const refunds = was ? backsFor(b, was.id).filter(x => x.why !== 'friend') : [];
   // The sub: the entry's own, or what the note or the store or the hour says.
   const fresh = !was && day === today();
   const guess = () => guessSub(f.cat, `${note} ${inv?.seller || ''} ${(inv?.items || []).map(i => i.name).join(' ')}`, fresh ? new Date() : null);
-  f.sub = was ? was.sub || '' : guess();
+  f.sub = was ? was.sub || '' : sub && subOf(sub)?.parent === f.cat ? sub : guess();
   if (f.k === 'move' && !f.to) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
 
   // A category's own way to pay and amount (set in 分類), filled in when it's
@@ -150,6 +189,10 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   noteIn.addEventListener('keydown', e => e.key === 'Enter' && noteIn.blur());
   const invRow = h('div', { class: 'mn-invrow' });
   const pills = h('div', { class: 'mn-pills' }, [payBtn, dateBtn]);
+  // 手續費, 另付, 朋友分攤, 退款: one button beside the note, each a row under it once added.
+  const moreBtn = h('button', { class: 'mn-pill mn-more', type: 'button', 'aria-label': W('手續費、分攤、退款', 'Fee, split, refund'), html: icons.plus, onclick: e => pickMore(e.currentTarget) });
+  const noteRow = h('div', { class: 'mn-noterow' }, [noteIn, moreBtn]);
+  const extras = h('div', { class: 'mn-extras' });
 
   const kinds = segmented(
     [
@@ -218,6 +261,9 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     catDots.hidden = cats.hidden || cats.children.length <= 10;
     moveRow.hidden = f.k !== 'move';
     payBtn.hidden = f.k === 'move';
+    moreBtn.hidden = f.k !== 'out' && f.k !== 'move';
+    noteRow.classList.toggle('solo', moreBtn.hidden);
+    paintExtras();
     if (!cats.hidden && catsKind !== f.k) {
       catsKind = f.k;
       cats.replaceChildren(...catTiles(f.k, f.cat, id => (id !== f.cat && ((f.cat = id), (f.sub = guess()), applyDefaults(), paintAmount(), paintPay()), paintCat())));
@@ -246,6 +292,52 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     menu(anchor, payOptions({ keep: [f.a, f.via] }).map(o => ({ label: o.label, icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((f.a = o.a), (f.via = o.via), paint()) })));
   }
 
+  // ---- The rows under the pills ----
+  function pickMore(anchor) {
+    const out = f.k === 'out';
+    menu(anchor, [
+      !f.feeOn ? { label: W('手續費', 'Fee'), onClick: () => ((f.feeOn = true), paintExtras(), focusLast('.mn-x-fee input')) } : null,
+      out && !f.also ? { label: W('另一種付款（點數、禮券）', 'Paid partly another way'), onClick: () => ((f.also = { a: openAccounts().find(x => x.id !== f.a && x.kind === 'wallet')?.id || openAccounts().find(x => x.id !== f.a)?.id || f.a, via: '', amt: '' }), paintExtras(), focusLast('.mn-x-also input')) } : null,
+      out ? { label: W('朋友分攤', 'A friend’s share'), onClick: () => (f.friends.push({ who: '', amt: '', a: 'cash', wait: false }), paintExtras(), focusLast('.mn-x-friend input')) } : null,
+      out && was ? { label: W('退款', 'Refund'), onClick: () => (s.close(), openRefund({ of: was })) } : null
+    ].filter(Boolean));
+  }
+  const focusLast = sel => requestAnimationFrame(() => [...extras.querySelectorAll(sel)].pop()?.focus());
+  const numIn = (value, onInput, label) => {
+    const i = h('input', { class: 'q-field num mn-xin', type: 'text', inputmode: 'numeric', maxlength: '7', placeholder: 'NT$', value, 'aria-label': label, enterkeyhint: 'done' });
+    i.addEventListener('input', () => onInput(i.value));
+    i.addEventListener('keydown', e => e.key === 'Enter' && i.blur());
+    return i;
+  };
+  const xBtn = (label, onTap) => h('button', { class: 'mn-x-del', type: 'button', 'aria-label': label, text: '✕', onclick: () => (tick(), onTap(), paintExtras()) });
+  function paintExtras() {
+    const rows = [];
+    const on = f.k === 'out' || f.k === 'move';
+    if (on && f.feeOn) {
+      // (A credit card abroad: most banks charge 1.5% of it; a tap fills that in.)
+      const sum = sumOf(f.expr);
+      const fx = f.k === 'out' && acct(f.a)?.kind === 'credit' && sum > 0 ? Math.round(sum * 0.015) : 0;
+      const feeIn = numIn(f.fee, v => (f.fee = v), W('手續費', 'Fee'));
+      rows.push(h('div', { class: 'mn-xrow mn-x-fee' }, [h('span', { class: 'mn-x-l', text: W('手續費', 'Fee') }), feeIn, fx ? h('button', { class: 'mn-subchip num', type: 'button', text: W('海外 1.5%', 'Abroad 1.5%'), 'aria-label': W(`海外交易手續費 1.5%：${money(fx)}`, `Foreign fee 1.5%: ${money(fx)}`), onclick: () => (tick(), (f.fee = String(fx)), (feeIn.value = f.fee)) }) : h('span'), xBtn(W('移除手續費', 'Remove fee'), () => ((f.feeOn = false), (f.fee = '')))]));
+    }
+    if (f.k === 'out' && f.also) {
+      const pick = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, payOptions({ keep: [f.also.a, f.also.via] }).map(o => ({ label: o.label, icon: o.a === f.also.a && o.via === f.also.via ? '✓' : '', onClick: () => ((f.also.a = o.a), (f.also.via = o.via), paintExtras()) }))) }, [h('span', { class: 'mn-pill-t', text: payOf(f.also.a, f.also.via)?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron })]);
+      rows.push(h('div', { class: 'mn-xrow mn-x-also' }, [h('span', { class: 'mn-x-l', text: W('另付', 'Also') }), pick, numIn(f.also.amt, v => (f.also.amt = v), W('這部分的金額', 'This part')), xBtn(W('移除', 'Remove'), () => (f.also = null))]));
+    }
+    if (f.k === 'out')
+      f.friends.forEach((fr, i) => {
+        const who = h('input', { class: 'q-field mn-xin mn-x-who', type: 'text', maxlength: '12', placeholder: W('朋友', 'Friend'), value: fr.who, enterkeyhint: 'done', autocomplete: 'off', 'aria-label': W('誰', 'Who') });
+        who.addEventListener('input', () => (fr.who = who.value));
+        const into = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [{ label: W('還沒給', 'Not yet'), icon: fr.wait ? '✓' : '', onClick: () => ((fr.wait = true), paintExtras()) }, ...payOptions({ moving: true, keep: [fr.a] }).map(o => ({ label: W(`給了，收進 ${o.label}`, `Paid into ${o.label}`), icon: !fr.wait && o.a === fr.a ? '✓' : '', onClick: () => ((fr.wait = false), (fr.a = o.a), paintExtras()) }))]) }, [h('span', { class: 'mn-pill-t', text: fr.wait ? W('還沒給', 'Not yet') : acctName(fr.a) }), h('i', { html: icons.chevron })]);
+        rows.push(h('div', { class: 'mn-xrow mn-x-friend' }, [who, numIn(fr.amt, v => (fr.amt = v), W('他的部分', 'Their part')), into, xBtn(W('移除', 'Remove'), () => f.friends.splice(i, 1))]));
+      });
+    // (退款 already logged: each opens its own sheet.)
+    for (const r of f.k === 'out' ? refunds : [])
+      rows.push(h('button', { class: 'q-ritem chevron mn-xrow mn-x-refund', type: 'button', onclick: () => (s.close(), openRefund({ back: r })) }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W(`退款 ${money(r.amt)}`, `Refund ${money(r.amt)}`) }), h('small', { text: `${dayLabel(r.d, { week: false })} · ${acctName(r.a)}` })])]));
+    extras.hidden = !rows.length;
+    extras.replaceChildren(...rows);
+  }
+
   // The keypad.
   const press = k => {
     tick();
@@ -269,6 +361,10 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   async function commit() {
     const sum = sumOf(f.expr);
     if (!(sum > 0)) return;
+    const whole = v => Math.max(0, Math.round(Number(String(v ?? '').replace(/[^\d]/g, '')) || 0));
+    const shares = f.k === 'out' ? f.friends.map(fr => ({ ...fr, n: whole(fr.amt) })).filter(fr => fr.n > 0) : [];
+    const alsoAmt = f.k === 'out' && f.also ? whole(f.also.amt) : 0;
+    if (shares.reduce((n, fr) => n + fr.n, 0) + alsoAmt > sum) return toast(W('分攤和另付加起來超過金額了', 'The shares come to more than the amount'), { tone: 'bad' });
     if (f.inv && !was) {
       const dup = live(b.entries).find(e => e.inv?.no === f.inv.no);
       if (dup && !(await ask({ title: W('這張發票記過了', 'Already recorded'), body: `${dayLabel(dup.d)} · ${money(dup.amt)}`, ok: W('再記一次', 'Record again'), cancel: W('取消', 'Cancel'), icon: 'ticket' }))) return;
@@ -286,9 +382,23 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       via: f.k === 'move' ? '' : f.via,
       to: f.k === 'move' ? f.to : '',
       inv: f.inv || null,
+      fee: (f.k === 'out' || f.k === 'move') && f.feeOn ? whole(f.fee) : 0,
+      also: alsoAmt && f.also.a ? [{ a: f.also.a, via: f.also.via || '', amt: alsoAmt }] : null,
       t: was?.t || now
     };
+    if (!rec.fee) delete rec.fee;
+    if (!rec.also) delete rec.also;
     const kept = put(b, 'entries', rec, now);
+    // Friends' shares: money back for it (their cash moves a balance once handed over).
+    const keep = new Set();
+    for (const fr of shares) {
+      const id = fr.id || newId(now);
+      keep.add(id);
+      const received = !fr.wait && fr.was && !fr.was.wait;
+      put(b, 'entries', { id, d: received ? fr.d : f.d, k: 'back', why: 'friend', who: fr.who.trim(), of: kept.id, amt: fr.n, a: fr.a || 'cash', wait: fr.wait ? 1 : 0, cat: rec.cat, sub: rec.sub, t: now }, now);
+    }
+    // (No longer a spend: nothing can come back for it.)
+    for (const x of backsFor(b, kept.id)) if (x.why === 'friend' ? !keep.has(x.id) : f.k !== 'out') drop(b, 'entries', x.id, now);
     const reloaded = autoReload(b, kept, now);
     if (f.k !== 'move' && f.k !== 'adj') {
       b.opt = { ...b.opt, lastPay: { a: f.a, via: f.via }, lastCat: { ...(b.opt?.lastCat || {}), [f.k]: f.cat } };
@@ -331,7 +441,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
         onclick: async () => {
           if (!(await ask({ title: W('刪除這筆？', 'Delete this entry?'), body: `${money(Math.abs(was.amt))} · ${dayLabel(was.d)}`, ok: W('刪除', 'Delete'), cancel: W('取消', 'Cancel'), danger: true, icon: 'trash' }))) return;
           drop(b, 'entries', was.id);
-          for (const r of live(b.entries)) if (r.for === was.id) drop(b, 'entries', r.id);
+          for (const r of live(b.entries)) if (r.for === was.id || r.of === was.id) drop(b, 'entries', r.id);
           s.close();
           saved();
         }
@@ -342,9 +452,76 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     lead,
     detent: 'large',
     cls: 'mn-entry',
-    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, catDots, subs, unitRow, moveRow, pills, noteIn, invRow],
+    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, catDots, subs, unitRow, moveRow, pills, noteRow, extras, invRow],
     foot: pad
   });
   paint();
+  return s;
+}
+
+// ---- 退款 ---------------------------------------------------------------------------
+
+// Money back for a spend, all of it or part (Jay 2026-10-27: not income; it
+// comes off the spend): how much, the account it went back to (the spend's,
+// at first), the day. openRefund({ of: spend }) a new one, ({ back }) one logged.
+export function openRefund({ of = null, back = null } = {}) {
+  const b = state.books;
+  const src = b.entries[back ? back.of : of?.id];
+  const spend = src && !src.del ? src : null;
+  const others = spend ? backsFor(b, spend.id).filter(x => x.id !== back?.id).reduce((n, x) => n + x.amt, 0) : 0;
+  const left = spend ? Math.max(0, spend.amt - others) : Infinity;
+  const f = { amt: String(back?.amt || (Number.isFinite(left) ? left : '') || ''), a: back?.a || spend?.a || 'cash', d: back?.d || today() };
+  const amtIn = h('input', { class: 'q-field num mn-big-in', type: 'text', inputmode: 'numeric', maxlength: '7', placeholder: 'NT$', value: f.amt, 'aria-label': W('退多少', 'Amount back') });
+  amtIn.addEventListener('input', () => (f.amt = amtIn.value));
+  const all = Number.isFinite(left) && left > 0 ? h('button', { class: 'mn-subchip num', type: 'button', text: W(`全額 ${money(left)}`, `All ${money(left)}`), onclick: () => (tick(), (f.amt = String(left)), (amtIn.value = f.amt)) }) : null;
+  const into = h('button', { class: 'mn-pill', type: 'button' });
+  const paintInto = () => into.replaceChildren(h('span', { html: glyph('wallet') }), h('span', { class: 'mn-pill-t', text: acctName(f.a) }), h('i', { html: icons.chevron }));
+  into.onclick = e => menu(e.currentTarget, payOptions({ moving: true, keep: [f.a] }).map(o => ({ label: o.label, icon: o.a === f.a ? '✓' : '', onClick: () => ((f.a = o.a), paintInto()) })));
+  paintInto();
+  const dateIn = h('input', { class: 'mn-date', type: 'date', value: f.d, max: '2099-12-31', 'aria-label': W('日期', 'Date') });
+  const dateT = h('span', { class: 'mn-date-t' });
+  const paintDate = () => (dateT.textContent = f.d === today() ? W('今天', 'Today') : dayLabel(f.d, { week: false }));
+  dateIn.addEventListener('change', () => dateIn.value && ((f.d = dateIn.value), paintDate()));
+  paintDate();
+  const field = (label, ctl) => h('div', { class: 'mn-field' }, [h('span', { class: 'mn-field-l', text: label }), ctl]);
+  const what = spend ? `${titleOf(spend)} · ${money(spend.amt)}` : '';
+  const lead = back
+    ? h('button', {
+        class: 'q-close mn-del',
+        type: 'button',
+        'aria-label': W('刪除', 'Delete'),
+        html: icons.trash,
+        onclick: async () => {
+          if (!(await ask({ title: W('刪除這筆退款？', 'Delete this refund?'), body: money(back.amt), ok: W('刪除', 'Delete'), cancel: W('取消', 'Cancel'), danger: true, icon: 'trash' }))) return;
+          drop(b, 'entries', back.id);
+          s.close();
+          saved();
+        }
+      })
+    : null;
+  const s = sheet({
+    title: W('退款', 'Refund'),
+    subtitle: what,
+    lead,
+    cls: 'mn-refund',
+    body: [h('div', { class: 'mn-form' }, [field(W('退回金額', 'Amount back'), h('div', { class: 'mn-refund-amt' }, [amtIn, all])), field(W('退到', 'Back to'), into), field(W('日期', 'Date'), h('label', { class: 'mn-pill mn-date-pill' }, [h('span', { html: icons.calendar }), dateT, dateIn]))])],
+    foot: h('div', { class: 'q-sheet-foot' }, [
+      h('button', {
+        class: 'q-btn primary block',
+        type: 'button',
+        text: W('儲存', 'Save'),
+        onclick: () => {
+          const amt = Math.round(Number(String(f.amt).replace(/[^\d]/g, '')) || 0);
+          if (!(amt > 0)) return toast(W('請填金額', 'Fill in the amount'), { tone: 'bad' });
+          if (amt > left) return toast(W(`最多退 ${money(left)}`, `At most ${money(left)}`), { tone: 'bad' });
+          const now = Date.now();
+          put(b, 'entries', { ...(back || {}), d: f.d, k: 'back', why: 'refund', of: spend?.id || back?.of || '', amt, a: f.a, cat: spend?.cat || back?.cat || 'other', sub: spend?.sub || back?.sub || '', t: back?.t || now }, now);
+          s.close();
+          toast(back ? W('已更新', 'Updated') : W(`退款 ${money(amt)} 記好了`, `Refund of ${money(amt)} saved`));
+          saved();
+        }
+      })
+    ])
+  });
   return s;
 }

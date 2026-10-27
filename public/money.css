@@ -103,6 +103,8 @@ h1, h2, h3, p { margin: 0; }
 
 /* ---- The entry sheet ---- */
 .mn-entry { --mn-gap: var(--q-s-3); }
+/* (Many rows added on a small phone: the sheet scrolls, nothing is squeezed.) */
+.mn-entry > :not(.mn-pad) { flex-shrink: 0; }
 .mn-entry > .q-seg { margin-top: 2px; }
 .mn-amount { display: flex; align-items: center; gap: 12px; min-height: 64px; margin-top: var(--mn-gap); padding: 8px 14px; border-radius: var(--q-r-card); background: var(--q-surface); }
 .mn-amount .q-tile { width: 44px; height: 44px; border-radius: 13px; }
@@ -141,6 +143,30 @@ h1, h2, h3, p { margin: 0; }
 .mn-move-pick { display: grid; justify-items: start; gap: 0 !important; min-height: 54px !important; padding: 6px 12px !important; }
 .mn-move-pick small { color: var(--q-label-2); font: 500 12px/14px var(--q-font); }
 .mn-pills { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; margin-top: var(--mn-gap); }
+.mn-noterow { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; margin-top: var(--mn-gap); }
+.mn-noterow.solo { grid-template-columns: minmax(0, 1fr); }
+.mn-noterow .mn-note { margin-top: 0; }
+.mn-more { justify-content: center; padding: 0; color: var(--q-label-2); }
+.mn-more svg { width: 20px; height: 20px; }
+/* 手續費, 另付, 朋友分攤, 退款: a row each under the pills. */
+.mn-extras { display: grid; gap: 6px; margin-top: 8px; }
+.mn-extras[hidden] { display: none; }
+.mn-xrow { display: grid; grid-template-columns: 52px minmax(0, 1fr) minmax(0, 1fr) 32px; align-items: center; gap: 6px; min-width: 0; }
+.mn-x-also { grid-template-columns: 52px minmax(0, 1.3fr) minmax(0, 1fr) 32px; }
+.mn-x-friend { grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.2fr) 32px; }
+.mn-x-l { color: var(--q-label-2); font: 500 14px/18px var(--q-font); white-space: nowrap; }
+.mn-xin { min-width: 0; min-height: 40px; background: var(--q-surface); font-size: 16px; }
+.mn-xrow .mn-pill { min-height: 40px; padding: 0 10px; font-size: 14px; }
+.mn-xrow .mn-subchip { min-height: 40px; line-height: 40px; font-size: 13px; }
+.mn-x-del { width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--q-fill); color: var(--q-label-2); font: 500 13px/1 var(--q-font); }
+.mn-x-refund { display: flex; grid-template-columns: none; min-height: 44px; padding: 4px 12px; border-radius: var(--q-r-cell); background: var(--q-surface); }
+.mn-entry:has(.mn-xin:focus) .mn-pad { display: none; }
+.mn-refund-amt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.mn-refund-amt .mn-subchip { min-height: 44px; padding: 0 14px; line-height: 44px; }
+.mn-renews { margin-top: var(--q-s-4); }
+.mn-renew .q-btn { flex: none; }
+.mn-renew.soon .q-ritem-title { color: var(--q-red); }
+.mn-owed-total { color: var(--q-label-2); font: 500 15px/20px var(--q-font-rounded); }
 .mn-pill { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); font: 500 15px/20px var(--q-font); text-align: left; }
 .mn-pill > span:first-child:not(.mn-pill-t) { display: grid; flex: none; width: 18px; height: 18px; color: var(--q-label-2); }
 .mn-pill svg { width: 18px; height: 18px; }

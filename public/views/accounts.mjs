@@ -4,9 +4,9 @@
 // entries; a credit card to its bill too.
 import { h, icons, tile, sheet, toggle, toast, empty, segmented, menu } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, totals, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf, historyOf, hasHistory, closeAccount, closeCard, moveAccount, moveCard, snapshot, restore, accountParts } from '../lib/books.mjs';
+import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, acctTotals, owed, touches, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf, historyOf, hasHistory, closeAccount, closeCard, moveAccount, moveCard, snapshot, restore, accountParts } from '../lib/books.mjs';
 import { brandsFor, brandOf } from '../lib/brands.mjs';
-import { catName, glyph, lookOf, subsOf, guessCat, guessSub } from '../lib/cats.mjs';
+import { catName, glyph, lookOf, subsOf, subOf, guessCat, guessSub } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, logoFor, card } from '../shell.mjs';
 import { entryRow, openEntry, payOptions, catTiles, subChips } from './entry.mjs';
 
@@ -42,7 +42,29 @@ export function renderAccts(box) {
   });
   const add = h('button', { class: 'q-btn tinted block mn-add', type: 'button', onclick: () => openAccountEdit(null) }, [h('span', { html: icons.plus }), W('新增帳戶', 'Add an account')]);
 
-  box.replaceChildren(hero, ...groups.filter(Boolean), add);
+  box.replaceChildren(hero, ...groups.filter(Boolean), owedSection(), add);
+}
+
+// 朋友還沒給: a friend's share of a spend not handed over yet; a tap says
+// where it went once it is (today).
+function owedSection() {
+  const list = owed(state.books);
+  if (!list.length) return null;
+  const total = list.reduce((n, x) => n + x.e.amt, 0);
+  return h('section', { class: 'q-section' }, [
+    h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('朋友還沒給', 'Friends owe you') }), h('span', { class: 'num mn-owed-total', text: money(total) })]),
+    h(
+      'div',
+      { class: 'q-rowcard' },
+      list.map(({ e, of }) =>
+        h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: ev => menu(ev.currentTarget, payOptions({ moving: true }).map(o => ({ label: W(`收到了，進 ${o.label}`, `Got it, into ${o.label}`), onClick: () => (put(state.books, 'entries', { ...e, wait: 0, a: o.a, d: today() }), saved(), toast(W(`${e.who || '朋友'} 給了 ${money(e.amt)}`, `${money(e.amt)} from ${e.who || 'a friend'}`))) }))) }, [
+          tile(glyph('user'), '#0891b2'),
+          h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: e.who || W('朋友', 'A friend') }), h('small', { text: [dayLabel(e.d, { week: false }), of ? of.note || of.inv?.seller || catName(subOf(of.sub) || lookOf(of), lang) : ''].filter(Boolean).join(' · ') })]),
+          h('span', { class: 'q-ritem-value num mn-amt move', text: money(e.amt) })
+        ])
+      )
+    )
+  ]);
 }
 
 // 固定收支 (from 更多): each with when it's next, soonest first.
@@ -108,8 +130,8 @@ export function openAccount(id, host = null) {
   const now = today();
   const bal = balances(b)[id] || 0;
   const ym = now.slice(0, 7);
-  const mine = live(b.entries).filter(e => e.a === id || e.to === id);
-  const month = totals({ ...b, entries: Object.fromEntries(mine.map(e => [e.id, e])) }, `${ym}-01`, `${ym}-31`);
+  const mine = live(b.entries).filter(e => touches(e).includes(id));
+  const month = acctTotals(b, id, `${ym}-01`, `${ym}-31`);
   const bill = a.kind === 'credit' ? cardBill(b, a, now) : null;
   const hero = h('div', { class: 'mn-acct-hero' }, [acctTile(a, 56), h('small', { text: a.kind === 'credit' ? W('目前欠款', 'Owed now') : W('餘額', 'Balance') }), h('b', { class: 'num q-fit', text: money(a.kind === 'credit' ? -bal : bal) })]);
   const facts = h('div', { class: 'q-fig mn-facts' }, [
@@ -381,8 +403,8 @@ export function openAccountEdit(a, host = null) {
       f.kind === 'credit'
         ? h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [{ label: W('不設定', 'None'), onClick: () => ((f.pay = ''), paint()) }, ...openAccounts().filter(x => x.kind === 'bank' && x.id !== a?.id).map(x => ({ label: x.name, icon: x.id === f.pay ? '✓' : '', onClick: () => ((f.pay = x.id), paint()) }))]) }, [h('span', { class: 'mn-pill-t', text: f.pay ? acctName(f.pay) : W('選銀行帳戶', 'Choose a bank account') }), h('i', { html: icons.chevron })])
         : null;
-    // (Left empty: nobody in the books pays, a parent's card; the balance just goes up. Jay 2026-10-27.)
-    const reloadFrom = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [{ label: W('不設定', 'None'), icon: rl.from ? '' : '✓', onClick: () => ((rl.from = ''), paint()) }, ...openAccounts().filter(x => x.id !== a?.id && (x.kind === 'bank' || x.kind === 'credit')).map(x => ({ label: x.name, icon: x.id === rl.from ? '✓' : '', onClick: () => ((rl.from = x.id), paint()) }))]) }, [h('span', { class: 'mn-pill-t', text: rl.from && acct(rl.from) ? acctName(rl.from) : W('不設定，只加餘額', 'None: just the balance') }), h('i', { html: icons.chevron })]);
+    // (Left empty: nobody in the books pays, a parent's card; it comes in as income. Jay 2026-10-27.)
+    const reloadFrom = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [{ label: W('不設定', 'None'), icon: rl.from ? '' : '✓', onClick: () => ((rl.from = ''), paint()) }, ...openAccounts().filter(x => x.id !== a?.id && (x.kind === 'bank' || x.kind === 'credit')).map(x => ({ label: x.name, icon: x.id === rl.from ? '✓' : '', onClick: () => ((rl.from = x.id), paint()) }))]) }, [h('span', { class: 'mn-pill-t', text: rl.from && acct(rl.from) ? acctName(rl.from) : W('不設定，算收入', 'None: counted as income') }), h('i', { html: icons.chevron })]);
     body.replaceChildren(
       ...[
         kindPick ? field(W('種類', 'Kind'), kindPick) : null,

@@ -11,10 +11,11 @@
 // the Pass's copy before anything is written (the kit's pass-sync.mjs).
 import * as kitUI from '#kit/ui.mjs';
 import { passSync } from '#kit/pass-sync.mjs';
-import { orbitSession, tabBar, topActions, installGate, watchUpdates, keepOffline, storedAccount, cachedPayload } from '#kit/orbit.mjs';
-import { decodeBooks, encodeBooks, mergeBooks, runRepeats, put } from './lib/books.mjs';
-import { state, hooks, lang, W, today } from './shell.mjs';
-import { useCats } from './lib/cats.mjs';
+import { orbitSession, tabBar, topActions, installGate, watchUpdates, keepOffline, storedAccount, cachedPayload, schedulePush, setNotifyOn, enablePush } from '#kit/orbit.mjs';
+import { addDays } from '#kit/format.mjs';
+import { decodeBooks, encodeBooks, mergeBooks, runRepeats, upgradeBooks, put } from './lib/books.mjs';
+import { state, hooks, lang, W, today, dayLabel } from './shell.mjs';
+import { useCats, upgradeCats, passes, catOf, subOf, catName } from './lib/cats.mjs';
 import { renderCal } from './views/calendar.mjs';
 import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
@@ -70,7 +71,32 @@ function sync({ soon = false } = {}) {
   return pass.sync();
 }
 document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && sync());
-hooks.changed = () => (stamp++, pass.changed(), keepLocal(), sync({ soon: true }), render());
+hooks.changed = () => (stamp++, pass.changed(), keepLocal(), sync({ soon: true }), render(), plan());
+
+// 到期提醒 as phone notices (kind 'renew', its switch in the Pass sheet): each
+// pass the evening before its last day and that morning, Taiwan time.
+function plan() {
+  const now = Date.now();
+  const items = passes(state.books, today()).filter(p => p.left >= 0).flatMap(p => {
+    const name = catName(subOf(p.e.sub) || catOf(p.e.cat), lang);
+    const last = dayLabel(p.end, { week: false });
+    return [
+      { at: Date.parse(`${addDays(p.end, -1)}T20:00:00+08:00`), title: W(`${name} 明天到期`, `${name} ends tomorrow`), body: W(`${last}是最後一天，記得續購。`, `${last} is its last day.`), tag: `renew:${p.id}:${p.end}:1`, kind: 'renew', hash: 'cal' },
+      { at: Date.parse(`${p.end}T08:00:00+08:00`), title: W(`${name} 今天到期`, `${name} ends today`), body: W('今天是最後一天。', 'Today is its last day.'), tag: `renew:${p.id}:${p.end}:0`, kind: 'renew', hash: 'cal' }
+    ];
+  });
+  schedulePush(q, items.filter(x => x.at > now));
+}
+// Notices turned on from the app (月曆's 提醒我): this phone asked, the pass's switch on.
+hooks.notices = async () => {
+  if (!('Notification' in globalThis)) return false;
+  const p = await Notification.requestPermission().catch(() => 'denied');
+  if (p !== 'granted') return false;
+  setNotifyOn(true, q);
+  await enablePush(q, true);
+  plan();
+  return true;
+};
 hooks.render = () => render();
 
 // The first account every book has: cash (one fixed id, so two new phones
@@ -83,6 +109,8 @@ function settle() {
     changed = true;
   }
   if (runRepeats(b, today())) changed = true;
+  // (Books from before a change in what entries mean, brought up to date.)
+  if (upgradeBooks(b) + upgradeCats(b)) changed = true;
   return changed;
 }
 
@@ -143,6 +171,7 @@ async function boot() {
   keepLocal();
   show();
   pass.watch();
+  plan();
   await sync();
   for (const item of first?.inbox || []) q.dropInbox(item.id).catch(() => {});
 }

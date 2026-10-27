@@ -98,3 +98,53 @@ test('what a pick fills in: nothing until set, a sub’s own over its category�
   assert.deepEqual(C.defaultsOf('transport', 'transport:tpass'), { pay: { a: 'bank', via: '' }, amt: 1200, unit: 0 });
   assert.deepEqual(C.defaultsOf('transport', ''), { pay: { a: 'bank', via: '' }, amt: 0, unit: 0 });
 });
+
+test('到期提醒: a TPASS runs 30 days from its day; the latest counts; gone a week after it ran out', () => {
+  const b = sample();
+  C.useCats(b.cats);
+  assert.equal(C.daysOf('transport', 'transport:tpass'), 30);
+  assert.equal(C.daysOf('food', 'food:lunch'), 0);
+  let [p] = C.passes(b, '2026-10-27');
+  assert.equal(p.id, 'transport:tpass');
+  assert.equal(p.end, '2026-10-30');
+  assert.equal(p.left, 3);
+  assert.equal(C.passes(b, '2026-11-06')[0].left, -7);
+  assert.equal(C.passes(b, '2026-11-07').length, 0);
+  // Renewed: the new one's end.
+  B.put(b, 'entries', { id: 'e3', d: '2026-10-31', k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', a: 'cash' }, T);
+  [p] = C.passes(b, '2026-11-02');
+  assert.equal(p.end, '2026-11-29');
+  // The person's own: off (0), or on any category.
+  C.saveCat(b, { id: 'transport:tpass', days: 0 });
+  C.saveCat(b, { id: 'digital:ai', days: 30 });
+  C.useCats(b.cats);
+  B.put(b, 'entries', { id: 'e4', d: '2026-11-01', k: 'out', amt: 650, cat: 'digital', sub: 'digital:ai', a: 'cash' }, T);
+  assert.deepEqual(C.passes(b, '2026-11-02').map(x => x.id), ['digital:ai']);
+  C.useCats({});
+});
+
+test('訂閱 and 遊戲 moved to 數位: entries, repeats and the person’s own changes go along; the 退款 category let go', () => {
+  const b = sample();
+  B.put(b, 'entries', { id: 'g', d: '2026-10-03', k: 'out', amt: 1490, cat: 'fun', sub: 'fun:games', a: 'cash' }, T);
+  B.put(b, 'recur', { id: 'n', k: 'out', amt: 390, cat: 'fun', sub: 'fun:subs', a: 'cash', every: 'month', day: 5, from: '2026-10-05' }, T);
+  C.saveCat(b, { id: 'fun:subs', zh: '串流', amt: 390 }, T);
+  C.saveCat(b, { id: 'refund', hidden: true }, T);
+  assert.equal(C.upgradeCats(b, T + 1), 4);
+  assert.equal(b.entries.g.cat, 'digital');
+  assert.equal(b.entries.g.sub, 'digital:games');
+  assert.equal(b.recur.n.sub, 'digital:subs');
+  assert.equal(b.cats['digital:subs'].zh, '串流');
+  assert.equal(C.subOf('digital:subs').zh, '串流');
+  assert.equal(b.cats['fun:subs'].del, 1);
+  assert.equal(C.upgradeCats(b, T + 2), 0);
+  C.useCats({});
+});
+
+test('digital things land in 數位: Claude, Cloudflare, Steam', () => {
+  C.useCats({});
+  assert.equal(C.guessCat('Anthropic Claude Pro'), 'digital');
+  assert.equal(C.guessSub('digital', 'CLOUDFLARE'), 'digital:cloud');
+  assert.equal(C.guessSub('digital', 'Steam'), 'digital:games');
+  assert.equal(C.guessSub('digital', 'Claude.ai subscription'), 'digital:ai');
+  assert.equal(C.guessCat('威秀影城'), 'fun');
+});

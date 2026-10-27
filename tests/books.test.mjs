@@ -191,20 +191,114 @@ test('自動加值: a spend that sets it off brings the reload in from the card 
   assert.equal(spend('r4', 5000), 0);
 });
 
-test('自動加值 with nothing behind it: the card’s balance goes up, nobody else’s, not income or spending', () => {
+test('自動加值 with nothing behind it (a parent’s card): the card’s balance goes up as income, nobody else’s', () => {
   const b = sample();
   B.put(b, 'accts', { id: 'ez', name: '悠遊卡', kind: 'ticket', open: 50, inTotal: true, reload: { on: true, from: '', amt: 500, below: 100 } }, T);
   const before = B.balances(b);
   const t0 = B.totals(b, '2026-10-01', '2026-10-31');
   const e = B.put(b, 'entries', { id: 'm1', d: '2026-10-25', k: 'out', amt: 15, cat: 'transport', a: 'ez' }, T);
   assert.equal(B.autoReload(b, e, T), 500);
-  assert.equal(b.entries['m1-r'].k, 'adj');
+  assert.equal(b.entries['m1-r'].k, 'in');
   const after = B.balances(b);
   assert.equal(after.ez, 535);
   assert.equal(after.cc, before.cc);
   const t1 = B.totals(b, '2026-10-01', '2026-10-31');
-  assert.equal(t1.in, t0.in);
+  assert.equal(t1.in, t0.in + 500);
   assert.equal(t1.out, t0.out + 15);
+});
+
+test('a 退款, whole or part, comes off its spend (not income), on the spend’s day; the money lands where it went back to', () => {
+  const b = sample();
+  const t0 = B.totals(b, '2026-10-01', '2026-10-31');
+  const bal0 = B.balances(b);
+  // NT$3,000 on the card on 10-05; NT$1,000 of it back on the card on 11-02.
+  B.put(b, 'entries', { id: 'r1', d: '2026-11-02', k: 'back', why: 'refund', of: 'e2', amt: 1000, a: 'cc', cat: 'shop' }, T);
+  const t1 = B.totals(b, '2026-10-01', '2026-10-31');
+  assert.equal(t1.out, t0.out - 1000);
+  assert.equal(t1.in, t0.in);
+  assert.equal(t1.cats.find(c => c.cat === 'shop').amt, 2000);
+  assert.equal(B.totals(b, '2026-11-01', '2026-11-30').in, 0);
+  assert.equal(B.balances(b).cc, bal0.cc + 1000);
+  assert.equal(B.monthByDay(b, '2026-10')['2026-10-05'].out, 2000);
+  // All of it back: the spend is 0, never below.
+  B.put(b, 'entries', { id: 'r2', d: '2026-11-03', k: 'back', why: 'refund', of: 'e2', amt: 2500, a: 'cc' }, T);
+  assert.equal(B.totals(b, '2026-10-01', '2026-10-31').cats.find(c => c.cat === 'shop'), undefined);
+  assert.equal(B.netOf(b.entries.e2, B.backs(b)), 0);
+});
+
+test('a friend’s share: comes off the spend at once; their cash moves a balance only once handed over', () => {
+  const b = sample();
+  const bal0 = B.balances(b);
+  B.put(b, 'entries', { id: 'd1', d: '2026-10-10', k: 'out', amt: 900, cat: 'food', sub: 'food:out', a: 'cc' }, T);
+  B.put(b, 'entries', { id: 'f1', d: '2026-10-10', k: 'back', why: 'friend', who: '小明', of: 'd1', amt: 300, a: 'cash', wait: 1 }, T);
+  B.put(b, 'entries', { id: 'f2', d: '2026-10-10', k: 'back', why: 'friend', who: '阿華', of: 'd1', amt: 300, a: 'cash' }, T);
+  const t = B.totals(b, '2026-10-01', '2026-10-31');
+  assert.equal(t.cats.find(c => c.cat === 'food').amt, 120 + 500 + 300);
+  const bal = B.balances(b);
+  assert.equal(bal.cc, bal0.cc - 900);
+  assert.equal(bal.cash, bal0.cash + 300);
+  assert.deepEqual(B.owed(b).map(x => [x.e.who, x.of.id]), [['小明', 'd1']]);
+  B.put(b, 'entries', { ...b.entries.f1, wait: 0, d: '2026-10-12' }, T + 1);
+  assert.equal(B.balances(b).cash, bal0.cash + 600);
+  assert.equal(B.owed(b).length, 0);
+});
+
+test('paid two ways (LINE Pay and LINE Points): each pays its part, the spend is the whole', () => {
+  const b = sample();
+  B.put(b, 'accts', { id: 'lp', name: 'LINE Pay', kind: 'wallet', open: 1000, inTotal: true }, T);
+  B.put(b, 'accts', { id: 'pts', name: 'LINE Points', kind: 'wallet', open: 200, inTotal: true }, T);
+  const t0 = B.totals(b, '2026-10-01', '2026-10-31').out;
+  B.put(b, 'entries', { id: 'x', d: '2026-10-12', k: 'out', amt: 350, cat: 'shop', a: 'lp', also: [{ a: 'pts', amt: 50 }] }, T);
+  const bal = B.balances(b);
+  assert.equal(bal.lp, 700);
+  assert.equal(bal.pts, 150);
+  assert.equal(B.totals(b, '2026-10-01', '2026-10-31').out, t0 + 350);
+  // Never more than the spend.
+  B.put(b, 'entries', { id: 'y', d: '2026-10-12', k: 'out', amt: 40, cat: 'shop', a: 'lp', also: [{ a: 'pts', amt: 90 }] }, T);
+  assert.equal(B.balances(b).pts, 110);
+  assert.equal(B.balances(b).lp, 700);
+  // The points account moved over (轉移) takes its part with it.
+  B.put(b, 'accts', { id: 'pts2', name: 'LINE Points 新', kind: 'wallet', open: 0, inTotal: true }, T);
+  B.moveAccount(b, 'pts', 'pts2', T + 1);
+  assert.equal(B.balances(b).pts2, 110);
+  assert.equal(B.historyOf(b, 'pts2').entries, 2);
+});
+
+test('a fee (ATM, 境外交易) is spending under 稅費 › 手續費, paid from the same account; on a transfer only the fee is spending', () => {
+  const b = sample();
+  const bal0 = B.balances(b);
+  const t0 = B.totals(b, '2026-10-01', '2026-10-31');
+  B.put(b, 'entries', { id: 'atm', d: '2026-10-11', k: 'move', amt: 2000, a: 'bank', to: 'cash', fee: 15 }, T);
+  B.put(b, 'entries', { id: 'fx', d: '2026-10-11', k: 'out', amt: 600, cat: 'fun', a: 'cc', fee: 9 }, T);
+  const bal = B.balances(b);
+  assert.equal(bal.bank, bal0.bank - 2015);
+  assert.equal(bal.cash, bal0.cash + 2000);
+  assert.equal(bal.cc, bal0.cc - 609);
+  const t = B.totals(b, '2026-10-01', '2026-10-31');
+  assert.equal(t.out, t0.out + 600 + 24);
+  assert.equal(t.cats.find(c => c.cat === 'tax').amt, 24);
+  assert.equal(B.lines(b, '2026-10-11', '2026-10-11').filter(l => l.fee).every(l => l.sub === 'tax:fee'), true);
+  // The card's bill has the fee in it.
+  assert.equal(B.cardBill(b, b.accts.cc, '2026-10-20').bill, 3000 + 609);
+});
+
+test('older books brought up: 退款 income becomes money back for its likeliest spend; a 自動加值 from nobody becomes income; twice does nothing', () => {
+  const b = sample();
+  B.put(b, 'entries', { id: 'old1', d: '2026-10-08', k: 'in', amt: 500, cat: 'refund', a: 'bank' }, T);
+  B.put(b, 'entries', { id: 'old2', d: '2026-10-09', k: 'in', amt: 99999, cat: 'refund', a: 'cash' }, T);
+  B.put(b, 'entries', { id: 'rl', d: '2026-10-09', k: 'adj', amt: 500, cat: '', a: 'cash', auto: 'reload', for: 'e1' }, T);
+  const bal0 = B.balances(b);
+  assert.equal(B.upgradeBooks(b, T + 1), 3);
+  // (500 back: only e2's 3,000 is big enough before it.)
+  assert.equal(b.entries.old1.k, 'back');
+  assert.equal(b.entries.old1.of, 'e2');
+  assert.equal(b.entries.old2.of, '');
+  assert.equal(b.entries.rl.k, 'in');
+  assert.deepEqual(B.balances(b), bal0);
+  const t = B.totals(b, '2026-10-01', '2026-10-31');
+  assert.equal(t.in, 40000 + 500);
+  assert.equal(t.cats.find(c => c.cat === 'shop').amt, 2500);
+  assert.equal(B.upgradeBooks(b, T + 2), 0);
 });
 
 test('a 載具 invoice matches what was logged by hand (same amount, its day or next to it); only the rest are new', () => {

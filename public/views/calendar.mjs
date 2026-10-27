@@ -4,10 +4,13 @@
 // (holidays and typhoon days off in red, as a Taiwan calendar has them),
 // and the picked day's entries under it. A swipe across the month goes to
 // the next or the last.
-import { h, icons, menu } from '#kit/ui.mjs';
+import { h, icons, menu, tile } from '#kit/ui.mjs';
+import { notifyOn } from '#kit/orbit.mjs';
+import { addDays } from '#kit/format.mjs';
 import { dayOffAt, myPlace } from '#kit/dayoff.mjs';
-import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState } from '../lib/books.mjs';
-import { state, W, en, money, short, monthLabel, dayLabel, today } from '../shell.mjs';
+import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState, lines } from '../lib/books.mjs';
+import { passes, catOf, subOf, catName, glyph } from '../lib/cats.mjs';
+import { state, hooks, W, en, lang, money, short, monthLabel, dayLabel, today } from '../shell.mjs';
 import { entryRow, openEntry } from './entry.mjs';
 
 const WEEK = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['日', '一', '二', '三', '四', '五', '六'];
@@ -94,14 +97,39 @@ export function renderCal(box) {
     daySec = next;
   };
 
-  box.replaceChildren(hero, h('div', { class: 'mn-cal-card' }, [calHead, grid]), daySec);
+  box.replaceChildren(hero, renewals(b, now), h('div', { class: 'mn-cal-card' }, [calHead, grid]), daySec);
+}
+
+// 到期提醒 (Jay 2026-10-27: when the TPASS needs renewing, with a notice):
+// each pass bought for a while, the days it has left; a tap logs the next
+// one. The notices themselves are app.mjs's (the day before and the day).
+function renewals(b, now) {
+  const list = passes(b, now);
+  if (!list.length) return null;
+  const rows = list.map(p => {
+    const look = subOf(p.e.sub) || catOf(p.e.cat);
+    const name = catName(look, lang);
+    const when = p.left > 0 ? W(`還有 ${p.left} 天`, `${p.left} day${p.left === 1 ? '' : 's'} left`) : p.left === 0 ? W('今天到期', 'Ends today') : W('已到期', 'Ended');
+    const ask = !notifyOn() && p.left >= 0;
+    return h('div', { class: `q-ritem mn-row mn-renew${p.left <= 2 ? ' soon' : ''}` }, [
+      tile(glyph(catOf(p.e.cat).icon), catOf(p.e.cat).color),
+      h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: `${name} ${when}` }), h('small', { text: W(`${dayLabel(p.end, { week: false })}到期`, `Ends ${dayLabel(p.end, { week: false })}`) })]),
+      // (Notices off: turned on from here first. The next one starts the day after this one ends.)
+      ask
+        ? h('button', { class: 'q-btn tinted small', type: 'button', text: W('提醒我', 'Remind me'), onclick: async () => (await hooks.notices?.()) && render() })
+        : h('button', { class: 'q-btn tinted small', type: 'button', text: W('續購', 'Renew'), onclick: () => openEntry({ cat: p.e.cat, sub: p.e.sub, day: p.left >= 0 ? addDays(p.end, 1) : now }) })
+    ]);
+  });
+  return h('div', { class: 'q-rowcard mn-renews' }, rows);
 }
 
 // The picked day: its total and its entries, with a row to add one.
 function daySection(b, place) {
   const list = entriesOn(b, state.day);
-  const dayOut = list.filter(e => e.k === 'out').reduce((s, e) => s + e.amt, 0);
-  const dayIn = list.filter(e => e.k === 'in').reduce((s, e) => s + e.amt, 0);
+  // (A spend less what came back for it, with its fee: lib/books.mjs lines.)
+  const day = lines(b, state.day, state.day);
+  const dayOut = day.filter(l => l.k === 'out').reduce((s, l) => s + l.amt, 0);
+  const dayIn = day.filter(l => l.k === 'in').reduce((s, l) => s + l.amt, 0);
   const off = dayOffAt(state.day, place);
   const head = h('div', { class: 'mn-dayhead' }, [
     h('div', { class: 'mn-dayhead-t' }, [h('h2', { text: dayLabel(state.day) }), off && off.kind !== 'weekend' ? h('small', { class: 'mn-holiday', text: en ? off.en : off.zh }) : null]),

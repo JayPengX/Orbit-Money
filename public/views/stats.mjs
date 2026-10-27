@@ -3,7 +3,7 @@
 // each category's share, largest first (one opens its entries); the income.
 import { h, icons, tile, pickSeg, sheet, toast } from '#kit/ui.mjs';
 import { addDays } from '#kit/format.mjs';
-import { totals, entriesIn, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
+import { totals, lines, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
 import { catList, catOf, catName, subOf, glyph } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, monthLabel, dayLabel, today, saved } from '../shell.mjs';
 import { entryRow } from './entry.mjs';
@@ -81,7 +81,7 @@ function trend(p, now) {
   if (p.unit === 'month') for (let m = 1; m <= 12; m++) buckets.push({ key: `${p.from.slice(0, 4)}-${String(m).padStart(2, '0')}`, label: en ? 'JFMAMJJASOND'[m - 1] : String(m) });
   else for (let d = p.from; d <= p.to; d = addDays(d, 1)) buckets.push({ key: d, label: String(Number(d.slice(8))) });
   const sum = Object.fromEntries(buckets.map(x => [x.key, 0]));
-  for (const e of entriesIn(state.books, p.from, p.to)) if (e.k === 'out') sum[p.unit === 'month' ? e.d.slice(0, 7) : e.d] += e.amt;
+  for (const l of lines(state.books, p.from, p.to)) if (l.k === 'out') sum[p.unit === 'month' ? l.d.slice(0, 7) : l.d] += l.amt;
   const max = Math.max(1, ...Object.values(sum));
   const top = max === 1 && !Object.values(sum).some(Boolean) ? 0 : max;
   const cap = h('small', { class: 'mn-trend-cap num', text: W(`${p.unit === 'month' ? '單月' : '單日'}最高 ${money(top)} · 點長條看金額`, `Top ${money(top)} · tap a bar`) });
@@ -135,18 +135,18 @@ function catSection(title, cats, total, p) {
 // its own; tapped again for all).
 function openCat(cat, p) {
   const c = catOf(cat);
-  const list = entriesIn(state.books, p.from, p.to)
-    .filter(e => (e.k === 'out' || e.k === 'in') && (e.cat || 'other') === cat)
-    .sort((a, b) => b.d.localeCompare(a.d) || (b.t || 0) - (a.t || 0));
-  const total = list.reduce((n, e) => n + e.amt, 0);
+  // (What each came to: less what came back, a fee under 手續費.)
+  const mine = lines(state.books, p.from, p.to).filter(l => l.cat === cat);
+  const list = mine.sort((a, b) => b.d.localeCompare(a.d) || (b.e.t || 0) - (a.e.t || 0));
+  const total = mine.reduce((n, l) => n + l.amt, 0);
   const by = new Map();
-  for (const e of list) {
-    const k = subOf(e.sub)?.parent === cat ? e.sub : '';
-    by.set(k, (by.get(k) || 0) + e.amt);
+  for (const l of mine) {
+    const k = subOf(l.sub)?.parent === cat ? l.sub : '';
+    by.set(k, (by.get(k) || 0) + l.amt);
   }
   const rows = h('div', { class: 'q-rowcard' });
   let only = null;
-  const paint = () => rows.replaceChildren(...list.filter(e => only === null || (subOf(e.sub)?.parent === cat ? e.sub : '') === only).map(e => entryRow(e, { day: true, inCat: true })));
+  const paint = () => rows.replaceChildren(...list.filter(l => only === null || (subOf(l.sub)?.parent === cat ? l.sub : '') === only).map(l => entryRow(l.e, { day: true, inCat: true, line: l })));
   const parts = [...by].sort((a, b) => b[1] - a[1]);
   const split =
     parts.length > 1

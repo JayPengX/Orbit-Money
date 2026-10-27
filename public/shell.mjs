@@ -79,6 +79,8 @@ export function payLabel(e) {
   if (e.k === 'move') return `${acctName(e.a)} → ${acctName(e.to)}`;
   const c = e.via && card(e.via);
   // (Short, for a row's line: a card with its last digits says which by itself;
-  // Apple Pay and the like need the account they're on.)
-  return c ? (c.last4 ? `${c.name} •${c.last4}` : `${acctName(e.a)} ${c.name}`) : acctName(e.a);
+  // Apple Pay and the like need the account they're on. A part paid another
+  // way after a +: LINE Pay + LINE Points.)
+  const also = e.k === 'out' && Array.isArray(e.also) ? e.also.filter(p => p?.a && p.amt > 0) : [];
+  return (c ? (c.last4 ? `${c.name} •${c.last4}` : `${acctName(e.a)} ${c.name}`) : acctName(e.a)) + also.map(p => ` + ${acctName(p.a)}`).join('');
 }

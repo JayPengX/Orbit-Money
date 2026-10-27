@@ -16,8 +16,16 @@ Live: https://orbit.jaypengx.com/money/
 - **The books** (`lib/books.mjs`, pure, tested): accounts (cash, bank,
   電子票證, 電子支付, credit, other; `inTotal: false` keeps one out of
   總資產), debit cards on a bank, entries (`out`, `in`, `move` between own
-  accounts, `adj` a balance fix), budgets, repeats (added on their day as
-  `r-<id>-<day>`). Every record has `u`; a removal is a tombstone kept 120
+  accounts, `adj` a balance fix, `back` money back for a spend: a 退款 or a
+  friend's share, which comes off the spend and is never income; a spend or
+  move can carry a `fee`, counted under 稅費 › 手續費, and `also`, a part paid
+  another way such as LINE Points), budgets, repeats (added on their day as
+  `r-<id>-<day>`). Every total goes through `lines` (one function: a spend
+  less what came back, its fee, an income). `upgradeBooks` / `upgradeCats`
+  bring older books up on open (退款 income → money back for its likeliest
+  spend; 訂閱/遊戲 from 娛樂 to 數位). 到期提醒: a sub with `days` (TPASS 30)
+  counts down on 月曆 and sends a notice (`renew`) the evening before and the
+  morning of its last day. Every record has `u`; a removal is a tombstone kept 120
   days; two devices merge record by record, newest `u` wins. Stored on the
   Pass as `m1:` + gzip base64 (`orbit-money`, 1 MB).
 - **發票** (`lib/invoice.mjs`, tested): both QR codes of a paper

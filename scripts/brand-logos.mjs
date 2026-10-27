@@ -42,7 +42,7 @@ const missing = only[0] === '--missing';
 const tmp = `${out}.tmp`;
 const MIN = 64;
 for (const b of BRANDS) {
-  if (missing ? existsSync(`${out}${b.id}.png`) : only.length && !only.includes(b.id)) continue;
+  if (b.logo || (missing ? existsSync(`${out}${b.id}.png`) : only.length && !only.includes(b.id))) continue;
   const html = text(b.site);
   const links = [...html.matchAll(/<link[^>]+>/gi)].map(m => m[0]).filter(l => /rel=["'][^"']*(apple-touch-icon|icon)[^"']*["']/i.test(l));
   const cands = links

@@ -11,6 +11,8 @@ export const BRANDS = [
   { id: 'happycash', kind: 'ticket', zh: '有錢卡', en: 'HappyCash', color: '#f39800', site: 'https://www.happycash.com.tw/' },
   // E-payments (電子支付).
   { id: 'linepay', kind: 'wallet', zh: 'LINE Pay', en: 'LINE Pay', color: '#06c755', site: 'https://pay.line.me/portal/tw/main' },
+  // (Points spent as money: part of a LINE Pay payment, Jay 2026-10-27. LINE Pay's logo.)
+  { id: 'linepoints', kind: 'wallet', zh: 'LINE Points', en: 'LINE Points', color: '#06c755', logo: 'linepay', site: 'https://pay.line.me/portal/tw/main' },
   { id: 'jkopay', kind: 'wallet', zh: '街口支付', en: 'JKOPAY', color: '#e60033', site: 'https://www.jkopay.com/' },
   { id: 'pxpay', kind: 'wallet', zh: '全支付', en: 'PX Pay Plus', color: '#e60012', site: 'https://www.pxpayplus.com/' },
   { id: 'easywallet', kind: 'wallet', zh: '悠遊付', en: 'Easy Wallet', color: '#0a7cc1', site: 'https://easywallet.easycard.com.tw/' },
@@ -54,4 +56,7 @@ export const BRANDS = [
 const BY_ID = new Map(BRANDS.map(b => [b.id, b]));
 export const brandOf = id => BY_ID.get(id) || null;
 export const brandsFor = kind => BRANDS.filter(b => b.kind === (kind === 'credit' ? 'bank' : kind));
-export const logoOf = id => (BY_ID.has(id) && LOGOS.has(id) ? `./img/brand/${id}.png` : '');
+export const logoOf = id => {
+  const src = BY_ID.get(id)?.logo || id;
+  return BY_ID.has(id) && LOGOS.has(src) ? `./img/brand/${src}.png` : '';
+};
