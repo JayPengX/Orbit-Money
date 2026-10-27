@@ -70,7 +70,7 @@ export function renderStats(box) {
   if (t.cats.length) parts.push(catSection(W('分類', 'By category'), t.cats, t.out, p));
   if (t.incCats.length) parts.push(catSection(W('收入', 'Income'), t.incCats, t.in, p));
   if (!t.out && !t.in) parts.push(h('p', { class: 'mn-hint', text: W('這段時間還沒有紀錄。', 'Nothing recorded in this period.') }));
-  box.replaceChildren(...parts);
+  box.replaceChildren(...parts.filter(Boolean));
 }
 const fig = (label, value, cls = '') => h('div', null, [h('small', { text: label }), h('b', { class: `num ${cls}`.trim(), text: value })]);
 
@@ -173,8 +173,9 @@ function openCat(cat, p) {
 
 function budgetCard(ym, now, redraw) {
   const list = budgetState(state.books, ym, now);
-  const edit = h('button', { type: 'button', text: list.length ? W('編輯', 'Edit') : W('設定', 'Set'), onclick: () => openBudgets(redraw) });
-  if (!list.length) return h('section', { class: 'q-section' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: W('預算', 'Budget') }), edit]), h('p', { class: 'mn-hint', text: W('每月花多少、每類花多少，設好就能看還剩多少、一天能花多少。', 'Set a monthly limit, overall or by category, to see what’s left and what you can spend a day.') })]);
+  const edit = h('button', { type: 'button', text: W('編輯', 'Edit'), onclick: () => openBudgets(redraw) });
+  // (None set: nothing here; 預算 waits in 更多 until there's one. Jay 2026-10-27: "I don't use it and it's bothering me".)
+  if (!list.length) return null;
   return h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head' }, [h('h2', { text: W('預算', 'Budget') }), edit]),
     h(
@@ -198,7 +199,7 @@ function budgetCard(ym, now, redraw) {
   ]);
 }
 
-function openBudgets(redraw) {
+export function openBudgets(redraw = () => {}) {
   const b = state.books;
   const have = Object.fromEntries(live(b.budgets).map(x => [x.cat, x]));
   const rows = [{ cat: '', name: W('每月總預算', 'Monthly budget'), icon: 'target', color: '#8e8e93' }, ...catList('out').map(c => ({ cat: c.id, name: catName(c, lang), icon: c.icon, color: c.color }))];

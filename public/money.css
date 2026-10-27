@@ -1,6 +1,6 @@
 /* Orbit Money. The kit draws the frame (orbit.css: tokens, tab bar, sheets,
    segmented controls, hero cards, tiles, row cards). This file is the app's
-   own pieces, by screen: shared bits, 月曆, the entry sheet and its keypad,
+   own pieces, by screen: shared bits, 月曆, the entry sheet,
    帳戶, 統計, 發票, the scanner. */
 :root {
   color-scheme: light;
@@ -101,42 +101,44 @@ h1, h2, h3, p { margin: 0; }
 .mn-amt.move, .mn-amt.adj { color: var(--q-label-2); }
 .mn-amt.owe { color: var(--q-label-2); }
 
-/* ---- The entry sheet ---- */
+/* ---- The entry sheet ----
+   One gutter for everything (the sheet's own), every row the same width.
+   The amount is a field: tapped, the iPhone's number keys. */
 .mn-entry { --mn-gap: var(--q-s-3); }
 /* (Many rows added on a small phone: the sheet scrolls, nothing is squeezed.) */
-.mn-entry > :not(.mn-pad) { flex-shrink: 0; }
+.mn-entry > * { flex-shrink: 0; }
 .mn-entry > .q-seg { margin-top: 2px; }
-.mn-amount { display: flex; align-items: center; gap: 12px; min-height: 64px; margin-top: var(--mn-gap); padding: 8px 14px; border-radius: var(--q-r-card); background: var(--q-surface); }
-.mn-amount .q-tile { width: 44px; height: 44px; border-radius: 13px; }
-.mn-amount-n { display: grid; justify-items: end; flex: 1; min-width: 0; }
-.mn-amount-v { max-width: 100%; overflow: hidden; font: 700 34px/40px var(--q-font-rounded); letter-spacing: -0.02em; white-space: nowrap; }
-.mn-amount.in .mn-amount-v { color: var(--mn-in); }
-.mn-amount-x { min-height: 16px; color: var(--q-label-2); font: 500 13px/16px var(--q-font-rounded); }
-/* Five across, whole pages (Jay 2026-10-27: a tile cut at the edge read as the sheet flowing off the screen); dots say there's more. */
-.mn-cats { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); grid-auto-columns: calc((100% - 4 * 4px) / 5); gap: 2px 4px; margin-top: var(--mn-gap); padding-bottom: 2px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; scroll-snap-type: x mandatory; }
-.mn-cats > * { scroll-snap-align: none; }
-.mn-cats > :nth-child(10n + 1) { scroll-snap-align: start; scroll-snap-stop: always; }
-.mn-cat-pad { pointer-events: none; }
-.mn-dots { display: flex; justify-content: center; gap: 6px; height: 6px; margin-top: 4px; }
-.mn-dots[hidden] { display: none; }
-.mn-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--q-fill-2, var(--q-label-4)); transition: background 0.2s; }
-.mn-dots i.on { background: var(--q-label-2); }
-.mn-cats::-webkit-scrollbar { display: none; }
-/* A form that scrolls anyway (固定收支) shows every category, no sideways pages. */
-.mn-cats.all { grid-auto-flow: row; grid-template-rows: none; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; scroll-snap-type: none; }
-.mn-cats.all > .mn-cat-pad { display: none; }
-.mn-cat { display: grid; justify-items: center; gap: 3px; min-width: 0; padding: 5px 0; border: 0; border-radius: var(--q-r-cell); background: none; }
-.mn-subs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.mn-amount { display: flex; align-items: center; gap: 8px; min-height: 68px; margin-top: var(--mn-gap); padding: 0 16px 0 12px; border-radius: var(--q-r-card); background: var(--q-surface); }
+.mn-amount-what { display: flex; align-items: center; gap: 10px; flex: none; max-width: 45%; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label-2); font: 500 15px/20px var(--q-font); }
+.mn-amount-what .q-tile { flex: none; width: 44px; height: 44px; border-radius: 13px; }
+.mn-amount-cat { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* (NT$ and the digits on one baseline, the row's middle: line boxes the
+   size of the digits, so nothing sits low; Jay 2026-10-27.) */
+.mn-amount-n { display: flex; align-items: baseline; justify-content: flex-end; gap: 4px; flex: 1; min-width: 0; height: 68px; padding-top: 14px; cursor: text; }
+.mn-amount-cur { flex: none; color: var(--q-label-2); font: 600 20px/40px var(--q-font-rounded); }
+.mn-amount-box { position: relative; min-width: 1ch; max-width: 100%; overflow: hidden; }
+.mn-amount .mn-amount-size, .mn-amount .mn-amount-box > input.mn-amount-in { font: 700 34px/40px var(--q-font-rounded); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.mn-amount-size { display: block; visibility: hidden; padding-right: 2px; white-space: pre; }
+.mn-amount .mn-amount-box > input.mn-amount-in { position: absolute; inset: 0; width: 100%; height: 40px; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0; box-shadow: none; background: none; color: var(--q-label); text-align: right; caret-color: var(--q-accent); -webkit-appearance: none; appearance: none; }
+.mn-amount .mn-amount-in::placeholder { font: inherit; color: var(--q-label-3); opacity: 1; }
+.mn-amount.in .mn-amount-in { color: var(--mn-in); }
+.mn-amount:focus-within { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--q-accent) 70%, transparent); }
+/* Every category in view, five across (Jay 2026-10-27: pages to swipe hid
+   half of them and cut their names). */
+.mn-cats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px 4px; margin-top: var(--mn-gap); }
+.mn-cat { display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0; padding: 6px 0 5px; border: 0; border-radius: var(--q-r-cell); background: none; }
+.mn-subs { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .mn-subs[hidden] { display: none; }
 .mn-subchip { min-width: 0; min-height: 32px; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; border: 0; border-radius: 999px; background: var(--q-fill); color: var(--q-label-2); font: 500 14px/32px var(--q-font); white-space: nowrap; }
 .mn-subchip[aria-pressed='true'] { background: color-mix(in srgb, var(--q-accent) 18%, transparent); color: var(--q-label); font-weight: 600; }
 .mn-subsplit { margin-bottom: 12px; }
 .mn-subsplit .q-ritem[aria-pressed='true'] { background: var(--q-fill); }
-.mn-cat .q-tile { width: 38px; height: 38px; opacity: 0.55; filter: saturate(0.6); transition: opacity 0.15s, filter 0.15s, transform 0.15s; }
-.mn-cat span:last-child { color: var(--q-label-2); font: 500 12px/15px var(--q-font); white-space: nowrap; }
+.mn-cat .q-tile { width: 36px; height: 36px; border-radius: 11px; opacity: 0.55; filter: saturate(0.6); transition: opacity 0.15s, filter 0.15s, transform 0.15s; }
+.mn-cat span:last-child { max-width: 100%; overflow: hidden; color: var(--q-label-2); font: 500 12px/15px var(--q-font); white-space: nowrap; }
 .mn-cat[aria-checked='true'] { background: color-mix(in srgb, var(--q-accent) 12%, transparent); }
-.mn-cat[aria-checked='true'] .q-tile { opacity: 1; filter: none; transform: scale(1.06); }
+.mn-cat[aria-checked='true'] .q-tile { opacity: 1; filter: none; }
 .mn-cat[aria-checked='true'] span:last-child { color: var(--q-label); font-weight: 600; }
+.mn-move[hidden] { display: none; }
 .mn-move { display: grid; grid-template-columns: 1fr 20px 1fr; align-items: center; gap: 6px; margin-top: var(--mn-gap); }
 .mn-move-arrow { display: grid; place-items: center; color: var(--q-label-3); }
 .mn-move-arrow svg { width: 18px; height: 18px; }
@@ -160,7 +162,6 @@ h1, h2, h3, p { margin: 0; }
 .mn-xrow .mn-subchip { min-height: 40px; line-height: 40px; font-size: 13px; }
 .mn-x-del { width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--q-fill); color: var(--q-label-2); font: 500 13px/1 var(--q-font); }
 .mn-x-refund { display: flex; grid-template-columns: none; min-height: 44px; padding: 4px 12px; border-radius: var(--q-r-cell); background: var(--q-surface); }
-.mn-entry:has(.mn-xin:focus) .mn-pad { display: none; }
 .mn-refund-amt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .mn-refund-amt .mn-subchip { min-height: 44px; padding: 0 14px; line-height: 44px; }
 .mn-renews { margin-top: var(--q-s-4); }
@@ -168,8 +169,11 @@ h1, h2, h3, p { margin: 0; }
 .mn-renew.soon .q-ritem-title { color: var(--q-red); }
 .mn-owed-total { color: var(--q-label-2); font: 500 15px/20px var(--q-font-rounded); }
 .mn-pill { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); font: 500 15px/20px var(--q-font); text-align: left; }
-.mn-pill > span:first-child:not(.mn-pill-t) { display: grid; flex: none; width: 18px; height: 18px; color: var(--q-label-2); }
+.mn-pill > span:first-child:not(.mn-pill-t, .mn-logo, .q-tile) { display: grid; flex: none; width: 18px; height: 18px; color: var(--q-label-2); }
 .mn-pill svg { width: 18px; height: 18px; }
+.mn-pill > :is(.mn-logo, .q-tile) { flex: none; margin-left: -4px; }
+.mn-pill > .q-tile { width: 24px; height: 24px; border-radius: 7px; }
+.mn-pill > .q-tile svg { width: 14px; height: 14px; }
 .mn-pill-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mn-pill > i { display: grid; flex: none; width: 14px; height: 14px; color: var(--q-label-3); transform: rotate(90deg); }
 .mn-pill > i svg { width: 14px; height: 14px; }
@@ -182,16 +186,16 @@ h1, h2, h3, p { margin: 0; }
 .mn-invbtn span:nth-child(2) { flex: 1; text-align: left; }
 .mn-invbtn svg { width: 16px; height: 16px; }
 .mn-invbtn i { display: grid; color: var(--q-label-3); }
-.mn-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: var(--q-sheet); border-top: var(--q-hairline) solid var(--q-sep); }
-.mn-key { height: 48px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); font: 500 22px/1 var(--q-font-rounded); }
-.mn-key.op { background: var(--q-fill-3); color: var(--q-label-2); font-size: 20px; }
-.mn-key:active { background: var(--q-fill-2); }
-.mn-key.save { background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08; font: 600 17px/1 var(--q-font); }
-.mn-key.save:disabled { opacity: 0.4; }
+/* (A shorter phone, an SE: everything a little tighter, so the sheet still fits whole.) */
 @media (max-height: 700px) {
-  .mn-key { height: 42px; }
   .mn-entry { --mn-gap: var(--q-s-2); }
-  .mn-amount { min-height: 56px; }
+  .mn-amount { min-height: 60px; }
+  .mn-amount-n { height: 60px; padding-top: 10px; }
+  .mn-cat { gap: 2px; padding-block: 4px 3px; }
+  .mn-cat .q-tile { width: 32px; height: 32px; border-radius: 10px; }
+  .mn-subs { gap: 4px; margin-top: 6px; }
+  .mn-subchip { min-height: 30px; line-height: 30px; }
+  .mn-pill, .mn-note { min-height: 40px; }
 }
 .mn-del { color: var(--q-red); }
 .mn-del svg { width: 18px; height: 18px; }
@@ -213,7 +217,8 @@ h1, h2, h3, p { margin: 0; }
 .mn-action-i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--q-fill-3); color: var(--q-label-2); }
 .mn-action-i svg { width: 18px; height: 18px; }
 .mn-acct .q-section { display: grid; gap: 8px; margin-top: 18px; }
-.mn-form { display: grid; gap: 14px; padding: 4px 0 16px; }
+.mn-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 4px 0 16px; }
+.mn-form > * { min-width: 0; }
 .mn-field { display: grid; gap: 6px; min-width: 0; }
 .mn-field-l { color: var(--q-label-2); font: 600 13px/16px var(--q-font); }
 .mn-field .q-field { background: var(--q-surface); font-size: 16px; }
@@ -317,8 +322,6 @@ h1, h2, h3, p { margin: 0; }
 .mn-invempty-ways .q-btn { flex-direction: column; gap: 4px; height: auto; min-height: 60px; padding: 8px 4px; border-radius: var(--q-r-cell); font-size: 14px; }
 .mn-btn-glyph { display: grid; width: 18px; height: 18px; }
 .mn-btn-glyph svg { width: 18px; height: 18px; }
-/* Typing a note: the phone's keys replace the keypad (both up crushed the sheet). */
-.mn-entry:has(.mn-note:focus) .mn-pad { display: none; }
 .mn-back svg { width: 18px; height: 18px; transform: rotate(180deg); }
 .mn-row .q-ritem-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Taking an account or a way to pay out of use. */
@@ -376,3 +379,17 @@ h1, h2, h3, p { margin: 0; }
 /* A new account's kind: four across, one row. */
 .mn-kinds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .mn-kinds .q-chip { justify-content: center; min-width: 0; padding-inline: 4px; }
+/* A way to pay's kinds, each with its logo, two across (Jay 2026-10-27: cramped, no logos). */
+.mn-methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mn-method { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 50px; padding: 0 12px 0 10px; border: 0; border-radius: var(--q-r-cell); background: var(--q-fill); color: var(--q-label); font: 500 15px/20px var(--q-font); text-align: left; }
+.mn-method span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mn-method[aria-checked='true'] { background: color-mix(in srgb, var(--q-accent) 16%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--q-accent) 70%, transparent); font-weight: 600; }
+.mn-method .q-tile, .q-menu-lead .q-tile { flex: none; }
+:is(.mn-method, .q-menu-lead, .mn-pill) .q-tile svg { width: 16px; height: 16px; }
+/* Typing the note: the quick amounts wait too (with the amount's keys up they stay, a tap instead of typing). */
+html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
+/* A repeat's form never runs sideways (Jay 2026-10-27, 新增固定收支): WebKit's
+   date field keeps its own width unless told, and the weekdays are one row of seven. */
+.mn-form input[type='date'] { width: 100%; min-width: 0; max-width: 100%; }
+.mn-weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.mn-weekdays .mn-subchip { padding: 0; font-size: 13px; }

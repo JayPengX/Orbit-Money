@@ -1,7 +1,8 @@
 // 更多: everything that isn't the books themselves (Jay 2026-10-27: 發票 is
 // one feature, so the tab holds them all). First the ways purchases come in
 // without typing (a paper invoice scanned, a picture read, the 載具 file),
-// any prize to claim, then the tools as rows: 對獎, the 手機條碼, the categories, the repeats, the accounts put away, the books as a file.
+// any prize to claim, then the tools as rows: 對獎, the 手機條碼, the categories, the repeats, 預算 (only while none is set:
+// once one is, it lives in 統計), the accounts put away (when there are any), the books as a file.
 import { h, toast } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph } from '../lib/cats.mjs';
@@ -11,6 +12,7 @@ import { importCarrier } from './carrier-import.mjs';
 import { readPicture } from './read.mjs';
 import { openCats } from './cat-edit.mjs';
 import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
+import { openBudgets } from './stats.mjs';
 
 export function renderMore(box) {
   const way = (glyphName, label, onclick) => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'mn-addrow-i mn-quiet', html: glyph(glyphName) }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })])]);
@@ -39,8 +41,10 @@ export function renderMore(box) {
       tool(W('發票對獎', 'Invoices'), inv.count ? W(`${inv.count} 張`, `${inv.count}`) : W('自動對獎', 'Auto-checked'), () => openInvoices()),
       tool(W('手機條碼', 'Barcode'), carrier || W('未設定', 'Not set'), () => openBarcode()),
       tool(W('分類', 'Categories'), W(`${cats} 個`, `${cats}`), () => openCats()),
-      tool(W('固定收支', 'Repeats'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : W('房租、TPASS', 'Rent, TPASS'), () => openRepeats()),
-      tool(W('已封存', 'Put away'), closed.length ? W(`${closed.length} 個帳戶`, `${closed.length}`) : W('沒有', 'None'), () => openClosed()),
+      // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
+      tool(W('固定收支', 'Repeats'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : '', () => openRepeats()),
+      live(state.books.budgets).length ? null : tool(W('預算', 'Budget'), '', () => openBudgets()),
+      closed.length ? tool(W('已封存', 'Put away'), W(`${closed.length} 個帳戶`, `${closed.length}`), () => openClosed()) : null,
       tool(W('匯出', 'Export'), 'CSV', () => exportCsv())
     ])
   ]);

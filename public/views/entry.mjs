@@ -1,13 +1,14 @@
 // One entry: its row (in every list), and the sheet that adds or changes it:
-// spending, income or a transfer; the amount on the app's own keypad (+ and −
-// add up as you type); the category; how it was paid; the day; a note; the
-// 發票 it came from; a fee, a part paid another way (LINE Points), a friend's
-// share. A scanned 發票 opens it filled in. A 退款 has its own small sheet.
+// spending, income or a transfer; the amount (a real field: tap the number,
+// the iPhone's own keys come up); the category; how it was paid; the day; a
+// note; the 發票 it came from; a fee, a part paid another way (LINE Points), a
+// friend's share. A scanned 發票 opens it filled in. A 退款 has its own small sheet.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
 import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE } from '../lib/books.mjs';
 import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
+import { payPic } from './pics.mjs';
 
 // ---- A row ----------------------------------------------------------------------
 
@@ -82,42 +83,19 @@ export function lastPay() {
   return (p && acct(p.a) && !acct(p.a).closed && !card(p.via)?.closed && payOf(p.a, p.via)) || payOf('cash', '') || payOptions()[0] || null;
 }
 
-// The categories as tiles (two rows across, the picked one lit): the entry
-// sheet's and a repeat's, one look.
+// The categories as tiles, all in view five across (Jay 2026-10-27: pages
+// to swipe hid half of them and cut their names), the picked one lit: the
+// entry sheet's and a repeat's, one look.
 export function catTiles(kind, cur, onPick) {
-  const tiles = catsFor(kind).map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
-  // (Whole pages of ten: the last one filled out, so it lines up like the rest.)
-  const pad = (10 - (tiles.length % 10)) % 10;
-  return tiles.length > 10 ? [...tiles, ...Array.from({ length: pad }, () => h('span', { class: 'mn-cat-pad', 'aria-hidden': 'true' }))] : tiles;
-}
-// The dots under the tiles: one a page, the one in view lit.
-export function pageDots(grid) {
-  const dots = h('div', { class: 'mn-dots', 'aria-hidden': 'true' });
-  const paint = () => {
-    const pages = Math.ceil(grid.children.length / 10);
-    dots.hidden = pages < 2;
-    const at = Math.round(grid.scrollLeft / Math.max(1, grid.clientWidth + 4));
-    if (dots.children.length !== pages) dots.replaceChildren(...Array.from({ length: pages }, () => h('i')));
-    [...dots.children].forEach((d, i) => d.classList.toggle('on', i === at));
-  };
-  grid.addEventListener('scroll', () => requestAnimationFrame(paint), { passive: true });
-  new MutationObserver(paint).observe(grid, { childList: true });
-  requestAnimationFrame(paint);
-  return dots;
+  return catsFor(kind).map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
 }
 
 // A category's subs as chips under the tiles: one lit, tapped again to let go
 // ('' none). Empty when the category has none.
+// (Their grid's columns: whole rows where the count allows, 6 as 3 + 3, never 4 + 2.)
+export const subCols = n => (n <= 4 ? Math.max(n, 1) : n % 4 === 0 ? 4 : n % 3 === 0 ? 3 : 4);
 export function subChips(cat, cur, onPick) {
   return subsOf(cat).map(x => h('button', { class: 'mn-subchip', type: 'button', 'aria-pressed': String(x.id === cur), 'data-sub': x.id, onclick: () => (tick(), onPick(x.id === cur ? '' : x.id)) }, catName(x, lang)));
-}
-
-// ---- The keypad's sum ---------------------------------------------------------------
-
-// '120+35-5' → 150 (whole NT$; an unfinished '+' at the end is ignored).
-export function sumOf(expr) {
-  const parts = String(expr).replace(/[+−-]$/, '').match(/[+−-]?\d+/g) || [];
-  return parts.reduce((s, p) => s + (p[0] === '−' || p[0] === '-' ? -1 : 1) * Number(p.replace(/^[+−-]/, '')), 0);
 }
 
 // ---- The sheet ----------------------------------------------------------------------
@@ -130,7 +108,8 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   const pay0 = was ? { a: was.a, via: was.via || '' } : from && acct(from) ? { a: from, via: '' } : lastPay() || { a: 'cash', via: '' };
   const f = {
     k: was?.k === 'adj' ? 'adj' : was?.k || kind,
-    expr: String(was?.amt || amt || ''),
+    // (The amount as typed: digits, '' for none.)
+    amt: String(was ? Math.abs(was.amt) : amt || ''),
     cat: was?.cat || cat || opt.lastCat?.[was?.k || kind] || (kind === 'in' ? 'salary' : 'food'),
     sub: '',
     a: pay0.a,
@@ -161,24 +140,39 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     if (f.k !== 'out' && f.k !== 'in') return;
     const d = defaultsOf(f.cat, f.sub);
     if (pay && usable(d.pay)) (f.a = d.pay.a), (f.via = d.pay.via || '');
-    if (!f.auto && f.expr) return;
+    if (!f.auto && f.amt) return;
     const v = d.amt || d.unit;
-    f.expr = v ? String(v) : f.auto ? '' : f.expr;
+    f.amt = v ? String(v) : f.auto ? '' : f.amt;
     f.auto = Boolean(v);
   }
   if (!was && !amt) applyDefaults({ pay: !from });
 
-  const amountEl = h('b', { class: 'num mn-amount-v' });
-  const exprEl = h('small', { class: 'num mn-amount-x' });
+  // The amount: tapped, the iPhone's number keys (Jay 2026-10-27: he taps
+  // the number, as anyone would; no keypad of our own, RULEBOOK §2). The
+  // field is as wide as what's in it (a hidden copy sizes it), so NT$ sits
+  // right beside the digits. Beside it, what it goes under: the category's
+  // tile and name, a tap on them puts the keys away to show the categories.
+  const amountIn = h('input', { class: 'num mn-amount-in', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', enterkeyhint: 'done', autocomplete: 'off', placeholder: '0', 'aria-label': W('金額', 'Amount') });
+  const sizer = h('span', { class: 'num mn-amount-size', 'aria-hidden': 'true' });
+  amountIn.addEventListener('input', () => {
+    f.amt = amountIn.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
+    f.auto = false;
+    paintAmount();
+  });
+  amountIn.addEventListener('keydown', e => e.key === 'Enter' && amountIn.blur());
+  amountIn.addEventListener('focus', () => requestAnimationFrame(() => amountIn.setSelectionRange?.(amountIn.value.length, amountIn.value.length)));
   const catTile = h('span', { class: 'mn-amount-tile' });
-  const amountRow = h('div', { class: 'mn-amount' }, [catTile, h('div', { class: 'mn-amount-n' }, [exprEl, amountEl])]);
+  const catText = h('span', { class: 'mn-amount-cat' });
+  const amountRow = h('div', { class: 'mn-amount' }, [
+    h('button', { class: 'mn-amount-what', type: 'button', onclick: () => amountIn.blur() }, [catTile, catText]),
+    h('label', { class: 'mn-amount-n' }, [h('span', { class: 'mn-amount-cur', text: 'NT$' }), h('span', { class: 'mn-amount-box' }, [sizer, amountIn])])
+  ]);
   // (.q-kb-hide: behind the keys while the note is typed, so the sheet fits above them.)
   const cats = h('div', { class: 'mn-cats q-kb-hide', role: 'radiogroup', 'aria-label': W('分類', 'Category') });
-  const catDots = pageDots(cats);
-  catDots.classList.add('q-kb-hide');
   const subs = h('div', { class: 'mn-subs q-kb-hide', role: 'group', 'aria-label': W('細項', 'Sub-category') });
-  // NT$5 × 1–6: a category priced by the unit (YouBike's half hours).
-  const unitRow = h('div', { class: 'mn-units q-kb-hide' });
+  // NT$5 × 1–6: a category priced by the unit (YouBike's half hours); with the
+  // amount's keys up too, a tap instead of typing.
+  const unitRow = h('div', { class: 'mn-units' });
   const moveRow = h('div', { class: 'mn-move' });
   const payBtn = h('button', { class: 'mn-pill', type: 'button', onclick: e => pickPay(e.currentTarget) });
   const dateIn = h('input', { class: 'mn-date', type: 'date', value: f.d, max: '2099-12-31', 'aria-label': W('日期', 'Date') });
@@ -187,12 +181,12 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   const noteIn = h('input', { class: 'q-field mn-note', type: 'text', placeholder: W('備註', 'Note'), maxlength: '60', enterkeyhint: 'done', autocomplete: 'off', value: f.note });
   noteIn.addEventListener('input', () => (f.note = noteIn.value));
   noteIn.addEventListener('keydown', e => e.key === 'Enter' && noteIn.blur());
-  const invRow = h('div', { class: 'mn-invrow' });
+  const invRow = h('div', { class: 'mn-invrow q-kb-hide' });
   const pills = h('div', { class: 'mn-pills' }, [payBtn, dateBtn]);
   // 手續費, 另付, 朋友分攤, 退款: one button beside the note, each a row under it once added.
   const moreBtn = h('button', { class: 'mn-pill mn-more', type: 'button', 'aria-label': W('手續費、分攤、退款', 'Fee, split, refund'), html: icons.plus, onclick: e => pickMore(e.currentTarget) });
-  const noteRow = h('div', { class: 'mn-noterow' }, [noteIn, moreBtn]);
-  const extras = h('div', { class: 'mn-extras' });
+  const noteRow = h('div', { class: 'mn-noterow q-kb-hide' }, [noteIn, moreBtn]);
+  const extras = h('div', { class: 'mn-extras q-kb-hide' });
 
   const kinds = segmented(
     [
@@ -217,9 +211,10 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
 
   // The amount alone (each key): the rest of the sheet left as it is, so typing stays quick.
   function paintAmount() {
-    const sum = sumOf(f.expr);
-    amountEl.textContent = money(Math.max(0, sum));
-    exprEl.textContent = /[+−-]/.test(f.expr.slice(1)) ? f.expr : '';
+    const sum = Number(f.amt) || 0;
+    const shown = sum ? plain(sum) : '';
+    if (amountIn.value !== shown) amountIn.value = shown;
+    sizer.textContent = shown || '0';
     save.disabled = !(sum > 0) || (f.k === 'move' && (!f.to || f.to === f.a));
     paintUnits();
   }
@@ -235,30 +230,36 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     const amts = !on || unit ? [] : usual?.amts || [];
     unitRow.hidden = !unit && !amts.length;
     if (unitRow.hidden) return;
-    const sum = sumOf(f.expr);
-    const chip = (text, v) => h('button', { class: 'mn-subchip num', type: 'button', 'aria-pressed': String(sum === v), text, onclick: () => (tick(), (f.expr = String(v)), (f.auto = false), paintAmount()) });
+    const sum = Number(f.amt) || 0;
+    const chip = (text, v) => h('button', { class: 'mn-subchip num', type: 'button', 'aria-pressed': String(sum === v), text, onclick: () => (tick(), (f.amt = String(v)), (f.auto = false), paintAmount()) });
     unitRow.classList.toggle('usual', !unit);
     unitRow.replaceChildren(...(unit ? [h('span', { class: 'mn-units-l num', text: `${money(unit)} ×` }), ...[1, 2, 3, 4, 6, 8].map(n => chip(String(n), unit * n))] : [h('span', { class: 'mn-units-l', text: W('常用 NT$', 'Usual NT$') }), ...amts.map(x => chip(plain(x.amt), x.amt))]));
   }
   // A category picked: its tile and the ticks, the grid not drawn again.
   function paintCat() {
-    catTile.replaceChildren(tile(glyph(catOf(f.cat).icon), catOf(f.cat).color));
+    paintWhat();
     for (const el of cats.children) el.setAttribute('aria-checked', String(el.dataset.cat === f.cat));
     paintSubs();
   }
+  // What the amount goes under, beside it: the sub when one's picked (宵夜, TPASS), else the category.
+  function paintWhat() {
+    const look = f.k === 'move' || f.k === 'adj' ? lookOf({ k: f.k }) : catOf(f.cat);
+    const fine = f.k === 'out' || f.k === 'in' ? subOf(f.sub) : null;
+    catTile.replaceChildren(tile(glyph(look.icon), look.color));
+    catText.textContent = f.k === 'move' ? W('轉帳', 'Transfer') : f.k === 'adj' ? W('調整餘額', 'Balance fix') : catName(fine || look, lang);
+  }
   function paintSubs() {
-    const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((f.sub = id), applyDefaults(), paintAmount(), paintPay(), paintSubs()));
+    const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((f.sub = id), applyDefaults(), paintAmount(), paintPay(), paintSubs(), paintWhat()));
     subs.hidden = !list.length;
+    subs.style.setProperty('--n', subCols(list.length));
     subs.replaceChildren(...list);
   }
   let catsKind = '';
   function paint() {
     paintAmount();
-    const look = f.k === 'move' ? lookOf({ k: 'move' }) : catOf(f.cat);
-    catTile.replaceChildren(tile(glyph(look.icon), look.color));
+    paintWhat();
     amountRow.classList.toggle('in', f.k === 'in');
     cats.hidden = f.k === 'move' || f.k === 'adj';
-    catDots.hidden = cats.hidden || cats.children.length <= 10;
     moveRow.hidden = f.k !== 'move';
     payBtn.hidden = f.k === 'move';
     moreBtn.hidden = f.k !== 'out' && f.k !== 'move';
@@ -268,7 +269,6 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       catsKind = f.k;
       cats.replaceChildren(...catTiles(f.k, f.cat, id => (id !== f.cat && ((f.cat = id), (f.sub = guess()), applyDefaults(), paintAmount(), paintPay()), paintCat())));
       paintSubs();
-      requestAnimationFrame(() => cats.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }));
     } else if (!cats.hidden) paintCat();
     else paintSubs();
     if (!moveRow.hidden) moveRow.replaceChildren(acctPick('a', W('從', 'From')), h('span', { class: 'mn-move-arrow', html: icons.chevron }), acctPick('to', W('到', 'To')));
@@ -279,17 +279,17 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   }
   function paintPay() {
     const p = payOf(f.a, f.via);
-    payBtn.replaceChildren(h('span', { html: glyph(p?.via ? 'card' : 'wallet') }), h('span', { class: 'mn-pill-t', text: p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
+    payBtn.replaceChildren(p ? payPic(p.a, p.via, 24) : h('span', { html: glyph('wallet') }), h('span', { class: 'mn-pill-t', text: p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
   }
   function acctPick(field, label) {
     const a = acct(f[field]);
     return h('button', { class: 'mn-pill mn-move-pick', type: 'button', onclick: e => pickAcct(e.currentTarget, field) }, [h('small', { text: label }), h('span', { class: 'mn-pill-t', text: a?.name || W('選帳戶', 'Choose') })]);
   }
   function pickAcct(anchor, field) {
-    menu(anchor, payOptions({ moving: true, keep: [f.a, f.to] }).map(o => ({ label: o.label, icon: o.a === f[field] ? '✓' : '', onClick: () => ((f[field] = o.a), paint()) })));
+    menu(anchor, payOptions({ moving: true, keep: [f.a, f.to] }).map(o => ({ label: o.label, lead: payPic(o.a, '', 28), icon: o.a === f[field] ? '✓' : '', onClick: () => ((f[field] = o.a), paint()) })));
   }
   function pickPay(anchor) {
-    menu(anchor, payOptions({ keep: [f.a, f.via] }).map(o => ({ label: o.label, icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((f.a = o.a), (f.via = o.via), paint()) })));
+    menu(anchor, payOptions({ keep: [f.a, f.via] }).map(o => ({ label: o.label, lead: payPic(o.a, o.via, 28), icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((f.a = o.a), (f.via = o.via), paint()) })));
   }
 
   // ---- The rows under the pills ----
@@ -315,13 +315,13 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     const on = f.k === 'out' || f.k === 'move';
     if (on && f.feeOn) {
       // (A credit card abroad: most banks charge 1.5% of it; a tap fills that in.)
-      const sum = sumOf(f.expr);
+      const sum = Number(f.amt) || 0;
       const fx = f.k === 'out' && acct(f.a)?.kind === 'credit' && sum > 0 ? Math.round(sum * 0.015) : 0;
       const feeIn = numIn(f.fee, v => (f.fee = v), W('手續費', 'Fee'));
       rows.push(h('div', { class: 'mn-xrow mn-x-fee' }, [h('span', { class: 'mn-x-l', text: W('手續費', 'Fee') }), feeIn, fx ? h('button', { class: 'mn-subchip num', type: 'button', text: W('海外 1.5%', 'Abroad 1.5%'), 'aria-label': W(`海外交易手續費 1.5%：${money(fx)}`, `Foreign fee 1.5%: ${money(fx)}`), onclick: () => (tick(), (f.fee = String(fx)), (feeIn.value = f.fee)) }) : h('span'), xBtn(W('移除手續費', 'Remove fee'), () => ((f.feeOn = false), (f.fee = '')))]));
     }
     if (f.k === 'out' && f.also) {
-      const pick = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, payOptions({ keep: [f.also.a, f.also.via] }).map(o => ({ label: o.label, icon: o.a === f.also.a && o.via === f.also.via ? '✓' : '', onClick: () => ((f.also.a = o.a), (f.also.via = o.via), paintExtras()) }))) }, [h('span', { class: 'mn-pill-t', text: payOf(f.also.a, f.also.via)?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron })]);
+      const pick = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, payOptions({ keep: [f.also.a, f.also.via] }).map(o => ({ label: o.label, lead: payPic(o.a, o.via, 28), icon: o.a === f.also.a && o.via === f.also.via ? '✓' : '', onClick: () => ((f.also.a = o.a), (f.also.via = o.via), paintExtras()) }))) }, [h('span', { class: 'mn-pill-t', text: payOf(f.also.a, f.also.via)?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron })]);
       rows.push(h('div', { class: 'mn-xrow mn-x-also' }, [h('span', { class: 'mn-x-l', text: W('另付', 'Also') }), pick, numIn(f.also.amt, v => (f.also.amt = v), W('這部分的金額', 'This part')), xBtn(W('移除', 'Remove'), () => (f.also = null))]));
     }
     if (f.k === 'out')
@@ -338,28 +338,10 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     extras.replaceChildren(...rows);
   }
 
-  // The keypad.
-  const press = k => {
-    tick();
-    f.auto = false;
-    if (k === 'back') f.expr = f.expr.slice(0, -1);
-    else if (k === 'clear') f.expr = '';
-    else if (k === '+' || k === '−') f.expr = f.expr ? f.expr.replace(/[+−]$/, '') + k : '';
-    else {
-      const last = f.expr.split(/[+−]/).pop();
-      if (last.length >= 9 || (last === '0' && k !== '+')) return;
-      if (!last && k === '00') return;
-      f.expr += k;
-    }
-    paintAmount();
-  };
-  const KEYS = ['7', '8', '9', 'back', '4', '5', '6', '−', '1', '2', '3', '+', 'clear', '0', '00'];
-  const keyLabel = { back: '⌫', clear: 'C' };
-  const save = h('button', { class: 'mn-key save', type: 'button', onclick: () => commit(), text: W('儲存', 'Save') });
-  const pad = h('div', { class: 'mn-pad' }, [...KEYS.map(k => h('button', { class: `mn-key${/\d/.test(k) ? '' : ' op'}`, type: 'button', 'aria-label': k === 'back' ? W('刪除', 'Delete') : k, text: keyLabel[k] || k, onclick: () => press(k) })), save]);
+  const save = h('button', { class: 'q-btn primary block', type: 'button', onclick: () => commit(), text: W('儲存', 'Save') });
 
   async function commit() {
-    const sum = sumOf(f.expr);
+    const sum = Number(f.amt) || 0;
     if (!(sum > 0)) return;
     const whole = v => Math.max(0, Math.round(Number(String(v ?? '').replace(/[^\d]/g, '')) || 0));
     const shares = f.k === 'out' ? f.friends.map(fr => ({ ...fr, n: whole(fr.amt) })).filter(fr => fr.n > 0) : [];
@@ -450,10 +432,9 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   const s = sheet({
     title: was ? W('編輯', 'Edit') : W('記一筆', 'New entry'),
     lead,
-    detent: 'large',
     cls: 'mn-entry',
-    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, catDots, subs, unitRow, moveRow, pills, noteRow, extras, invRow],
-    foot: pad
+    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, subs, unitRow, moveRow, pills, noteRow, extras, invRow],
+    foot: h('div', { class: 'q-sheet-foot' }, [save])
   });
   paint();
   return s;

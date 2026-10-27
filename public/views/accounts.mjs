@@ -7,18 +7,9 @@ import { ask } from '#kit/orbit.mjs';
 import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, acctTotals, owed, touches, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf, historyOf, hasHistory, closeAccount, closeCard, moveAccount, moveCard, snapshot, restore, accountParts } from '../lib/books.mjs';
 import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { catName, glyph, lookOf, subsOf, subOf, guessCat, guessSub } from '../lib/cats.mjs';
-import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, logoFor, card } from '../shell.mjs';
-import { entryRow, openEntry, payOptions, catTiles, subChips } from './entry.mjs';
-
-// An account's picture: its brand's logo, else its kind's tile.
-export function acctTile(a, size = 40) {
-  const src = logoFor(a);
-  const k = KINDS[a?.kind] || KINDS.other;
-  if (!src) return tile(glyph(k.icon), k.color);
-  const img = h('img', { src, alt: '', width: String(size), height: String(size), loading: 'lazy', decoding: 'async' });
-  img.addEventListener('error', () => img.parentNode?.replaceWith(tile(glyph(k.icon), k.color)), { once: true });
-  return h('span', { class: 'mn-logo', style: `--s:${size}px` }, [img]);
-}
+import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, card } from '../shell.mjs';
+import { entryRow, openEntry, payOptions, catTiles, subChips, subCols } from './entry.mjs';
+import { acctTile, methodTile, payPic } from './pics.mjs';
 
 export function renderAccts(box) {
   const b = state.books;
@@ -199,7 +190,7 @@ function cardsSection(a, host) {
       [
         a.kind === 'bank' ? h('div', { class: 'q-ritem' }, [tile(glyph('exchange'), '#8e8e93'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('轉帳／提款', 'Transfer or ATM') })])]) : null,
         ...cards.map(c =>
-          h('button', { class: 'q-ritem chevron', type: 'button', onclick: () => editCard(a, c, host()) }, [tile(glyph('card'), '#0088ff'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: `${c.name}${c.last4 ? ` •${c.last4}` : ''}` }), h('small', { text: methodNote(a) })])])
+          h('button', { class: 'q-ritem chevron', type: 'button', onclick: () => editCard(a, c, host()) }, [methodTile(c.name), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: `${c.name}${c.last4 ? ` •${c.last4}` : ''}` }), h('small', { text: methodNote(a) })])])
         ),
         ...allAccounts()
           .filter(x => x.kind === 'credit' && x.pay === a.id)
@@ -215,8 +206,9 @@ function cardsSection(a, host) {
 function editCard(a, c, host) {
   const name = h('input', { class: 'q-field', type: 'text', maxlength: '20', placeholder: W('名稱', 'Name'), value: c?.name || methodsFor(a)[0] });
   const last4 = h('input', { class: 'q-field', type: 'text', inputmode: 'numeric', maxlength: '4', placeholder: W('可不填', 'Optional'), value: c?.last4 || '' });
-  const chips = h('div', { class: 'q-chips mn-kinds' });
-  const paintChips = () => chips.replaceChildren(...methodsFor(a).map(m => h('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(name.value === m), text: m, onclick: () => ((name.value = m), paintChips()) })));
+  // (Each with its own logo, two across so a name never squeezes: Jay 2026-10-27.)
+  const chips = h('div', { class: 'mn-methods', role: 'radiogroup', 'aria-label': W('種類', 'Kind') });
+  const paintChips = () => chips.replaceChildren(...methodsFor(a).map(m => h('button', { class: 'mn-method', type: 'button', role: 'radio', 'aria-checked': String(name.value.trim() === m), onclick: () => ((name.value = m), paintChips()) }, [methodTile(m, 28), h('span', { text: m })])));
   name.addEventListener('input', paintChips);
   paintChips();
   const back = () => openAccount(a.id, host);
@@ -505,11 +497,11 @@ export function openRepeat(r) {
     const pick = (field_, moving) => {
       const opts = payOptions({ moving, keep: [f.a, f.via, f.to] });
       const cur = opts.find(o => o.a === f[field_] && (moving || o.via === f.via));
-      return h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, opts.map(o => ({ label: o.label, onClick: () => ((f[field_] = o.a), moving || (f.via = o.via), paint()) }))) }, [h('span', { class: 'mn-pill-t', text: cur?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron })]);
+      return h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, opts.map(o => ({ label: o.label, lead: payPic(o.a, moving ? '' : o.via, 28), onClick: () => ((f[field_] = o.a), moving || (f.via = o.via), paint()) }))) }, [cur ? payPic(cur.a, moving ? '' : cur.via, 24) : null, h('span', { class: 'mn-pill-t', text: cur?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron })]);
     };
     const dayCtl =
       f.every === 'week'
-        ? h('div', { class: 'q-chips' }, WEEKDAYS.map((w, i) => h('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(Number(f.day) === i), text: w, onclick: () => ((f.day = i), paint()) })))
+        ? h('div', { class: 'mn-weekdays' }, WEEKDAYS.map((w, i) => h('button', { class: 'mn-subchip', type: 'button', 'aria-pressed': String(Number(f.day) === i), text: w, onclick: () => ((f.day = i), paint()) })))
         : f.every === 'year'
           ? (() => {
               const i = h('input', { class: 'q-field', type: 'date', value: `${now.slice(0, 4)}-${f.day}` });
@@ -530,11 +522,10 @@ export function openRepeat(r) {
         f.k !== 'move'
           ? (() => {
               const grid = h('div', { class: 'mn-cats all', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())));
-              requestAnimationFrame(() => grid.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }));
               return field(W('分類', 'Category'), grid);
             })()
           : null,
-        f.k !== 'move' && subsOf(f.cat).length ? h('div', { class: 'mn-subs', role: 'group', 'aria-label': W('細項', 'Sub-category') }, subChips(f.cat, f.sub, id => ((f.sub = id), paint()))) : null,
+        f.k !== 'move' && subsOf(f.cat).length ? h('div', { class: 'mn-subs', role: 'group', 'aria-label': W('細項', 'Sub-category'), style: `--n:${subCols(subsOf(f.cat).length)}` }, subChips(f.cat, f.sub, id => ((f.sub = id), paint()))) : null,
         field(f.k === 'move' ? W('從', 'From') : f.k === 'in' ? W('存入', 'Into') : W('付款方式', 'Paid with'), pick('a', f.k === 'move')),
         f.k === 'move' ? field(W('到', 'To'), pick('to', true)) : null,
         field(W('多久一次', 'How often'), everySeg),
