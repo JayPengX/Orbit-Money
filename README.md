@@ -16,9 +16,15 @@
 Your own books for real money: what you spend each day, what each account holds, and whether an invoice won. Part of **Orbit**, a family of phone apps for life in Taiwan that share one sign-in, the Orbit Pass. See them all at [orbit.jaypengx.com](https://orbit.jaypengx.com/pass/).
 
 <p align="center">
-  <img src="docs/screenshots/money-1.webp" width="30%" alt="Calendar">
-  <img src="docs/screenshots/money-2.webp" width="30%" alt="Accounts">
-  <img src="docs/screenshots/money-4.webp" width="30%" alt="Invoices">
+  <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month on a calendar">
+  <img src="docs/screenshots/money-2.webp" width="30%" alt="Log spending in seconds">
+  <img src="docs/screenshots/money-3.webp" width="30%" alt="Every account together">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/money-4.webp" width="30%" alt="Where the money goes">
+  <img src="docs/screenshots/money-5.webp" width="30%" alt="Spending by category">
+  <img src="docs/screenshots/money-6.webp" width="30%" alt="Invoices, sorted">
 </p>
 
 <p align="center"><sub>Screenshots use made-up sample books.</sub></p>
