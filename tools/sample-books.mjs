@@ -8,7 +8,7 @@ const b = emptyBooks();
 const now = Date.now();
 const day = new Date(now + 8 * 3_600_000).toISOString().slice(0, 10);
 const acct = (id, name, kind, open, more = {}) => put(b, 'accts', { id, name, kind, open, inTotal: true, order: Object.keys(b.accts).length, ...more }, now);
-acct('cash', '現金', 'cash', 2400);
+acct('cash', '現金', 'cash', 9000);
 acct('a1', '玉山 薪轉', 'bank', 86000, { brand: 'esun' });
 acct('a2', '悠遊卡', 'ticket', 350, { brand: 'easycard' });
 acct('a3', '國泰 CUBE 卡', 'credit', 0, { brand: 'cathay', pay: 'a1', close: 5, due: 20 });
