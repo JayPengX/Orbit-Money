@@ -57,7 +57,7 @@ export function renderStats(box) {
     daysGone ? W(`平均每天 ${money(Math.round(t.out / daysGone))}`, `${money(Math.round(t.out / daysGone))} a day`) : '',
     diff != null ? `${diff >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(diff * 100))}% ${W(state.range === 'week' ? '比上週' : state.range === 'year' ? '比去年' : '比上月', state.range === 'week' ? 'vs last week' : state.range === 'year' ? 'vs last year' : 'vs last month')}` : ''
   ].filter(Boolean);
-  // The focal point open on the page (as 月曆 does); the chart sits in its own card below.
+  // The focal point on its card (as 月曆 does); the chart sits in its own card below.
   const hero = h('section', { class: 'q-focus mn-focus' }, [
     h('span', { class: 'q-focus-label', text: W('支出', 'Spent') }),
     h('b', { class: 'q-focus-value q-fit', text: money(t.out) }),

@@ -36,7 +36,7 @@ export function renderCal(box) {
   const budget = budgetState(b, ym, now).find(x => !x.cat);
   const place = myPlace('work');
 
-  // The focal point, open on the page: the month's spending, a thin bar
+  // The focal point, on its card: the month's spending, a thin bar
   // for the budget with what's left under it, then income and what's left
   // over as two quiet figures (記一筆 is the round button beside the tabs).
   const hero = h('section', { class: 'q-focus mn-focus' }, [

@@ -25,7 +25,7 @@ export function renderAccts(box) {
   const bal = balances(b);
   const w = worth(b);
   const all = openAccounts();
-  // The focal point, open on the page: what it all comes to, then the two
+  // The focal point, on its card: what it all comes to, then the two
   // halves of it as quiet figures.
   const hero = h('section', { class: 'q-focus' }, [
     h('span', { class: 'q-focus-label', text: W('總資產', 'Net worth') }),
