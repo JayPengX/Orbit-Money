@@ -52,16 +52,15 @@ h1, h2, h3, p { margin: 0; }
 .mn-bar { height: 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
 .mn-bar > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--mn-gold-2), var(--mn-gold)); }
 .mn-bar.over > i { background: #ff6b5e; }
-.mn-hero-cta, .mn-hero-btn {
+.mn-hero-cta {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 48px; margin-top: 2px; padding: 0 18px; border: 0; border-radius: 99px;
   background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08;
   font: 700 17px/1 var(--q-font); box-shadow: 0 6px 16px -8px rgba(230, 163, 33, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
-.mn-hero-btn { justify-self: start; min-height: 40px; font-size: 15px; }
 .mn-hero-cta span { display: grid; width: 20px; height: 20px; }
 .mn-hero-cta svg { width: 20px; height: 20px; stroke-width: 2.6; }
-.mn-hero-cta:active, .mn-hero-btn:active { transform: scale(0.98); }
+.mn-hero-cta:active { transform: scale(0.98); }
 /* Every primary button wears the same gold, dark text (white on gold is unreadable). */
 .q-btn.primary { background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45); }
 .q-btn.primary:disabled { opacity: 0.45; }

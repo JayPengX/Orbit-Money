@@ -30,6 +30,10 @@ const q = orbitSession('money', { lang });
 
 // ---- Saving -----------------------------------------------------------------------
 
+// What the books looked like when each tab was drawn (render): going back to
+// a tab that hasn't changed since shows it as it was, not drawn again (a tab
+// switch was 100–180 ms of layout on a phone).
+let stamp = 1;
 const absorb = theirs => (state.books = mergeBooks(state.books, theirs));
 const LOCAL_KEY = 'orbit-money.books.v1';
 async function keepLocal() {
@@ -49,6 +53,7 @@ const pass = passSync(q, {
   decode: decodeBooks,
   encode: () => encodeBooks(state.books),
   apply: theirs => {
+    stamp++;
     absorb(theirs);
     keepLocal();
     quietRefresh();
@@ -62,7 +67,7 @@ function sync({ soon = false } = {}) {
   return pass.sync();
 }
 document.addEventListener('visibilitychange', () => (document.visibilityState === 'hidden' ? sync() : state.loaded && checkMail()));
-hooks.changed = () => (pass.changed(), keepLocal(), sync({ soon: true }), render());
+hooks.changed = () => (stamp++, pass.changed(), keepLocal(), sync({ soon: true }), render());
 hooks.render = () => render();
 
 // The first account every book has: cash (one fixed id, so two new phones
@@ -80,9 +85,11 @@ function settle() {
 
 // ---- Drawing ----------------------------------------------------------------------
 
-function render() {
+function render({ ifChanged = false } = {}) {
   const box = $(`panel-${state.tab}`);
   if (!box) return;
+  if (ifChanged && box.dataset.drawn === String(stamp)) return;
+  box.dataset.drawn = String(stamp);
   VIEWS[state.tab](box);
   if (state.tab !== TABS[0]) box.prepend(kitUI.navTitle(TITLES[state.tab]));
 }
@@ -95,7 +102,7 @@ const tabNav = tabBar({
 function showTab(tab) {
   state.tab = tab;
   tabNav.select(tab);
-  render();
+  render({ ifChanged: true });
   if (tab === 'inv') loadDraws().then(() => state.tab === 'inv' && render());
 }
 const quietRefresh = () => {
@@ -117,7 +124,7 @@ async function boot() {
     if (!state.loaded) {
       state.loaded = true;
       openFromHash(true);
-    } else render();
+    } else (stamp++, render());
     kitUI.ready(Promise.resolve());
   };
   if (mine) {
@@ -153,6 +160,7 @@ setInterval(() => {
   if (state.day === lastDay) state.day = today();
   if (state.month === lastDay.slice(0, 7)) state.month = today().slice(0, 7);
   lastDay = today();
+  stamp++;
   if (settle()) hooks.changed();
   else quietRefresh();
 }, 60_000);
