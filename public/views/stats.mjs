@@ -53,26 +53,26 @@ export function renderStats(box) {
   const end = p.to < now ? p.to : now;
   const daysGone = p.from > now ? 0 : Math.round((Date.parse(end) - Date.parse(p.from)) / 86_400_000) + 1;
   const diff = before.out ? (t.out - before.out) / before.out : null;
-  const hero = h('section', { class: 'q-hero-card mn-hero' }, [
-    h('span', { class: 'q-hc-eyebrow', text: W('支出', 'Spent') }),
-    h('b', { class: 'q-hc-big num q-fit', text: money(t.out) }),
-    h('div', { class: 'mn-hero-tags' }, [
-      daysGone ? h('span', { class: 'mn-hero-tag', text: W(`平均每天 ${money(Math.round(t.out / daysGone))}`, `${money(Math.round(t.out / daysGone))} a day`) }) : null,
-      diff != null ? h('span', { class: 'mn-hero-tag', text: `${diff >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(diff * 100))}% ${W(state.range === 'week' ? '比上週' : state.range === 'year' ? '比去年' : '比上月', state.range === 'week' ? 'vs last week' : state.range === 'year' ? 'vs last year' : 'vs last month')}` }) : null
-    ]),
-    // (The chart in the card itself: seen whole on the first screen, never a scroll away.)
-    trend(p, now),
-    h('div', { class: 'mn-hero-figs two' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }))])
+  const facts = [
+    daysGone ? W(`平均每天 ${money(Math.round(t.out / daysGone))}`, `${money(Math.round(t.out / daysGone))} a day`) : '',
+    diff != null ? `${diff >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(diff * 100))}% ${W(state.range === 'week' ? '比上週' : state.range === 'year' ? '比去年' : '比上月', state.range === 'week' ? 'vs last week' : state.range === 'year' ? 'vs last year' : 'vs last month')}` : ''
+  ].filter(Boolean);
+  // The focal point open on the page (as 月曆 does); the chart sits in its own card below.
+  const hero = h('section', { class: 'q-focus mn-focus' }, [
+    h('span', { class: 'q-focus-label', text: W('支出', 'Spent') }),
+    h('b', { class: 'q-focus-value q-fit', text: money(t.out) }),
+    facts.length ? h('span', { class: 'q-focus-sub', text: facts.join(' · ') }) : null,
+    h('div', { class: 'q-focus-figs' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }), t.net > 0 ? 'in' : '')])
   ]);
 
-  const parts = [seg, nav, hero];
+  const parts = [seg, nav, hero, trend(p, now)];
   if (state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
   if (t.cats.length) parts.push(catSection(W('分類', 'By category'), t.cats, t.out, p));
   if (t.incCats.length) parts.push(catSection(W('收入', 'Income'), t.incCats, t.in, p));
   if (!t.out && !t.in) parts.push(h('p', { class: 'mn-hint', text: W('這段時間還沒有紀錄。', 'Nothing recorded in this period.') }));
   box.replaceChildren(...parts);
 }
-const fig = (label, value) => h('div', { class: 'mn-fig' }, [h('small', { text: label }), h('b', { class: 'num q-fit', text: value })]);
+const fig = (label, value, cls = '') => h('div', null, [h('small', { text: label }), h('b', { class: `num ${cls}`.trim(), text: value })]);
 
 // Bars: each day of the week or month, each month of the year. One series,
 // the app's colour; today's bar marked; a tap names the bar's day and amount.
@@ -185,7 +185,7 @@ function budgetCard(ym, now, redraw) {
         const over = x.left < 0;
         const ahead = !over && x.pace > 1.05;
         return h('div', { class: 'q-ritem mn-budget' }, [
-          c ? tile(glyph(c.icon), c.color) : tile(glyph('target'), 'var(--q-accent)'),
+          c ? tile(glyph(c.icon), c.color) : tile(glyph('target'), '#8e8e93'),
           h('span', { class: 'q-ritem-text' }, [
             h('span', { class: 'q-ritem-title', text: c ? catName(c, lang) : W('每月總預算', 'Monthly budget') }),
             h('span', { class: `mn-share${over ? ' over' : ahead ? ' ahead' : ''}` }, [h('i', { style: `width:${Math.min(100, Math.max(2, x.share * 100))}%` })]),
@@ -201,7 +201,7 @@ function budgetCard(ym, now, redraw) {
 function openBudgets(redraw) {
   const b = state.books;
   const have = Object.fromEntries(live(b.budgets).map(x => [x.cat, x]));
-  const rows = [{ cat: '', name: W('每月總預算', 'Monthly budget'), icon: 'target', color: 'var(--q-accent)' }, ...catList('out').map(c => ({ cat: c.id, name: catName(c, lang), icon: c.icon, color: c.color }))];
+  const rows = [{ cat: '', name: W('每月總預算', 'Monthly budget'), icon: 'target', color: '#8e8e93' }, ...catList('out').map(c => ({ cat: c.id, name: catName(c, lang), icon: c.icon, color: c.color }))];
   const inputs = new Map();
   const body = h(
     'div',

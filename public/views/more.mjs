@@ -1,9 +1,9 @@
 // 更多: everything that isn't the books themselves (Jay 2026-10-27: 發票 is
 // one feature, so the tab holds them all). First the ways purchases come in
 // without typing (a paper invoice scanned, a picture read, the 載具 file, the
-// mail-in), any prize to claim, then the tools as tiles: 對獎, the 手機條碼,
+// mail-in), any prize to claim, then the tools as rows: 對獎, the 手機條碼,
 // the categories, the repeats, the accounts put away, the books as a file.
-import { h, icons, tile, toast } from '#kit/ui.mjs';
+import { h, toast } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph } from '../lib/cats.mjs';
 import { state, W, money, today, acctName, card, allAccounts } from '../shell.mjs';
@@ -17,19 +17,23 @@ export function renderMore(box) {
   const month = today().slice(0, 7);
   const brought = live(state.books.entries).filter(e => e.inv?.no && e.d.startsWith(month));
   const mailOn = Boolean(state.mail?.address);
-  const way = (glyphName, label, onclick) => h('button', { class: 'mn-way', type: 'button', onclick }, [h('span', { html: glyph(glyphName) }), label]);
-  const hero = h('section', { class: 'q-hero-card mn-hero mn-inhero' }, [
-    h('span', { class: 'q-hc-eyebrow' }, [h('span', { html: glyph('receipt') }), W('帶入消費，不用打字', 'Bring purchases in')]),
-    brought.length
-      ? h('span', { class: 'mn-in-stat' }, [h('b', { class: 'num', text: W(`${brought.length} 張發票`, `${brought.length} invoices`) }), h('small', { text: W(`這個月帶入 · ${money(brought.reduce((t, e) => t + (e.inv.total ?? e.amt), 0))}`, `this month · ${money(brought.reduce((t, e) => t + (e.inv.total ?? e.amt), 0))}`) })])
-      : h('span', { class: 'mn-in-stat' }, [h('b', { text: W('店家、金額、品項', 'Store, total, items') }), h('small', { text: W('自動填好，記下前先看過', 'filled in for you to check') })]),
-    h('button', { class: 'mn-hero-cta', type: 'button', onclick: () => scanInvoice() }, [h('span', { html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')]),
-    h('div', { class: `mn-ways n${mailOn ? 3 : 2}` }, [
+  const total = brought.reduce((t, e) => t + (e.inv.total ?? e.amt), 0);
+  // The focal point open on the page: bringing a purchase in without typing.
+  const hero = h('section', { class: 'q-focus mn-focus' }, [
+    h('span', { class: 'q-focus-label', text: W('帶入消費，不用打字', 'Bring purchases in') }),
+    brought.length ? h('b', { class: 'q-focus-value q-fit', text: W(`${brought.length} 張發票`, `${brought.length} invoices`) }) : h('b', { class: 'q-focus-value q-fit', text: W('店家、金額、品項', 'Store, total, items') }),
+    h('span', { class: 'q-focus-sub', text: brought.length ? W(`這個月帶入 · ${money(total)}`, `this month · ${money(total)}`) : W('自動填好，記下前先看過', 'filled in for you to check') }),
+    state.mail?.confirm ? h('span', { class: 'q-focus-sub', text: W(`Gmail 確認碼 ${state.mail.confirm.code}`, `Gmail code ${state.mail.confirm.code}`) }) : null,
+    h('button', { class: 'q-btn primary block mn-scanbtn', type: 'button', onclick: () => scanInvoice() }, [h('span', { class: 'mn-btn-glyph', html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')])
+  ]);
+  const way = (glyphName, label, onclick) => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'mn-addrow-i mn-quiet', html: glyph(glyphName) }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })])]);
+  const ways = h('section', { class: 'q-section' }, [
+    h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('其他帶入方式', 'Other ways in') })]),
+    h('div', { class: 'q-rowcard' }, [
       way('camera', W('截圖・收據', 'Screenshot'), () => readPicture()),
       way('receipt', W('載具檔案', 'Carrier file'), () => importCarrier()),
       mailOn ? way('mail', W('信箱匯入', 'By mail'), () => openMailSetup()) : null
-    ]),
-    state.mail?.confirm ? h('span', { class: 'mn-hero-tag', text: W(`Gmail 確認碼 ${state.mail.confirm.code}`, `Gmail code ${state.mail.confirm.code}`) }) : null
+    ])
   ]);
 
   const inv = invoiceState();
@@ -39,19 +43,19 @@ export function renderMore(box) {
   const reps = repeatsOf();
   const closed = allAccounts().filter(a => a.closed);
   const cats = catList('out').length + catList('in').length;
-  const tool = (icon, color, label, sub, onclick) => h('button', { class: 'mn-tool', type: 'button', onclick }, [tile(icon, color), h('b', { text: label }), h('small', { text: sub })]);
+  const tool = (label, value, onclick) => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), h('span', { class: 'q-ritem-value num', text: value })]);
   const tools = h('section', { class: 'q-section' }, [
-    h('div', { class: 'q-section-head' }, [h('h2', { text: W('工具', 'Tools') })]),
-    h('div', { class: 'mn-tools' }, [
-      tool(icons.trophy, '#f59e0b', W('發票對獎', 'Invoices'), inv.count ? W(`${inv.count} 張`, `${inv.count}`) : W('自動對獎', 'Auto-checked'), () => openInvoices()),
-      tool(glyph('barcode'), '#3a3a3c', W('手機條碼', 'Barcode'), carrier || W('未設定', 'Not set'), () => openBarcode()),
-      tool(icons.list, '#6155f5', W('分類', 'Categories'), W(`${cats} 個`, `${cats}`), () => openCats()),
-      tool(glyph('repeat'), '#0088ff', W('固定收支', 'Repeats'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : W('房租、TPASS', 'Rent, TPASS'), () => openRepeats()),
-      tool(icons.lock, '#8e8e93', W('已封存', 'Put away'), closed.length ? W(`${closed.length} 個帳戶`, `${closed.length}`) : W('沒有', 'None'), () => openClosed()),
-      tool(icons.share, '#34c759', W('匯出', 'Export'), 'CSV', () => exportCsv())
+    h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('工具', 'Tools') })]),
+    h('div', { class: 'q-rowcard' }, [
+      tool(W('發票對獎', 'Invoices'), inv.count ? W(`${inv.count} 張`, `${inv.count}`) : W('自動對獎', 'Auto-checked'), () => openInvoices()),
+      tool(W('手機條碼', 'Barcode'), carrier || W('未設定', 'Not set'), () => openBarcode()),
+      tool(W('分類', 'Categories'), W(`${cats} 個`, `${cats}`), () => openCats()),
+      tool(W('固定收支', 'Repeats'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : W('房租、TPASS', 'Rent, TPASS'), () => openRepeats()),
+      tool(W('已封存', 'Put away'), closed.length ? W(`${closed.length} 個帳戶`, `${closed.length}`) : W('沒有', 'None'), () => openClosed()),
+      tool(W('匯出', 'Export'), 'CSV', () => exportCsv())
     ])
   ]);
-  box.replaceChildren(hero, ...(won ? [won] : []), tools);
+  box.replaceChildren(hero, ...(won ? [won] : []), ways, tools);
 }
 
 // The books as a spreadsheet: every entry, oldest first (shared on a phone, saved elsewhere).
