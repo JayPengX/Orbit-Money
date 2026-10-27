@@ -12,8 +12,9 @@
 //            open: the balance when it was added (a credit card's: what it owed, negative).
 //            inTotal: counted in the 總資產. brand: a logo key (brands.mjs).
 //            A credit card's pay: the account its bill is paid from; close / due: its
-//            statement and payment days of the month.
-//   cards    { id: { id, acct, name, last4 } } ways to pay under an account (a
+//            statement and payment days of the month. closed: when it was put
+//            away (封存): out of every picker, its entries and balance kept.
+//   cards    { id: { id, acct, name, last4, closed? } } ways to pay under an account (a
 //            debit card, Apple Pay or LINE Pay on a card…): they spend
 //            straight from their bank account.
 //   entries  { id: { id, d, k, amt, cat, note, a, via, to, inv, rec } }
@@ -60,6 +61,88 @@ export function put(books, col, rec, now = Date.now()) {
 export function drop(books, col, id, now = Date.now()) {
   if (books[col]?.[id]) books[col][id] = { id, u: now, del: 1 };
 }
+// ---- Put away, moved over, removed (Jay 2026-10-27: people change cards and
+// accounts all the time; history is never lost by it) ----------------------------
+
+// What an account or a way to pay has on it: entries, repeats, ways to pay.
+export function historyOf(books, id) {
+  return {
+    entries: live(books.entries).filter(e => e.a === id || e.to === id || e.via === id).length,
+    recur: live(books.recur).filter(r => r.a === id || r.to === id || r.via === id).length,
+    cards: live(books.cards).filter(c => c.acct === id).length
+  };
+}
+export const hasHistory = (books, id) => Object.values(historyOf(books, id)).some(Boolean);
+
+// 封存 (or back): out of the pickers, everything it has kept. Its repeats stop.
+export function closeAccount(books, id, closed = true, now = Date.now()) {
+  const a = books.accts[id];
+  if (!a || a.del) return;
+  put(books, 'accts', { ...a, closed: closed ? now : 0 }, now);
+  if (closed) for (const r of live(books.recur)) if (r.a === id || r.to === id) drop(books, 'recur', r.id, now);
+}
+export function closeCard(books, id, closed = true, now = Date.now()) {
+  const c = books.cards[id];
+  if (c && !c.del) put(books, 'cards', { ...c, closed: closed ? now : 0 }, now);
+}
+export const isOpen = r => Boolean(r && !r.del && !r.closed);
+
+// 轉移: everything on `from` now on `to` (an old card replaced, an account
+// moved banks): its entries (a move between the two drops, it moved nothing),
+// repeats, ways to pay, the cards paid from it, and its opening balance, so
+// every total stays the same. Then `from` is removed.
+export function moveAccount(books, from, to, now = Date.now()) {
+  const a = books.accts[from];
+  const b = books.accts[to];
+  if (!a || a.del || !b || b.del || from === to) return;
+  const swap = id => (id === from ? to : id);
+  for (const e of live(books.entries)) {
+    if (e.a !== from && e.to !== from) continue;
+    const next = { ...e, a: swap(e.a), to: e.to ? swap(e.to) : e.to };
+    if (next.k === 'move' && next.a === next.to) drop(books, 'entries', e.id, now);
+    else put(books, 'entries', next, now);
+  }
+  for (const r of live(books.recur)) {
+    if (r.a !== from && r.to !== from) continue;
+    const next = { ...r, a: swap(r.a), to: r.to ? swap(r.to) : r.to };
+    if (next.k === 'move' && next.a === next.to) drop(books, 'recur', r.id, now);
+    else put(books, 'recur', next, now);
+  }
+  for (const c of live(books.cards)) if (c.acct === from) put(books, 'cards', { ...c, acct: to }, now);
+  for (const x of live(books.accts)) if (x.pay === from) put(books, 'accts', { ...x, pay: to === x.id ? '' : to }, now);
+  put(books, 'accts', { ...books.accts[to], open: (Number(b.open) || 0) + (Number(a.open) || 0) }, now);
+  drop(books, 'accts', from, now);
+}
+// A way to pay replaced: its entries and repeats on `to` (another on the
+// same account), or on the account itself (to ''). Then it's removed.
+export function moveCard(books, from, to = '', now = Date.now()) {
+  const c = books.cards[from];
+  if (!c || c.del || from === to) return;
+  const t = to && books.cards[to];
+  for (const col of ['entries', 'recur'])
+    for (const e of live(books[col])) if (e.via === from) put(books, col, { ...e, via: to, a: t && !t.del ? t.acct : e.a }, now);
+  drop(books, 'cards', from, now);
+}
+
+// The records a removal will take, kept to put back (復原).
+export function snapshot(books, ids) {
+  const out = {};
+  for (const col of COLLECTIONS) for (const id of ids[col] || []) if (books[col][id] && !books[col][id].del) (out[col] ||= []).push({ ...books[col][id] });
+  return out;
+}
+export function restore(books, snap, now = Date.now()) {
+  for (const [col, recs] of Object.entries(snap)) for (const r of recs) put(books, col, r, now);
+}
+// What dropAccount takes, by collection (for a snapshot).
+export function accountParts(books, id) {
+  return {
+    accts: [id, ...live(books.accts).filter(a => a.pay === id).map(a => a.id)],
+    cards: live(books.cards).filter(c => c.acct === id).map(c => c.id),
+    recur: live(books.recur).filter(r => r.a === id || r.to === id).map(r => r.id),
+    entries: live(books.entries).filter(e => e.a === id || e.to === id).map(e => e.id)
+  };
+}
+
 // An account removed with what hangs on it: its cards, its repeats, and its
 // entries (a move to or from it as well: one side would be missing).
 export function dropAccount(books, id, now = Date.now()) {

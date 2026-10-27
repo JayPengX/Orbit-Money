@@ -4,10 +4,10 @@
 // entries; a credit card to its bill too.
 import { h, icons, tile, sheet, toggle, toast, empty, segmented, menu } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, totals, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf } from '../lib/books.mjs';
+import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, totals, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf, historyOf, hasHistory, closeAccount, closeCard, moveAccount, moveCard, snapshot, restore, accountParts } from '../lib/books.mjs';
 import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { catName, glyph, lookOf } from '../lib/cats.mjs';
-import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, cardsOf, logoFor, card } from '../shell.mjs';
+import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, logoFor, card } from '../shell.mjs';
 import { entryRow, openEntry, payOptions, catTiles } from './entry.mjs';
 
 // An account's picture: its brand's logo, else its kind's tile.
@@ -24,7 +24,8 @@ export function renderAccts(box) {
   const b = state.books;
   const bal = balances(b);
   const w = worth(b);
-  const all = allAccounts();
+  const all = openAccounts();
+  const closed = allAccounts().filter(a => a.closed);
   const hero = h('section', { class: 'q-hero-card mn-hero' }, [
     h('span', { class: 'q-hc-eyebrow', text: W('總資產', 'Net worth') }),
     h('b', { class: 'q-hc-big num q-fit', text: money(w.net) }),
@@ -63,7 +64,11 @@ export function renderAccts(box) {
         )
       : h('p', { class: 'mn-hint', text: W('房租、薪水、訂閱⋯每期自動記好。', 'Rent, pay, subscriptions: recorded for you each time.') })
   ]);
-  box.replaceChildren(hero, ...groups.filter(Boolean), add, repSec);
+  // Put away (封存): at the foot, their history and balance kept.
+  const closedSec = closed.length
+    ? h('section', { class: 'q-section mn-closed' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: W('已封存', 'Put away') })]), h('div', { class: 'q-rowcard' }, closed.map(a => acctRow(a, bal[a.id] || 0)))])
+    : null;
+  box.replaceChildren(hero, ...groups.filter(Boolean), add, repSec, ...(closedSec ? [closedSec] : []));
 }
 
 const fig = (label, value) => h('div', { class: 'mn-fig' }, [h('small', { text: label }), h('b', { class: 'num q-fit', text: value })]);
@@ -72,7 +77,7 @@ function acctRow(a, balance) {
   const cards = cardsOf(a.id);
   // (Short: the balance needs its room on a 320 px phone.)
   const one = cards.length === 1 ? cards[0] : null;
-  const sub = !a.inTotal ? W('不計入總資產', 'Not in the total') : cards.length > 1 ? W(`${cards.length} 種付款方式`, `${cards.length} ways to pay`) : one ? one.name : a.kind === 'credit' && a.due ? W(`每月 ${a.due} 日繳款`, `due day ${a.due}`) : '';
+  const sub = a.closed ? W('已封存', 'Put away') : !a.inTotal ? W('不計入總資產', 'Not in the total') : cards.length > 1 ? W(`${cards.length} 種付款方式`, `${cards.length} ways to pay`) : one ? one.name : a.kind === 'credit' && a.due ? W(`每月 ${a.due} 日繳款`, `due day ${a.due}`) : '';
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openAccount(a.id) }, [
     acctTile(a),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: a.name }), sub ? h('small', { text: sub }) : null]),
@@ -106,14 +111,18 @@ export function openAccount(id, host = null) {
     a.kind === 'credit' && a.pay && acct(a.pay) ? action('card', W('繳卡費', 'Pay bill'), () => (s.close(), payBill(a, bill))) : null
   ]);
   // (A 儲值卡 or 電子支付 is itself the way to pay.)
-  const cardSec = METHODS[a.kind] ? cardsSection(a, () => s) : null;
+  const cardSec = METHODS[a.kind] && !a.closed ? cardsSection(a, () => s) : null;
+  // (Put away: said so, one tap from use again.)
+  const closedNote = a.closed
+    ? h('div', { class: 'mn-closed-note' }, [h('span', { text: W('已封存，紀錄和餘額都留著', 'Put away; history and balance kept') }), h('button', { class: 'q-btn tinted small', type: 'button', text: W('恢復使用', 'Use again'), onclick: () => (closeAccount(state.books, a.id, false), saved(), openAccount(a.id, s)) })])
+    : null;
   const recent = mine.sort((x, y) => y.d.localeCompare(x.d) || (y.t || 0) - (x.t || 0)).slice(0, 40);
   const list = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head' }, [h('h2', { text: W('最近', 'Recent') })]),
     recent.length ? h('div', { class: 'q-rowcard' }, recent.map(e => entryRow(e, { day: true, inAcct: true }))) : h('p', { class: 'mn-hint', text: W('還沒有紀錄', 'Nothing yet') })
   ]);
   const edit = h('button', { class: 'q-btn plain small', type: 'button', text: W('編輯', 'Edit'), onclick: () => openAccountEdit(a, s) });
-  const page = { title: a.name, trailing: edit, lead: h('button', { class: 'q-close', type: 'button', 'data-q-close': '', 'aria-label': W('關閉', 'Close'), text: '✕' }), detent: 'large', cls: 'mn-acct', body: [hero, facts, actions, cardSec, list] };
+  const page = { title: a.name, trailing: edit, lead: h('button', { class: 'q-close', type: 'button', 'data-q-close': '', 'aria-label': W('關閉', 'Close'), text: '✕' }), detent: 'large', cls: 'mn-acct', body: [hero, closedNote, facts, actions, cardSec, list] };
   const s = host ? swapPage(host, page) : sheet(page);
 }
 
@@ -178,7 +187,7 @@ function editCard(a, c, host) {
     cls: 'mn-acct-edit',
     body: [h('div', { class: 'mn-form' }, [chips, field(W('名稱', 'Name'), name), field(W('卡號末四碼', 'Last 4 digits'), last4)])],
     foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [
-      c ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('刪除', 'Delete'), onclick: () => (drop(state.books, 'cards', c.id), saved(), back()) }) : null,
+      c ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('移除', 'Remove'), onclick: () => removeCard(a, c, host) }) : null,
       h('button', {
         class: 'q-btn primary',
         type: 'button',
@@ -190,6 +199,89 @@ function editCard(a, c, host) {
         }
       })
     ])
+  });
+}
+
+// ---- Taking one out of use (Jay 2026-10-27: people change cards and accounts;
+// nothing they recorded is lost by it) -------------------------------------------
+
+const choice = (icon, color, title, sub, onclick, cls = '') => h('button', { class: `q-ritem chevron mn-choice ${cls}`.trim(), type: 'button', onclick }, [tile(icon, color), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: title }), h('small', { text: sub })])]);
+const backTo = (onclick) => h('button', { class: 'q-close mn-back', type: 'button', 'aria-label': W('返回', 'Back'), html: icons.chevron, onclick });
+const countText = hist => [hist.entries ? W(`${hist.entries} 筆紀錄`, `${hist.entries} entries`) : '', hist.recur ? W(`${hist.recur} 個固定收支`, `${hist.recur} repeats`) : '', hist.cards ? W(`${hist.cards} 種付款方式`, `${hist.cards} ways to pay`) : ''].filter(Boolean).join(W('、', ', '));
+
+// An account: with nothing on it, removed (one question); with history, the
+// choice: 封存 (kept, out of the menus), 轉移 (its history and balance onto
+// another: a replaced card), or removed with it all (and 復原 for a while).
+async function removeAccount(a, host) {
+  const b = state.books;
+  const hist = historyOf(b, a.id);
+  if (!hasHistory(b, a.id)) {
+    if (!(await ask({ title: W(`刪除 ${a.name}？`, `Delete ${a.name}?`), body: W('它沒有任何紀錄。', 'Nothing was recorded on it.'), ok: W('刪除', 'Delete'), cancel: W('取消', 'Cancel'), danger: true, icon: 'trash' }))) return;
+    dropAccount(b, a.id);
+    host.close();
+    return saved();
+  }
+  const credit = a.kind === 'credit';
+  // (The same kind first: a bank for a bank.)
+  const targets = openAccounts().filter(x => x.id !== a.id && (x.kind === 'credit') === credit).sort((x, y) => (y.kind === a.kind) - (x.kind === a.kind));
+  swapPage(host, {
+    title: W(`移除 ${a.name}`, `Remove ${a.name}`),
+    lead: backTo(() => openAccountEdit(a, host)),
+    cls: 'mn-acct-edit',
+    body: [
+      h('p', { class: 'mn-hint mn-remove-lede', text: W(`它有 ${countText(hist)}。`, `It has ${countText(hist)}.`) }),
+      h('div', { class: 'q-rowcard' }, [
+        a.closed ? null : choice(icons.lock, '#8e8e93', W('封存', 'Put away'), W('不在選單裡，紀錄和餘額都留著', 'Off the menus; history and balance kept'), () => (closeAccount(b, a.id), saved(), toast(W(`已封存 ${a.name}`, `${a.name} put away`)), openAccount(a.id, host))),
+        targets.length ? choice(icons.exchange, '#0088ff', W('轉移到另一個帳戶', 'Move to another account'), credit ? W('換新卡：紀錄和欠款搬過去', 'A new card: its history and balance go over') : W('換帳戶：紀錄和餘額搬過去', 'A new account: its history and balance go over'), () => pickTarget(a, targets, host)) : null,
+        choice(icons.trash, '#ff3b30', W('連紀錄一起刪除', 'Delete with its history'), W('可以復原一下子', 'Can be undone for a moment'), async () => {
+          if (!(await ask({ title: W(`刪除 ${a.name} 和它的紀錄？`, `Delete ${a.name} and its history?`), body: W(`${countText(hist)}會一起刪除，統計也會少掉這些。`, `${countText(hist)} go, and the stats lose them.`), ok: W('刪除', 'Delete'), cancel: W('取消', 'Cancel'), danger: true, icon: 'trash' }))) return;
+          const snap = snapshot(b, accountParts(b, a.id));
+          dropAccount(b, a.id);
+          host.close();
+          saved();
+          toast(W(`已刪除 ${a.name}`, `${a.name} deleted`), { ms: 6000, action: { label: W('復原', 'Undo'), onTap: () => (restore(state.books, snap), saved()) } });
+        }, 'mn-danger-row')
+      ].filter(Boolean))
+    ]
+  });
+}
+function pickTarget(a, targets, host) {
+  swapPage(host, {
+    title: W('轉移到', 'Move to'),
+    lead: backTo(() => removeAccount(a, host)),
+    cls: 'mn-acct-edit',
+    body: [
+      h('p', { class: 'mn-hint mn-remove-lede', text: W(`${a.name} 的紀錄、固定收支、付款方式和餘額都會搬到這裡，之後 ${a.name} 會移除。`, `${a.name}'s history, repeats, ways to pay and balance move here; then ${a.name} is removed.`) }),
+      h('div', { class: 'q-rowcard' }, targets.map(x => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: async () => {
+        if (!(await ask({ title: W(`搬到 ${x.name}？`, `Move to ${x.name}?`), body: W(`${a.name} 的一切都會在 ${x.name} 底下。`, `Everything on ${a.name} will be on ${x.name}.`), ok: W('轉移', 'Move'), cancel: W('取消', 'Cancel'), icon: 'exchange' }))) return;
+        moveAccount(state.books, a.id, x.id);
+        saved();
+        toast(W(`已轉移到 ${x.name}`, `Moved to ${x.name}`));
+        openAccount(x.id, host);
+      } }, [acctTile(x), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: x.name }), h('small', { text: kindName(x.kind) })])])))
+    ]
+  });
+}
+// A way to pay: with nothing on it, removed; with entries, 封存, onto another
+// (a new card), or let go with its entries kept as the account's own.
+function removeCard(a, c, host) {
+  const b = state.books;
+  const back = () => openAccount(a.id, host);
+  if (!hasHistory(b, c.id)) return (drop(b, 'cards', c.id), saved(), back());
+  const hist = historyOf(b, c.id);
+  const others = cardsOf(a.id).filter(x => x.id !== c.id && !x.closed);
+  swapPage(host, {
+    title: W(`移除 ${c.name}`, `Remove ${c.name}`),
+    lead: backTo(() => editCard(a, c, host)),
+    cls: 'mn-acct-edit',
+    body: [
+      h('p', { class: 'mn-hint mn-remove-lede', text: W(`它有 ${countText(hist)}。`, `It has ${countText(hist)}.`) }),
+      h('div', { class: 'q-rowcard' }, [
+        c.closed ? null : choice(icons.lock, '#8e8e93', W('封存', 'Put away'), W('不在選單裡，舊紀錄照舊', 'Off the menus; old entries kept'), () => (closeCard(b, c.id), saved(), back())),
+        ...others.map(x => choice(icons.exchange, '#0088ff', W(`換成 ${x.name}`, `Replace with ${x.name}`), W('紀錄改記在新的這張', 'Its entries move to this one'), () => (moveCard(b, c.id, x.id), saved(), back()))),
+        choice(icons.trash, '#ff3b30', W('移除', 'Remove'), W(`紀錄留著，改記為 ${a.name}`, `Entries kept, as ${a.name} itself`), () => (moveCard(b, c.id, ''), saved(), back()), 'mn-danger-row')
+      ].filter(Boolean))
+    ]
   });
 }
 
@@ -263,7 +355,7 @@ export function openAccountEdit(a, host = null) {
       : null;
     const payPick =
       f.kind === 'credit'
-        ? h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [{ label: W('不設定', 'None'), onClick: () => ((f.pay = ''), paint()) }, ...allAccounts().filter(x => x.kind === 'bank' && x.id !== a?.id).map(x => ({ label: x.name, icon: x.id === f.pay ? '✓' : '', onClick: () => ((f.pay = x.id), paint()) }))]) }, [h('span', { class: 'mn-pill-t', text: f.pay ? acctName(f.pay) : W('選銀行帳戶', 'Choose a bank account') }), h('i', { html: icons.chevron })])
+        ? h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [{ label: W('不設定', 'None'), onClick: () => ((f.pay = ''), paint()) }, ...openAccounts().filter(x => x.kind === 'bank' && x.id !== a?.id).map(x => ({ label: x.name, icon: x.id === f.pay ? '✓' : '', onClick: () => ((f.pay = x.id), paint()) }))]) }, [h('span', { class: 'mn-pill-t', text: f.pay ? acctName(f.pay) : W('選銀行帳戶', 'Choose a bank account') }), h('i', { html: icons.chevron })])
         : null;
     body.replaceChildren(
       ...[
@@ -293,12 +385,7 @@ export function openAccountEdit(a, host = null) {
     s.close();
     if (isNew) toast(W(`已新增 ${saved_.name}`, `${saved_.name} added`));
   };
-  const remove = async () => {
-    if (!(await ask({ title: W(`刪除 ${a.name}？`, `Delete ${a.name}?`), body: W('它的紀錄、金融卡和固定收支會一起刪除。', 'Its entries, cards and repeats go with it.'), ok: W('刪除', 'Delete'), cancel: W('取消', 'Cancel'), danger: true, icon: 'trash' }))) return;
-    dropAccount(state.books, a.id);
-    s.close();
-    saved();
-  };
+  const remove = () => removeAccount(a, host || s);
   const page = {
     title: isNew ? W('新增帳戶', 'Add an account') : W('編輯帳戶', 'Edit account'),
     // (Inside an account: ‹ goes back to it.)
@@ -306,7 +393,7 @@ export function openAccountEdit(a, host = null) {
     detent: 'large',
     cls: 'mn-acct-edit',
     body: [body],
-    foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [a && a.id !== 'cash' ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('刪除', 'Delete'), onclick: remove }) : null, h('button', { class: 'q-btn primary', type: 'button', text: W('儲存', 'Save'), onclick: save })])
+    foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [a && a.id !== 'cash' ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('移除', 'Remove'), onclick: remove }) : null, h('button', { class: 'q-btn primary', type: 'button', text: W('儲存', 'Save'), onclick: save })])
   };
   const s = host ? swapPage(host, page) : sheet(page);
 }
@@ -352,7 +439,7 @@ export function openRepeat(r) {
   );
   function paint() {
     const pick = (field_, moving) => {
-      const opts = payOptions({ moving });
+      const opts = payOptions({ moving, keep: [f.a, f.via, f.to] });
       const cur = opts.find(o => o.a === f[field_] && (moving || o.via === f.via));
       return h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, opts.map(o => ({ label: o.label, onClick: () => ((f[field_] = o.a), moving || (f.via = o.via), paint()) }))) }, [h('span', { class: 'mn-pill-t', text: cur?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron })]);
     };

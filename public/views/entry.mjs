@@ -6,7 +6,7 @@ import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs
 import { ask } from '#kit/orbit.mjs';
 import { put, drop, live } from '../lib/books.mjs';
 import { catsFor, catOf, catName, glyph, lookOf } from '../lib/cats.mjs';
-import { state, W, en, lang, money, dayLabel, today, saved, acct, allAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
+import { state, W, en, lang, money, dayLabel, today, saved, acct, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 
 // ---- A row ----------------------------------------------------------------------
 
@@ -28,18 +28,22 @@ export function entryRow(e, { day = false, inAcct = false } = {}) {
 // ---- How it's paid ------------------------------------------------------------------
 
 // Every way to pay: each account (a bank by 轉帳), and each debit card on a bank.
-export function payOptions({ moving = false } = {}) {
+// (Put-away accounts and ways to pay only when `keep` names them: what an
+// entry being changed already uses; `all` for finding a label.)
+export function payOptions({ moving = false, keep = [], all = false } = {}) {
   const out = [];
+  const shown = r => all || !r.closed || keep.includes(r.id);
   for (const a of allAccounts()) {
+    if (!shown(a)) continue;
     out.push({ a: a.id, via: '', label: a.name, sub: kindName(a.kind) });
-    if (!moving) for (const c of cardsOf(a.id)) out.push({ a: a.id, via: c.id, label: `${a.name} · ${c.name}${c.last4 ? ` •${c.last4}` : ''}`, sub: kindName(a.kind) });
+    if (!moving) for (const c of cardsOf(a.id).filter(shown)) out.push({ a: a.id, via: c.id, label: `${a.name} · ${c.name}${c.last4 ? ` •${c.last4}` : ''}`, sub: kindName(a.kind) });
   }
   return out;
 }
-const payOf = (a, via) => payOptions().find(o => o.a === a && o.via === (via || '')) || null;
+const payOf = (a, via) => payOptions({ all: true }).find(o => o.a === a && o.via === (via || '')) || null;
 export function lastPay() {
   const p = state.books.opt?.lastPay;
-  return (p && acct(p.a) && payOf(p.a, p.via)) || payOf('cash', '') || payOptions()[0] || null;
+  return (p && acct(p.a) && !acct(p.a).closed && !card(p.via)?.closed && payOf(p.a, p.via)) || payOf('cash', '') || payOptions()[0] || null;
 }
 
 // The categories as tiles (two rows across, the picked one lit): the entry
@@ -75,7 +79,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     note: was?.note ?? note,
     inv: was?.inv || inv
   };
-  if (f.k === 'move' && !f.to) f.to = allAccounts().find(x => x.id !== f.a)?.id || '';
+  if (f.k === 'move' && !f.to) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
 
   const amountEl = h('b', { class: 'num mn-amount-v' });
   const exprEl = h('small', { class: 'num mn-amount-x' });
@@ -108,7 +112,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
         if (k !== 'move') f.cat = opt.lastCat?.[k] || (k === 'in' ? 'salary' : 'food');
         if (k === 'move') {
           f.via = '';
-          if (!f.to || f.to === f.a) f.to = allAccounts().find(x => x.id !== f.a)?.id || '';
+          if (!f.to || f.to === f.a) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
         }
         paint();
       }
@@ -153,10 +157,10 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     return h('button', { class: 'mn-pill mn-move-pick', type: 'button', onclick: e => pickAcct(e.currentTarget, field) }, [h('small', { text: label }), h('span', { class: 'mn-pill-t', text: a?.name || W('選帳戶', 'Choose') })]);
   }
   function pickAcct(anchor, field) {
-    menu(anchor, payOptions({ moving: true }).map(o => ({ label: o.label, icon: o.a === f[field] ? '✓' : '', onClick: () => ((f[field] = o.a), paint()) })));
+    menu(anchor, payOptions({ moving: true, keep: [f.a, f.to] }).map(o => ({ label: o.label, icon: o.a === f[field] ? '✓' : '', onClick: () => ((f[field] = o.a), paint()) })));
   }
   function pickPay(anchor) {
-    menu(anchor, payOptions().map(o => ({ label: o.label, icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((f.a = o.a), (f.via = o.via), paint()) })));
+    menu(anchor, payOptions({ keep: [f.a, f.via] }).map(o => ({ label: o.label, icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((f.a = o.a), (f.via = o.via), paint()) })));
   }
 
   // The keypad.

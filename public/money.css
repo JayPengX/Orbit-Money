@@ -299,3 +299,11 @@ h1, h2, h3, p { margin: 0; }
 .mn-entry:has(.mn-note:focus) .mn-pad { display: none; }
 .mn-back svg { width: 18px; height: 18px; transform: rotate(180deg); }
 .mn-row .q-ritem-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Taking an account or a way to pay out of use. */
+.mn-remove-lede { margin: 4px 0 12px; }
+.mn-danger-row .q-ritem-title { color: var(--q-red); }
+.mn-closed .mn-row { opacity: 0.6; }
+.mn-closed-note { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: var(--q-fill-3); color: var(--q-label-2); font: 500 13px/18px var(--q-font); }
+.mn-closed-note span { flex: 1; min-width: 0; }
+.mn-closed-note .q-btn { flex: none; white-space: nowrap; }
+.mn-choice .q-ritem-text small { white-space: normal; }

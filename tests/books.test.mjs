@@ -102,3 +102,49 @@ test('merging: each record the one changed last, removals win when newer, old re
   assert.equal(await B.decodeBooks('z3:abc'), null);
   assert.equal(await B.decodeBooks('m1:!!!'), null);
 });
+
+test('封存: out of use, its entries and balance kept, its repeats stop; back again', () => {
+  const b = sample();
+  B.put(b, 'recur', { id: 'r1', k: 'out', amt: 300, cat: 'home', a: 'cc', every: 'month', day: 1, from: '2026-10-01' }, T);
+  B.closeAccount(b, 'cc', true, T + 1);
+  assert.ok(!B.isOpen(b.accts.cc));
+  assert.equal(B.balances(b).cc, -3000);
+  assert.ok(b.recur.r1.del);
+  B.closeAccount(b, 'cc', false, T + 2);
+  assert.ok(B.isOpen(b.accts.cc));
+});
+
+test('轉移: an account onto another keeps every total; moves between the two drop', () => {
+  const b = sample();
+  B.put(b, 'accts', { id: 'bank2', name: '新帳戶', kind: 'bank', open: 0, inTotal: true }, T);
+  const before = B.worth(b);
+  B.moveAccount(b, 'bank', 'bank2', T + 1);
+  assert.ok(b.accts.bank.del);
+  assert.equal(B.balances(b).bank2, 88500);
+  assert.deepEqual(B.worth(b), before);
+  assert.equal(b.entries.e5.a, 'bank2');
+  assert.equal(b.cards.deb.acct, 'bank2');
+  assert.equal(b.accts.cc.pay, 'bank2');
+  assert.deepEqual(B.historyOf(b, 'bank'), { entries: 0, recur: 0, cards: 0 });
+});
+
+test('a way to pay replaced or let go: its entries follow, never lost', () => {
+  const b = sample();
+  B.put(b, 'cards', { id: 'deb2', acct: 'bank', name: '新金融卡' }, T);
+  B.moveCard(b, 'deb', 'deb2', T + 1);
+  assert.equal(b.entries.e5.via, 'deb2');
+  assert.ok(b.cards.deb.del);
+  B.moveCard(b, 'deb2', '', T + 2);
+  assert.equal(b.entries.e5.via, '');
+  assert.equal(b.entries.e5.a, 'bank');
+});
+
+test('removed with its history, then 復原 puts every record back', () => {
+  const b = sample();
+  const snap = B.snapshot(b, B.accountParts(b, 'bank'));
+  B.dropAccount(b, 'bank', T + 1);
+  assert.ok(b.entries.e3.del && b.accts.bank.del);
+  B.restore(b, snap, T + 2);
+  assert.deepEqual(B.balances(b), { cash: 1800, bank: 88500, cc: -3000, save: 100000 });
+  assert.equal(b.accts.cc.pay, 'bank');
+});

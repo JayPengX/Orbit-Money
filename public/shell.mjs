@@ -68,6 +68,8 @@ export const card = id => {
   return c && !c.del ? c : null;
 };
 export const allAccounts = () => accounts(state.books);
+// The ones in use (not put away: 封存).
+export const openAccounts = () => allAccounts().filter(a => !a.closed);
 export const cardsOf = id => live(state.books.cards).filter(c => c.acct === id);
 // The logo of an account (its brand's), else ''.
 export const logoFor = a => (a?.brand && brandOf(a.brand) ? logoOf(a.brand) : '');
