@@ -5,7 +5,7 @@ import { h, icons, tile, pickSeg, sheet, toast } from '#kit/ui.mjs';
 import { addDays } from '#kit/format.mjs';
 import { totals, entriesIn, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
 import { OUT, catOf, catName, glyph } from '../lib/cats.mjs';
-import { state, W, en, lang, money, short, monthLabel, dayLabel, today, saved } from '../shell.mjs';
+import { state, W, en, lang, money, short, plain, monthLabel, dayLabel, today, saved } from '../shell.mjs';
 import { entryRow } from './entry.mjs';
 
 // The period around state.at: { from, to, label, prev (its own from), unit ('day' | 'month') }.
@@ -158,7 +158,7 @@ function budgetCard(ym, now, redraw) {
             h('span', { class: `mn-share${over ? ' over' : ahead ? ' ahead' : ''}` }, [h('i', { style: `width:${Math.min(100, Math.max(2, x.share * 100))}%` })]),
             h('small', { text: over ? W(`超出 ${money(-x.left)}`, `${money(-x.left)} over`) : x.perDay && now.startsWith(ym) ? W(`每天可花 ${money(x.perDay)}`, `${money(x.perDay)} a day`) : W(`剩 ${money(x.left)}`, `${money(x.left)} left`) })
           ]),
-          h('span', { class: 'mn-catval' }, [h('b', { class: 'num', text: money(x.spent) }), h('small', { class: 'num', text: `/ ${short(x.amt)}` })])
+          h('span', { class: 'mn-catval' }, [h('b', { class: 'num', text: money(x.spent) }), h('small', { class: 'num', text: `/ ${plain(x.amt)}` })])
         ]);
       })
     )
