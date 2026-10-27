@@ -112,7 +112,7 @@ export function renderInvoices(box) {
       h('div', { class: 'q-section-head' }, [h('h2', { text: W('其他', 'More') })]),
       h('div', { class: 'q-rowcard' }, [
         h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => (carrier ? openCarrier() : editCarrier()) }, [tile(glyph('barcode'), '#3a3a3c'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('手機條碼', 'Mobile barcode') }), h('small', { text: carrier || W('還沒設定', 'Not set') })])]),
-        latest ? h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => sheet({ title: W('中獎號碼', 'Winning numbers'), subtitle: periodName(latest.period), detent: 'medium', body: drawCard(latest) }) }, [tile(icons.trophy, '#f59e0b'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('中獎號碼', 'Winning numbers') }), h('small', { text: periodName(latest.period) })])]) : null
+        latest ? h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => sheet({ title: W('中獎號碼', 'Winning numbers'), subtitle: periodName(latest.period), body: drawCard(latest) }) }, [tile(icons.trophy, '#f59e0b'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('中獎號碼', 'Winning numbers') }), h('small', { text: periodName(latest.period) })])]) : null
       ])
     ])
   );
@@ -151,7 +151,6 @@ export function openInvoice(inv, entry = null) {
   sheet({
     title: inv.seller || W('發票', 'Invoice'),
     subtitle: fmtNo(inv.no),
-    detent: 'large',
     body: [
       h('div', { class: 'q-fig mn-facts' }, [
         h('div', {}, [h('small', { text: W('金額', 'Total') }), h('b', { class: 'num', text: money(inv.total ?? entry?.amt ?? 0) })]),
@@ -187,7 +186,6 @@ function openCarrier() {
   const code = state.books.carrier?.code || '';
   sheet({
     title: W('手機條碼', 'Mobile barcode'),
-    detent: 'medium',
     cls: 'mn-carrier-sheet',
     trailing: h('button', { class: 'q-btn plain small', type: 'button', text: W('更改', 'Change'), onclick: () => (document.querySelector('dialog.mn-carrier-sheet')?.close(), editCarrier()) }),
     body: [h('div', { class: 'mn-barcode big', html: code39Svg(code, { height: 90 }) }), h('b', { class: 'mn-carrier-code big', text: code }), h('p', { class: 'mn-hint', text: W('結帳時給店員掃，發票就存進你的載具。', 'Let the cashier scan it: the invoice goes to your carrier.') })]
@@ -197,7 +195,6 @@ function editCarrier() {
   const input = h('input', { class: 'q-field mn-big-in', type: 'text', autocapitalize: 'characters', autocomplete: 'off', spellcheck: 'false', maxlength: '8', placeholder: '/ABC1234', value: state.books.carrier?.code || '' });
   const s = sheet({
     title: W('手機條碼', 'Mobile barcode'),
-    detent: 'medium',
     body: [h('p', { class: 'mn-hint', text: W('在財政部「統一發票兌獎」App 或電子發票平台申請的手機條碼：/ 加 7 碼。', 'The barcode from the Ministry of Finance’s e-invoice app or site: / and 7 characters.') }), input],
     foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [
       state.books.carrier?.code ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('移除', 'Remove'), onclick: () => ((state.books.carrier = { code: '', u: Date.now() }), s.close(), saved()) }) : null,

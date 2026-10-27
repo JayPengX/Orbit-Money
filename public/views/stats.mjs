@@ -5,7 +5,7 @@ import { h, icons, tile, pickSeg, sheet, toast } from '#kit/ui.mjs';
 import { addDays } from '#kit/format.mjs';
 import { totals, entriesIn, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
 import { OUT, catOf, catName, glyph } from '../lib/cats.mjs';
-import { state, W, en, lang, money, short, plain, monthLabel, dayLabel, today, saved } from '../shell.mjs';
+import { state, W, en, lang, money, plain, monthLabel, dayLabel, today, saved } from '../shell.mjs';
 import { entryRow } from './entry.mjs';
 
 // The period around state.at: { from, to, label, prev (its own from), unit ('day' | 'month') }.
@@ -60,12 +60,13 @@ export function renderStats(box) {
       daysGone ? h('span', { class: 'mn-hero-tag', text: W(`平均每天 ${money(Math.round(t.out / daysGone))}`, `${money(Math.round(t.out / daysGone))} a day`) }) : null,
       diff != null ? h('span', { class: 'mn-hero-tag', text: `${diff >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(diff * 100))}% ${W(state.range === 'week' ? '比上週' : state.range === 'year' ? '比去年' : '比上月', state.range === 'week' ? 'vs last week' : state.range === 'year' ? 'vs last year' : 'vs last month')}` }) : null
     ]),
+    // (The chart in the card itself: seen whole on the first screen, never a scroll away.)
+    trend(p, now),
     h('div', { class: 'mn-hero-figs two' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }))])
   ]);
 
   const parts = [seg, nav, hero];
   if (state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
-  parts.push(trend(p, now));
   if (t.cats.length) parts.push(catSection(W('分類', 'By category'), t.cats, t.out, p));
   if (t.incCats.length) parts.push(catSection(W('收入', 'Income'), t.incCats, t.in, p));
   if (!t.out && !t.in) parts.push(h('p', { class: 'mn-hint', text: W('這段時間還沒有紀錄。', 'Nothing recorded in this period.') }));
@@ -82,7 +83,8 @@ function trend(p, now) {
   const sum = Object.fromEntries(buckets.map(x => [x.key, 0]));
   for (const e of entriesIn(state.books, p.from, p.to)) if (e.k === 'out') sum[p.unit === 'month' ? e.d.slice(0, 7) : e.d] += e.amt;
   const max = Math.max(1, ...Object.values(sum));
-  const cap = h('small', { class: 'mn-trend-cap num', text: W('點長條看金額', 'Tap a bar for its amount') });
+  const top = max === 1 && !Object.values(sum).some(Boolean) ? 0 : max;
+  const cap = h('small', { class: 'mn-trend-cap num', text: W(`${p.unit === 'month' ? '單月' : '單日'}最高 ${money(top)} · 點長條看金額`, `Top ${money(top)} · tap a bar`) });
   const many = buckets.length > 12;
   const bars = h(
     'div',
@@ -107,7 +109,7 @@ function trend(p, now) {
       );
     })
   );
-  return h('section', { class: 'q-section mn-trend' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: p.unit === 'month' ? W('每月支出', 'By month') : W('每天支出', 'By day') }), h('span', { class: 'mn-trend-max num', text: W(`最高 ${short(max === 1 && !sum[buckets[0].key] ? 0 : max)}`, `top ${short(max)}`) })]), h('div', { class: 'mn-trend-card' }, [bars, cap])]);
+  return h('div', { class: 'mn-trend' }, [bars, cap]);
 }
 
 function catSection(title, cats, total, p) {

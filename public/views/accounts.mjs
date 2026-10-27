@@ -128,8 +128,11 @@ export function openAccount(id, host = null) {
 
 // A sheet's page changed in place (編輯 inside an account, and back to it):
 // the person stays in the one sheet, never thrown out to the tab.
-function swapPage(s, { title, lead = null, trailing = null, body = [], foot = null, cls }) {
+function swapPage(s, { title, lead = null, trailing = null, body = [], foot = null, cls, detent = '' }) {
   const d = s.el;
+  // (Each page its own height: a short form never sits in a full-height sheet.)
+  if (detent) d.setAttribute('data-detent', detent);
+  else d.removeAttribute('data-detent');
   d.classList.remove('mn-acct', 'mn-acct-edit');
   d.classList.add(cls);
   d.classList.toggle('q-has-foot', Boolean(foot));
@@ -293,7 +296,7 @@ async function fixBalance(a) {
   const input = h('input', { class: 'q-field mn-big-in num', type: 'text', inputmode: 'numeric', value: String(credit ? -cur : cur), 'aria-label': W('實際金額', 'Actual amount') });
   const s = sheet({
     title: W('調整餘額', 'Fix balance'),
-    detent: 'medium',
+    // (No detent: the sheet as tall as what's in it.)
     body: [h('p', { class: 'mn-hint', text: credit ? W('輸入現在實際的欠款，差額記成一筆調整。', 'Type what it owes now; the difference is recorded as a fix.') : W('輸入現在實際的餘額，差額記成一筆調整。', 'Type the real balance now; the difference is recorded as a fix.') }), input],
     foot: h('div', { class: 'q-sheet-foot' }, [
       h('button', {
@@ -390,7 +393,7 @@ export function openAccountEdit(a, host = null) {
     title: isNew ? W('新增帳戶', 'Add an account') : W('編輯帳戶', 'Edit account'),
     // (Inside an account: ‹ goes back to it.)
     lead: host ? h('button', { class: 'q-close mn-back', type: 'button', 'aria-label': W('返回', 'Back'), html: icons.chevron, onclick: () => openAccount(a.id, host) }) : null,
-    detent: 'large',
+    detent: isNew ? 'large' : '',
     cls: 'mn-acct-edit',
     body: [body],
     foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [a && a.id !== 'cash' ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('移除', 'Remove'), onclick: remove }) : null, h('button', { class: 'q-btn primary', type: 'button', text: W('儲存', 'Save'), onclick: save })])

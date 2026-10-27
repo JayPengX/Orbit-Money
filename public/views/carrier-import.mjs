@@ -20,7 +20,6 @@ export function importCarrier() {
   const file = h('input', { type: 'file', accept: '.csv,.txt,text/csv,text/plain', hidden: '' });
   const s = sheet({
     title: W('匯入載具發票', 'Import carrier invoices'),
-    detent: 'medium',
     cls: 'mn-import',
     body: [
       h('ol', { class: 'mn-steps' }, [

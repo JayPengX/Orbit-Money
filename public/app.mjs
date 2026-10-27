@@ -18,6 +18,7 @@ import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
 import { renderInvoices, loadDraws } from './views/invoices.mjs';
 import { checkMail } from './views/carrier-import.mjs';
+import { openEntry } from './views/entry.mjs';
 
 document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
 const $ = id => document.getElementById(id);
@@ -97,7 +98,9 @@ const TAB_ICONS = { cal: 'calendar', accts: 'wallet', stats: 'chart', inv: 'tick
 const tabNav = tabBar({
   tabs: TABS.map(id => ({ id, label: TITLES[id], icon: TAB_ICONS[id] })),
   onSelect: tab => showTab(tab),
-  hash: id => `#${id}`
+  hash: id => `#${id}`,
+  // 記一筆: the app's one main thing, its own button beside the tabs, on every tab.
+  action: { icon: kitUI.icons.plus, label: W('記一筆', 'Add an entry'), onTap: () => openEntry({ day: state.tab === 'cal' ? state.day : today() }) }
 });
 function showTab(tab) {
   state.tab = tab;

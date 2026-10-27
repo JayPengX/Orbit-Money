@@ -211,15 +211,14 @@ h1, h2, h3, p { margin: 0; }
 .mn-period { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; text-align: center; }
 .mn-period b { font: 600 17px/22px var(--q-font); white-space: nowrap; }
 .mn-period .mn-step { background: var(--q-surface); color: var(--q-label); }
-.mn-trend-card { display: grid; gap: 6px; padding: 14px 10px 10px; border-radius: 20px; background: var(--q-surface); }
-.mn-trend-max { color: var(--q-label-2); font: var(--q-t-footnote); }
-.mn-bars { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); align-items: end; gap: 4px; height: 140px; }
+.mn-trend { display: grid; gap: 4px; margin: 2px -4px 0; }
+.mn-bars { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); align-items: end; gap: 4px; height: 96px; }
 .mn-bars.many { gap: 2px; }
-.mn-bar-c { display: grid; grid-template-rows: 1fr 16px; align-items: end; height: 100%; min-width: 0; padding: 0; border: 0; background: none; }
-.mn-bar-c i { display: block; width: 100%; min-height: 0; border-radius: 4px 4px 1px 1px; background: color-mix(in srgb, var(--q-accent) 55%, transparent); }
-.mn-bar-c.now i, .mn-bar-c.picked i { background: var(--q-accent); }
-.mn-bar-c span { overflow: visible; color: var(--q-label-2); font: 500 10px/16px var(--q-font-rounded); text-align: center; white-space: nowrap; }
-.mn-trend-cap { min-height: 18px; color: var(--q-label-2); font: 500 13px/18px var(--q-font); text-align: center; }
+.mn-bar-c { display: grid; grid-template-rows: 1fr 14px; align-items: end; height: 100%; min-width: 0; padding: 0; border: 0; background: none; }
+.mn-bar-c i { display: block; width: 100%; min-height: 0; border-radius: 3px 3px 1px 1px; background: rgba(246, 196, 83, 0.38); }
+.mn-bar-c.now i, .mn-bar-c.picked i { background: linear-gradient(180deg, var(--mn-gold), var(--mn-gold-2)); }
+.mn-bar-c span { overflow: visible; color: rgba(255, 255, 255, 0.55); font: 500 10px/14px var(--q-font-rounded); text-align: center; white-space: nowrap; }
+.mn-trend-cap { min-height: 16px; color: rgba(255, 255, 255, 0.72); font: 500 12px/16px var(--q-font); text-align: center; }
 .mn-share { display: block; height: 6px; margin-top: 6px; border-radius: 99px; background: var(--q-fill-3); overflow: hidden; }
 .mn-share > i { display: block; height: 100%; border-radius: inherit; background: var(--q-accent); }
 .mn-share.ahead > i { background: var(--q-orange); }
@@ -307,3 +306,5 @@ h1, h2, h3, p { margin: 0; }
 .mn-closed-note span { flex: 1; min-width: 0; }
 .mn-closed-note .q-btn { flex: none; white-space: nowrap; }
 .mn-choice .q-ritem-text small { white-space: normal; }
+/* 記一筆 beside the tabs: the hero's gold. */
+.q-tab-action { background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08; box-shadow: 0 8px 20px -6px rgba(230, 163, 33, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.5); }

@@ -1,4 +1,4 @@
-// 月曆, the home: the month's spending (and its budget) with 記一筆 on top,
+// 月曆, the home: the month's spending (and its budget) on top,
 // the month with each day's spending in its square, warmer the more it was
 // (holidays and typhoon days off in red, as a Taiwan calendar has them),
 // and the picked day's entries under it. A swipe across the month goes to
@@ -35,8 +35,8 @@ export function renderCal(box) {
   const budget = budgetState(b, ym, now).find(x => !x.cat);
   const place = myPlace('work');
 
-  // The hero: the month's spending, what's left of the budget, and the one
-  // thing this screen is for: 記一筆.
+  // The hero: the month's spending, what's left of the budget, income and
+  // what's left over (記一筆 is the round button beside the tabs).
   const hero = h('section', { class: 'q-hero-card mn-hero' }, [
     h('span', { class: 'q-hc-eyebrow' }, [W(`${monthLabel(ym, { year: false })}支出`, `Spent in ${monthLabel(ym, { year: false })}`)]),
     h('b', { class: 'mn-hero-big num q-fit', text: money(t.out) }),
@@ -46,8 +46,7 @@ export function renderCal(box) {
           h('small', { class: 'num', text: budget.left >= 0 ? (budget.perDay && now.startsWith(ym) ? W(`預算剩 ${money(budget.left)} · 每天 ${money(budget.perDay)}`, `${money(budget.left)} left · ${money(budget.perDay)} a day`) : W(`預算剩 ${money(budget.left)}`, `${money(budget.left)} left`)) : W(`超出預算 ${money(-budget.left)}`, `${money(-budget.left)} over budget`) })
         ])
       : null,
-    h('div', { class: 'mn-hero-figs two' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }))]),
-    h('button', { class: 'mn-hero-cta', type: 'button', onclick: () => openEntry({ day: state.day }) }, [h('span', { html: icons.plus }), W('記一筆', 'Add an entry')])
+    h('div', { class: 'mn-hero-figs two' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }))])
   ]);
 
   // The month's squares: each day's spending, its square warmer the more it was.
