@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-Hant" data-app="money">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+<meta name="build-version" content="dev" />
+<!-- brand: Shared-Proxy/brand/generate.mjs writes this block -->
+<title>Orbit Money</title>
+<meta name="description" content="記帳：月曆一眼看每天花多少，帳戶、悠遊卡、信用卡一起算，發票掃一下就記好" />
+<meta name="application-name" content="Orbit Money" />
+<meta name="apple-mobile-web-app-title" content="Money" />
+<link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Orbit" />
+<meta property="og:title" content="Orbit Money" />
+<meta property="og:description" content="記帳：月曆一眼看每天花多少，帳戶、悠遊卡、信用卡一起算，發票掃一下就記好" />
+<meta property="og:url" content="https://jaypengx.github.io/Orbit-Money/" />
+<meta property="og:locale" content="zh_TW" />
+<meta property="og:locale:alternate" content="en_US" />
+<meta property="og:image" content="https://jaypengx.github.io/Orbit-Money/share/og.jpg?v=4c88fa10" />
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Orbit Money — 記帳：月曆一眼看每天花多少，帳戶、悠遊卡、信用卡一起算，發票掃一下就記好" />
+<meta property="og:image" content="https://jaypengx.github.io/Orbit-Money/share/square.jpg?v=942df0e5" />
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="1200" />
+<meta property="og:image:alt" content="Orbit Money — 記帳：月曆一眼看每天花多少，帳戶、悠遊卡、信用卡一起算，發票掃一下就記好" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Orbit Money" />
+<meta name="twitter:description" content="記帳：月曆一眼看每天花多少，帳戶、悠遊卡、信用卡一起算，發票掃一下就記好" />
+<meta name="twitter:image" content="https://jaypengx.github.io/Orbit-Money/share/x.jpg?v=b2fafd55" />
+<meta name="twitter:image:alt" content="Orbit Money — 記帳：月曆一眼看每天花多少，帳戶、悠遊卡、信用卡一起算，發票掃一下就記好" />
+<!-- /brand -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<!-- kit:head: where the app's stylesheets end, before any module. The kit
+     comes from one place for every app (Shared-Proxy's GitHub Pages, same
+     site as the apps), each file at the hash this device last saw (orbit.kit
+     and orbit.kitFiles, noted from the kit's version.json by boot.js and
+     orbit.mjs kitLatest; on a first visit the hashes the app's deploy
+     baked in, the `null` at the end), so a change to the kit is one push
+     to Shared-Proxy and a phone downloads only the files it changed. A kit
+     file newer than the app's deploy (not in its list) is mapped from those
+     hashes too, never left at a bare address the browser keeps 10 minutes. -->
+<script>!function(b,d,v,h,n,m,f,i,u){try{v=localStorage.getItem('orbit.kit')||'';h=JSON.parse(localStorage.getItem('orbit.kitFiles')||'null')}catch(e){v=''}n=!!v;if(!n&&d){v=d.version;h=d}h=h&&h.version===v?h.files:null;u=function(x){var k=h&&h[x];return b+x+(k?'?v='+k:v?'?v='+encodeURIComponent(v):'')};m={'#kit/':b};f=['brand.mjs','carrier-csv.mjs','catalog.mjs','dayoff.mjs','devconfig.mjs','f1live.mjs','format.mjs','gov.mjs','help.mjs','holidays.mjs','lang.mjs','loan.mjs','logos.mjs','mirror.mjs','names.mjs','orbit.mjs','pass-sync.mjs','pass.mjs','photo-urls.mjs','photos.mjs','postseason.mjs','sports-broadcast.mjs','sports-espn.mjs','sports-highlights.mjs','sports-winprob.mjs','stock-access.mjs','stock-account.mjs','stock-bonds.mjs','stock-codec.mjs','stock-credit.mjs','stock-hk-lots.mjs','stock-holidays.mjs','stock-ipo.mjs','stock-jp-lists.mjs','stock-markets.mjs','stock-quotes.mjs','stock-savings.mjs','ui.mjs'];for(i=0;i<f.length;i++)m['#kit/'+f[i]]=u(f[i]);if(h)for(i in h)/\.mjs$/.test(i)&&(m['#kit/'+i]=u(i));window.ORBIT_KIT={base:b,version:v,noted:n,url:u};document.write('<script type="import'+'map">'+JSON.stringify({imports:m})+'<\/script><link rel="stylesheet" href="'+u('orbit.css')+'"><link rel="modulepreload" href="'+u('orbit.mjs')+'"><link rel="modulepreload" href="'+u('brand.mjs')+'">')}('../Shared-Proxy/kit/',null)</script>
+<!-- /kit:head -->
+<link rel="stylesheet" href="./money.css" />
+</head>
+<body>
+<div id="loading" data-title="Orbit Money"></div>
+<!-- kit:boot: right after <div id="loading">. -->
+<script>document.write('<script src="'+ORBIT_KIT.url('boot.js')+'"><\/script>')</script>
+<!-- /kit:boot -->
+<header class="q-appbar">
+  <div class="q-appbar-inner">
+    <div class="q-brand">
+      <img class="q-brand-logo" src="./favicon.svg" alt="" width="34" height="34" />
+      <div class="q-brand-text">
+        <h1 id="title">Orbit Money</h1>
+      </div>
+    </div>
+    <nav id="tabs" class="q-tabbar" role="tablist"></nav>
+    <div id="top-actions" class="q-actions"></div>
+  </div>
+</header>
+<main class="page">
+  <section id="panel-cal" class="tab-panel"></section>
+  <section id="panel-accts" class="tab-panel" hidden></section>
+  <section id="panel-stats" class="tab-panel" hidden></section>
+  <section id="panel-inv" class="tab-panel" hidden></section>
+</main>
+<script type="module" src="./app.mjs" onerror="window.__fxFail&&window.__fxFail()"></script>
+</body>
+</html>

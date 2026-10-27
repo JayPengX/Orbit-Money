@@ -1,0 +1,2 @@
+// The brands with a logo in img/brand/ (scripts/brand-logos.mjs writes this).
+export const LOGOS = new Set(['cathay', 'ctbc', 'dbs', 'easycard', 'easywallet', 'entie', 'esun', 'feib', 'firstbank', 'fubon', 'hncb', 'hsbc', 'icash', 'icashpay', 'ipass', 'jkopay', 'kgi', 'ktb', 'landbank', 'linebank', 'linepay', 'mega', 'nextbank', 'obank', 'pipay', 'post', 'pxpay', 'rakuten', 'sc', 'scsb', 'sinopac', 'skbank', 'sunny', 'taishin', 'taiwanpay', 'tbb', 'tcb', 'tcbbank', 'ubot', 'yuanta']);
