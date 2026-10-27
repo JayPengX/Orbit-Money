@@ -2,6 +2,7 @@
 // a colour). Glyphs are the kit's icons where it has one, else this app's own
 // on the same 24-unit grid with round 2px strokes.
 import { icons as kitIcons } from '#kit/ui.mjs';
+import { put, drop, live, newId } from './books.mjs';
 
 const g = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 // This app's glyphs (nothing else in the family draws these).
@@ -27,47 +28,154 @@ export const GLYPHS = {
 };
 const icon = name => GLYPHS[name] || kitIcons[name] || kitIcons.grid;
 
-// Spending.
+// Spending. `subs`: the finer kinds most people keep apart (Jay 2026-10-27:
+// 餐飲 into meals, his monthly TPASS under 交通), each picked or not.
+const S = (cat, list) => list.map(([key, zh, en]) => ({ id: `${cat}:${key}`, zh, en, parent: cat }));
 export const OUT = [
-  { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28' },
-  { id: 'drink', zh: '飲料', en: 'Drinks', icon: 'cup', color: '#ac7f5e' },
-  { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff' },
-  { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55' },
-  { id: 'daily', zh: '日用品', en: 'Household', icon: 'basket', color: '#00c3d0' },
-  { id: 'home', zh: '居住', en: 'Housing', icon: 'home', color: '#6155f5' },
-  { id: 'bills', zh: '水電瓦斯', en: 'Utilities', icon: 'bolt', color: '#e3a008' },
-  { id: 'phone', zh: '通訊', en: 'Phone', icon: 'phone', color: '#34c759' },
-  { id: 'fun', zh: '娛樂', en: 'Fun', icon: 'tv', color: '#cb30e0' },
-  { id: 'health', zh: '醫療', en: 'Health', icon: 'health', color: '#ff383c' },
-  { id: 'learn', zh: '學習', en: 'Learning', icon: 'book', color: '#00c8b3' },
-  { id: 'social', zh: '人情', en: 'Gifts', icon: 'gift', color: '#f59e0b' },
-  { id: 'car', zh: '汽機車', en: 'Vehicle', icon: 'car', color: '#64748b' },
-  { id: 'travel', zh: '旅遊', en: 'Travel', icon: 'plane', color: '#0ea5e9' },
-  { id: 'pet', zh: '寵物', en: 'Pets', icon: 'paw', color: '#a16207' },
-  { id: 'kids', zh: '育兒', en: 'Kids', icon: 'baby', color: '#ec4899' },
-  { id: 'insure', zh: '保險', en: 'Insurance', icon: 'shield', color: '#475569' },
-  { id: 'tax', zh: '稅費', en: 'Tax & fees', icon: 'bank', color: '#78716c' },
-  { id: 'other', zh: '其他', en: 'Other', icon: 'grid', color: '#8e8e93' }
+  { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['breakfast', '早餐', 'Breakfast'], ['lunch', '午餐', 'Lunch'], ['dinner', '晚餐', 'Dinner'], ['late', '宵夜', 'Late night'], ['snack', '點心', 'Snacks'], ['out', '聚餐', 'Eating out']]) },
+  { id: 'drink', zh: '飲料', en: 'Drinks', icon: 'cup', color: '#ac7f5e', subs: S('drink', [['coffee', '咖啡', 'Coffee'], ['tea', '手搖飲', 'Bubble tea']]) },
+  // (The family's Orbit Transit: TPASS and every way it rides.)
+  { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['mrt', '捷運', 'MRT'], ['bus', '公車', 'Bus'], ['youbike', 'YouBike', 'YouBike'], ['thsr', '高鐵', 'High-speed rail'], ['tra', '台鐵', 'Railway'], ['coach', '客運', 'Coach'], ['taxi', '計程車', 'Taxi']]) },
+  { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55', subs: S('shop', [['clothes', '服飾', 'Clothes'], ['tech', '3C', 'Tech'], ['online', '網購', 'Online'], ['beauty', '美妝', 'Beauty']]) },
+  { id: 'daily', zh: '日用品', en: 'Household', icon: 'basket', color: '#00c3d0', subs: S('daily', [['grocery', '超市', 'Groceries'], ['supplies', '生活用品', 'Supplies']]) },
+  { id: 'home', zh: '居住', en: 'Housing', icon: 'home', color: '#6155f5', subs: S('home', [['rent', '房租', 'Rent'], ['fee', '管理費', 'Building fee'], ['loan', '房貸', 'Mortgage'], ['fix', '修繕', 'Repairs']]) },
+  { id: 'bills', zh: '水電瓦斯', en: 'Utilities', icon: 'bolt', color: '#e3a008', subs: S('bills', [['power', '電費', 'Power'], ['water', '水費', 'Water'], ['gas', '瓦斯', 'Gas']]) },
+  { id: 'phone', zh: '通訊', en: 'Phone', icon: 'phone', color: '#34c759', subs: S('phone', [['mobile', '手機', 'Mobile'], ['net', '網路', 'Internet']]) },
+  { id: 'fun', zh: '娛樂', en: 'Fun', icon: 'tv', color: '#cb30e0', subs: S('fun', [['movie', '電影', 'Movies'], ['subs', '訂閱', 'Subscriptions'], ['games', '遊戲', 'Games'], ['show', '展演', 'Shows']]) },
+  { id: 'health', zh: '醫療', en: 'Health', icon: 'health', color: '#ff383c', subs: S('health', [['clinic', '看診', 'Doctor'], ['meds', '藥品', 'Medicine'], ['dental', '牙醫', 'Dentist']]) },
+  { id: 'learn', zh: '學習', en: 'Learning', icon: 'book', color: '#00c8b3', subs: S('learn', [['books', '書', 'Books'], ['class', '課程', 'Classes']]) },
+  { id: 'social', zh: '人情', en: 'Gifts', icon: 'gift', color: '#f59e0b', subs: S('social', [['gift', '禮物', 'Gifts'], ['redenv', '紅包', 'Red envelopes'], ['treat', '請客', 'Treating']]) },
+  { id: 'car', zh: '汽機車', en: 'Vehicle', icon: 'car', color: '#64748b', subs: S('car', [['fuel', '加油', 'Fuel'], ['park', '停車', 'Parking'], ['toll', 'ETC', 'Tolls'], ['service', '保養', 'Service']]) },
+  { id: 'travel', zh: '旅遊', en: 'Travel', icon: 'plane', color: '#0ea5e9', subs: S('travel', [['stay', '住宿', 'Stay'], ['ticket', '機票車票', 'Tickets'], ['tour', '行程', 'Activities']]) },
+  { id: 'pet', zh: '寵物', en: 'Pets', icon: 'paw', color: '#a16207', subs: [] },
+  { id: 'kids', zh: '育兒', en: 'Kids', icon: 'baby', color: '#ec4899', subs: [] },
+  { id: 'insure', zh: '保險', en: 'Insurance', icon: 'shield', color: '#475569', subs: [] },
+  { id: 'tax', zh: '稅費', en: 'Tax & fees', icon: 'bank', color: '#78716c', subs: [] },
+  { id: 'other', zh: '其他', en: 'Other', icon: 'grid', color: '#8e8e93', subs: [] }
 ];
 // Income.
 export const IN = [
-  { id: 'salary', zh: '薪水', en: 'Salary', icon: 'wallet', color: '#16a34a' },
-  { id: 'bonus', zh: '獎金', en: 'Bonus', icon: 'spark', color: '#eab308' },
-  { id: 'invest', zh: '投資', en: 'Investing', icon: 'chart', color: '#0d9488' },
-  { id: 'side', zh: '兼職', en: 'Side work', icon: 'work', color: '#2563eb' },
-  { id: 'allowance', zh: '零用錢', en: 'Allowance', icon: 'coin', color: '#65a30d' },
-  { id: 'redenv', zh: '紅包', en: 'Red envelope', icon: 'gift', color: '#dc2626' },
-  { id: 'refund', zh: '退款', en: 'Refund', icon: 'swap', color: '#0891b2' },
-  { id: 'prize', zh: '中獎', en: 'Prize', icon: 'trophy', color: '#f59e0b' },
-  { id: 'otherin', zh: '其他', en: 'Other', icon: 'grid', color: '#8e8e93' }
+  { id: 'salary', zh: '薪水', en: 'Salary', icon: 'wallet', color: '#16a34a', subs: [] },
+  { id: 'bonus', zh: '獎金', en: 'Bonus', icon: 'spark', color: '#eab308', subs: [] },
+  { id: 'invest', zh: '投資', en: 'Investing', icon: 'chart', color: '#0d9488', subs: S('invest', [['dividend', '股利', 'Dividends'], ['interest', '利息', 'Interest'], ['gain', '買賣', 'Gains']]) },
+  { id: 'side', zh: '兼職', en: 'Side work', icon: 'work', color: '#2563eb', subs: [] },
+  { id: 'allowance', zh: '零用錢', en: 'Allowance', icon: 'coin', color: '#65a30d', subs: [] },
+  { id: 'redenv', zh: '紅包', en: 'Red envelope', icon: 'gift', color: '#dc2626', subs: [] },
+  { id: 'refund', zh: '退款', en: 'Refund', icon: 'swap', color: '#0891b2', subs: [] },
+  { id: 'prize', zh: '中獎', en: 'Prize', icon: 'trophy', color: '#f59e0b', subs: [] },
+  { id: 'otherin', zh: '其他', en: 'Other', icon: 'grid', color: '#8e8e93', subs: [] }
 ];
-const ALL = new Map([...OUT, ...IN].map(c => [c.id, c]));
+const BUILT = new Map([...OUT, ...IN].flatMap(c => [[c.id, { ...c, k: IN.includes(c) ? 'in' : 'out', parent: '' }], ...c.subs.map(x => [x.id, { ...x, k: IN.includes(c) ? 'in' : 'out' }])]));
 export const MOVE = { id: 'move', zh: '轉帳', en: 'Transfer', icon: 'exchange', color: '#8e8e93' };
 export const ADJ = { id: 'adj', zh: '調整餘額', en: 'Balance fix', icon: 'pencil', color: '#8e8e93' };
 
-export const catOf = id => ALL.get(id) || ALL.get('other');
-export const catsFor = kind => (kind === 'in' ? IN : OUT);
-export const catName = (c, lang) => (lang === 'en' ? c.en : c.zh);
+// The person's own changes (books.cats: { id: { id, k, parent, zh, icon,
+// color, order, hidden } }): a built-in's id renames, reorders, hides or
+// moves it; a new id adds one (a sub when it has a parent). app.mjs hands
+// them in before anything is drawn.
+let table = BUILT;
+export function useCats(cats) {
+  table = new Map(BUILT);
+  for (const r of Object.values(cats || {})) {
+    if (!r || r.del) continue;
+    const base = BUILT.get(r.id);
+    table.set(r.id, { ...(base || { icon: 'grid', color: '#8e8e93' }), ...r, zh: r.zh || base?.zh || '', en: r.zh || base?.en || '' });
+  }
+}
+const ordered = list => list.map((c, i) => ({ c, i })).sort((x, y) => (x.c.order ?? x.i) - (y.c.order ?? y.i)).map(x => x.c);
+// A kind's categories (hidden ones too with `all`), each with its subs.
+export function catList(kind, { all = false } = {}) {
+  const tops = ordered([...table.values()].filter(c => c.k === kind && !c.parent && (all || !c.hidden)));
+  return tops.map(c => ({ ...c, subs: subsOf(c.id, { all }) }));
+}
+export const subsOf = (id, { all = false } = {}) => ordered([...table.values()].filter(x => x.parent === id && (all || !x.hidden)));
+// A category by id (a hidden one too: its history still shows it), else 其他.
+export const catOf = id => {
+  const c = table.get(id);
+  return c && !c.parent ? c : table.get(c?.k === 'in' ? 'otherin' : 'other');
+};
+export const subOf = id => (id && table.get(id)?.parent ? table.get(id) : null);
+export const isBuiltIn = id => BUILT.has(id);
+export const catsFor = kind => catList(kind === 'in' ? 'in' : 'out');
+
+// ---- Changing them ------------------------------------------------------------------
+// (Each a change to the books; the caller saves. Nothing with history is ever
+// just deleted: it's merged into another, or hidden.)
+
+// How many entries and repeats use a category or a sub.
+export const usesOf = (books, id) => [...live(books.entries), ...live(books.recur)].filter(e => e.cat === id || e.sub === id).length;
+const mineOf = (books, id) => (books.cats?.[id] && !books.cats[id].del ? books.cats[id] : {});
+export const saveCat = (books, rec, now = Date.now()) => put(books, 'cats', { ...mineOf(books, rec.id), ...rec }, now);
+// A new one (a sub under `parent`), last in its list.
+export function addCat(books, { k, parent = '', zh, icon = 'grid', color = '#8e8e93' }, now = Date.now()) {
+  useCats(books.cats);
+  const sibs = parent ? subsOf(parent, { all: true }) : catList(k, { all: true });
+  return saveCat(books, { id: `c-${newId(now)}`, k, parent, zh, icon, color, order: sibs.length }, now);
+}
+// One place up (-1) or down (+1) among its own: every sibling's order written, so they stay put.
+export function moveCat(books, id, dir, now = Date.now()) {
+  useCats(books.cats);
+  const c = table.get(id);
+  if (!c) return false;
+  const sibs = c.parent ? subsOf(c.parent, { all: true }) : catList(c.k, { all: true });
+  const i = sibs.findIndex(x => x.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= sibs.length) return false;
+  [sibs[i], sibs[j]] = [sibs[j], sibs[i]];
+  sibs.forEach((x, n) => x.order !== n && saveCat(books, { id: x.id, order: n }, now));
+  return true;
+}
+// `from` folded into `into`: its entries, repeats and subs move there, its
+// budget goes; then it's gone (a built-in hidden). A sub into its own parent
+// is the sub let go (its entries just the category).
+export function mergeCat(books, from, into, now = Date.now()) {
+  useCats(books.cats);
+  const a = table.get(from);
+  const b = table.get(into);
+  if (!a || !b || from === into) return false;
+  const top = b.parent || b.id;
+  for (const col of ['entries', 'recur'])
+    for (const e of live(books[col])) {
+      if (a.parent ? e.sub === from : e.cat === from) put(books, col, { ...e, cat: top, sub: a.parent ? (b.parent ? into : '') : e.sub || '' }, now);
+    }
+  if (!a.parent) {
+    for (const s of subsOf(from, { all: true })) saveCat(books, { id: s.id, parent: into, k: b.k }, now);
+    for (const x of live(books.budgets)) if (x.cat === from) drop(books, 'budgets', x.id, now);
+  }
+  removeCat(books, from, now);
+  return true;
+}
+// Every record a change to the categories can touch, as it is now: the
+// function puts them back (one a change made, removed).
+export function catUndo(books) {
+  const cols = ['entries', 'recur', 'budgets', 'cats'];
+  const keep = Object.fromEntries(cols.map(c => [c, { ...(books[c] || {}) }]));
+  return (now = Date.now()) => {
+    for (const c of cols)
+      for (const [id, r] of Object.entries(books[c] || {})) {
+        const was = keep[c][id];
+        if (was === r) continue;
+        if (was && !was.del) put(books, c, { ...was }, now);
+        else drop(books, c, id, now);
+      }
+  };
+}
+// Choices for a category's look.
+export const CAT_ICONS = ['food', 'cup', 'bus', 'car', 'bag', 'basket', 'home', 'bolt', 'phone', 'tv', 'health', 'book', 'gift', 'plane', 'paw', 'baby', 'shield', 'bank', 'wallet', 'coin', 'spark', 'chart', 'work', 'trophy', 'swap', 'grid'];
+export const CAT_COLORS = ['#ff8d28', '#ff383c', '#ff2d55', '#cb30e0', '#6155f5', '#0088ff', '#00c3d0', '#34c759', '#e3a008', '#ac7f5e', '#64748b', '#8e8e93'];
+
+// Gone when nothing uses it (a built-in only ever hidden); false when it has history.
+export function removeCat(books, id, now = Date.now()) {
+  if (usesOf(books, id)) return false;
+  if (isBuiltIn(id)) saveCat(books, { id, hidden: true }, now);
+  else {
+    useCats(books.cats);
+    for (const s of subsOf(id, { all: true })) removeCat(books, s.id, now);
+    drop(books, 'cats', id, now);
+  }
+  return true;
+}
+export const catName = (c, lang) => (lang === 'en' ? c.en || c.zh : c.zh);
 export const glyph = icon;
 // An entry's look: its category, or a transfer's, or a fix's.
 export const lookOf = e => (e.k === 'move' ? MOVE : e.k === 'adj' ? ADJ : catOf(e.cat));
@@ -76,7 +184,7 @@ export const lookOf = e => (e.k === 'move' ? MOVE : e.k === 'adj' ? ADJ : catOf(
 // invoice): '' when nothing fits, for the caller's own default.
 const GUESS = [
   ['drink', /咖啡|星巴克|路易莎|cama|85度C|清心|50嵐|迷客夏|可不可|茶湯會|麻古|鮮茶|手搖|飲料|coffee|starbucks|louisa/i],
-  ['transport', /捷運|高鐵|台鐵|臺鐵|鐵路|客運|公車|悠遊卡|一卡通|uber|計程車|台灣大車隊/i],
+  ['transport', /tpass|定期票|月票|youbike|捷運|高鐵|台鐵|臺鐵|鐵路|客運|公車|悠遊卡|一卡通|uber|計程車|台灣大車隊/i],
   ['car', /加油|中油|台塑石化|全國加油|停車|嘉義汽車|輪胎|機車行|保養/i],
   ['daily', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市|寶雅|屈臣氏|康是美|小北百貨|日藥本舖/i],
   ['health', /藥局|藥房|醫院|診所|牙醫|醫療|大樹藥|丁丁藥/i],
@@ -84,6 +192,7 @@ const GUESS = [
   ['bills', /台灣電力|台電|自來水|瓦斯|天然氣/i],
   ['learn', /書店|誠品|博客來|金石堂|補習|文具/i],
   ['fun', /影城|威秀|秀泰|電影|ktv|錢櫃|好樂迪|遊樂|steam|netflix|spotify|playstation|nintendo/i],
+  ['home', /房租|租金|管理費|房貸/],
   ['pet', /寵物|動物醫院|毛孩/i],
   ['travel', /飯店|酒店|旅館|旅行社|民宿|航空|機場|booking|agoda|airbnb/i],
   ['shop', /momo|蝦皮|shopee|pchome|uniqlo|zara|h&m|無印良品|百貨|新光三越|遠東|sogo|3c|燦坤|全國電子|順發|apple|小米/i],
@@ -93,4 +202,35 @@ export function guessCat(text) {
   const s = String(text || '');
   for (const [id, re] of GUESS) if (re.test(s)) return id;
   return '';
+}
+// The finer kind too, where the words say it ('' when not, or when the person hid it).
+const SUB_GUESS = [
+  ['drink:coffee', /咖啡|星巴克|路易莎|cama|coffee|starbucks|louisa/i],
+  ['drink:tea', /50嵐|清心|迷客夏|可不可|茶湯會|麻古|鮮茶|手搖/],
+  ['transport:tpass', /tpass|定期票|月票/i],
+  ['transport:thsr', /高鐵/],
+  ['transport:tra', /台鐵|臺鐵/],
+  ['transport:mrt', /捷運/],
+  ['transport:youbike', /youbike|微笑單車/i],
+  ['transport:coach', /客運|國光|統聯|和欣/],
+  ['transport:taxi', /uber|計程車|大車隊|55688|yoxi/i],
+  ['car:fuel', /加油|中油|台塑石化/],
+  ['car:park', /停車/],
+  ['daily:grocery', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市/i],
+  ['fun:subs', /netflix|spotify|youtube premium|disney|apple music|icloud|kkbox/i],
+  ['shop:online', /momo|蝦皮|shopee|pchome|博客來/i],
+  ['home:rent', /房租|租金/],
+  ['home:fee', /管理費/],
+  ['home:loan', /房貸/],
+  ['bills:power', /台灣電力|台電/],
+  ['bills:water', /自來水/],
+  ['bills:gas', /瓦斯|天然氣/]
+];
+// A meal by the hour it's eaten (a new entry for today under 餐飲).
+const MEAL = h => (h < 4 ? 'late' : h < 10.5 ? 'breakfast' : h < 14.5 ? 'lunch' : h < 17 ? 'snack' : h < 21 ? 'dinner' : 'late');
+export function guessSub(cat, text = '', at = null) {
+  const s = String(text || '');
+  const hit = SUB_GUESS.find(([id, re]) => id.startsWith(`${cat}:`) && re.test(s))?.[0] || (cat === 'food' && at ? `food:${MEAL(at.getHours() + at.getMinutes() / 60)}` : '');
+  const x = hit && table.get(hit);
+  return x && !x.hidden && x.parent === cat ? hit : '';
 }

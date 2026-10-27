@@ -5,17 +5,20 @@
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
 import { put, drop, live } from '../lib/books.mjs';
-import { catsFor, catOf, catName, glyph, lookOf } from '../lib/cats.mjs';
+import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, acct, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 
 // ---- A row ----------------------------------------------------------------------
 
-export function entryRow(e, { day = false, inAcct = false } = {}) {
+export function entryRow(e, { day = false, inAcct = false, inCat = false } = {}) {
   const look = lookOf(e);
-  const title = e.note || e.inv?.seller || (e.k === 'move' ? W('轉帳', 'Transfer') : e.k === 'adj' ? W('調整餘額', 'Balance fix') : catName(look, lang));
+  const fine = subOf(e.sub);
+  // (Inside a category's own list: only its sub.)
+  const what = fine ? catName(fine, lang) : inCat ? '' : catName(look, lang);
+  const title = e.note || e.inv?.seller || (e.k === 'move' ? W('轉帳', 'Transfer') : e.k === 'adj' ? W('調整餘額', 'Balance fix') : what || catName(look, lang));
   // (The category under a note or a store, so a row always says what it was.)
   const named = e.note || e.inv?.seller;
-  const sub = [day ? dayLabel(e.d, { week: false }) : '', named && e.k !== 'move' && e.k !== 'adj' ? catName(look, lang) : '', inAcct ? state.books.cards?.[e.via]?.name || '' : payLabel(e)].filter(Boolean).join(' · ');
+  const sub = [day ? dayLabel(e.d, { week: false }) : '', named && e.k !== 'move' && e.k !== 'adj' ? what : '', inAcct ? state.books.cards?.[e.via]?.name || '' : inCat ? '' : payLabel(e)].filter(Boolean).join(' · ');
   const sign = e.k === 'in' ? 'in' : e.k === 'out' ? 'out' : 'move';
   const amt = e.k === 'in' ? money(e.amt, { sign: true }) : e.k === 'adj' ? money(e.amt, { sign: true }) : money(e.amt);
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openEntry({ entry: e }) }, [
@@ -52,6 +55,12 @@ export function catTiles(kind, cur, onPick) {
   return catsFor(kind).map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
 }
 
+// A category's subs as chips under the tiles: one lit, tapped again to let go
+// ('' none). Empty when the category has none.
+export function subChips(cat, cur, onPick) {
+  return subsOf(cat).map(x => h('button', { class: 'mn-subchip', type: 'button', 'aria-pressed': String(x.id === cur), 'data-sub': x.id, onclick: () => (tick(), onPick(x.id === cur ? '' : x.id)) }, catName(x, lang)));
+}
+
 // ---- The keypad's sum ---------------------------------------------------------------
 
 // '120+35-5' → 150 (whole NT$; an unfinished '+' at the end is ignored).
@@ -72,6 +81,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     k: was?.k === 'adj' ? 'adj' : was?.k || kind,
     expr: String(was?.amt || amt || ''),
     cat: was?.cat || cat || opt.lastCat?.[was?.k || kind] || (kind === 'in' ? 'salary' : 'food'),
+    sub: '',
     a: pay0.a,
     via: pay0.via,
     to: was?.to || (acct(to) ? to : ''),
@@ -79,6 +89,10 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     note: was?.note ?? note,
     inv: was?.inv || inv
   };
+  // The sub: the entry's own, or what the note or the store or the hour says.
+  const fresh = !was && day === today();
+  const guess = () => guessSub(f.cat, `${note} ${inv?.seller || ''} ${(inv?.items || []).map(i => i.name).join(' ')}`, fresh ? new Date() : null);
+  f.sub = was ? was.sub || '' : guess();
   if (f.k === 'move' && !f.to) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
 
   const amountEl = h('b', { class: 'num mn-amount-v' });
@@ -87,6 +101,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   const amountRow = h('div', { class: 'mn-amount' }, [catTile, h('div', { class: 'mn-amount-n' }, [exprEl, amountEl])]);
   // (.q-kb-hide: behind the keys while the note is typed, so the sheet fits above them.)
   const cats = h('div', { class: 'mn-cats q-kb-hide', role: 'radiogroup', 'aria-label': W('分類', 'Category') });
+  const subs = h('div', { class: 'mn-subs q-kb-hide', role: 'group', 'aria-label': W('細項', 'Sub-category') });
   const moveRow = h('div', { class: 'mn-move' });
   const payBtn = h('button', { class: 'mn-pill', type: 'button', onclick: e => pickPay(e.currentTarget) });
   const dateIn = h('input', { class: 'mn-date', type: 'date', value: f.d, max: '2099-12-31', 'aria-label': W('日期', 'Date') });
@@ -109,7 +124,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       label: W('種類', 'Kind'),
       onChange: k => {
         f.k = k;
-        if (k !== 'move') f.cat = opt.lastCat?.[k] || (k === 'in' ? 'salary' : 'food');
+        if (k !== 'move') (f.cat = opt.lastCat?.[k] || (k === 'in' ? 'salary' : 'food')), (f.sub = guess());
         if (k === 'move') {
           f.via = '';
           if (!f.to || f.to === f.a) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
@@ -130,6 +145,13 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   function paintCat() {
     catTile.replaceChildren(tile(glyph(catOf(f.cat).icon), catOf(f.cat).color));
     for (const el of cats.children) el.setAttribute('aria-checked', String(el.dataset.cat === f.cat));
+    paintSubs();
+  }
+  function paintSubs() {
+    const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((f.sub = id), paintSubs()));
+    subs.hidden = !list.length;
+    subs.replaceChildren(...list);
+    subs.querySelector('[aria-pressed="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }
   let catsKind = '';
   function paint() {
@@ -142,9 +164,11 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     payBtn.hidden = f.k === 'move';
     if (!cats.hidden && catsKind !== f.k) {
       catsKind = f.k;
-      cats.replaceChildren(...catTiles(f.k, f.cat, id => ((f.cat = id), paintCat())));
+      cats.replaceChildren(...catTiles(f.k, f.cat, id => (id !== f.cat && ((f.cat = id), (f.sub = guess())), paintCat())));
+      paintSubs();
       requestAnimationFrame(() => cats.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }));
     } else if (!cats.hidden) paintCat();
+    else paintSubs();
     if (!moveRow.hidden) moveRow.replaceChildren(acctPick('a', W('從', 'From')), h('span', { class: 'mn-move-arrow', html: icons.chevron }), acctPick('to', W('到', 'To')));
     const p = payOf(f.a, f.via);
     payBtn.replaceChildren(h('span', { html: glyph(p?.via ? 'card' : 'wallet') }), h('span', { class: 'mn-pill-t', text: p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
@@ -196,6 +220,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       k: f.k,
       amt: f.k === 'adj' ? (was.amt < 0 ? -sum : sum) : sum,
       cat: f.k === 'move' || f.k === 'adj' ? '' : f.cat,
+      sub: f.k === 'move' || f.k === 'adj' ? '' : f.sub,
       note: f.note.trim(),
       a: f.a,
       via: f.k === 'move' ? '' : f.via,
@@ -234,7 +259,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     lead,
     detent: 'large',
     cls: 'mn-entry',
-    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, moveRow, pills, noteIn, invRow],
+    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, subs, moveRow, pills, noteIn, invRow],
     foot: pad
   });
   paint();

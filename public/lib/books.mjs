@@ -17,21 +17,24 @@
 //   cards    { id: { id, acct, name, last4, closed? } } ways to pay under an account (a
 //            debit card, Apple Pay or LINE Pay on a card…): they spend
 //            straight from their bank account.
-//   entries  { id: { id, d, k, amt, cat, note, a, via, to, inv, rec } }
+//   entries  { id: { id, d, k, amt, cat, sub, note, a, via, to, inv, rec } }
+//            sub: the finer kind under cat ('' none; lib/cats.mjs).
 //            d: the day, 'YYYY-MM-DD'. k: out | in | move | adj (a balance set by hand).
 //            amt: whole NT$, > 0 (adj: the change, either sign). a: the account it's
 //            paid from or into; via: the card used (a debit card's id); to: a move's
 //            other account. inv: the 發票 it came from ({ no, sid, seller, items }).
 //            rec: the repeat that made it.
 //   budgets  { id: { id, cat ('' for everything), amt } } a month's limit.
-//   recur    { id: { id, k, amt, cat, a, via, to, note, every, day, from } } every:
+//   recur    { id: { id, k, amt, cat, sub, a, via, to, note, every, day, from } } every:
 //            month | week | year; day: the month's day (1–31, the last when the
 //            month is shorter), the weekday (0 Sunday) or 'MM-DD'; from: the first day.
+//   cats     { id: { id, k, parent, zh, icon, color, order, hidden, into } } the
+//            person's own categories and changes to the built-in ones (lib/cats.mjs).
 //   carrier  { code, u } the 手機條碼 (載具).
 
 import { addDays } from '#kit/format.mjs';
 
-export const COLLECTIONS = ['accts', 'cards', 'entries', 'budgets', 'recur'];
+export const COLLECTIONS = ['accts', 'cards', 'entries', 'budgets', 'recur', 'cats'];
 // Removed records are kept this long (a device away longer than this can't
 // bring one back: by then its copy is older than the removal).
 export const KEEP_GONE_MS = 120 * 86_400_000;
@@ -40,7 +43,7 @@ export const KEEP_GONE_MS = 120 * 86_400_000;
 export const ACCOUNT_KINDS = ['cash', 'bank', 'credit', 'ticket', 'wallet'];
 export const groupOf = kind => (ACCOUNT_KINDS.includes(kind) ? kind : 'wallet');
 
-export const emptyBooks = () => ({ accts: {}, cards: {}, entries: {}, budgets: {}, recur: {}, carrier: null, st: 0, opt: {} });
+export const emptyBooks = () => ({ accts: {}, cards: {}, entries: {}, budgets: {}, recur: {}, cats: {}, carrier: null, st: 0, opt: {} });
 
 let seq = 0;
 export const newId = (now = Date.now()) => `${now.toString(36)}${(seq++ % 1296).toString(36).padStart(2, '0')}${Math.random().toString(36).slice(2, 6)}`;
@@ -302,7 +305,7 @@ export function runRepeats(books, today, now = Date.now()) {
     for (const d of repeatDays(r, r.from, today)) {
       const id = repeatEntryId(r, d);
       if (books.entries[id]) continue;
-      put(books, 'entries', { id, d, k: r.k, amt: r.amt, cat: r.k === 'move' ? '' : r.cat, note: r.note || '', a: r.a, via: r.via || '', to: r.k === 'move' ? r.to : '', rec: r.id, t: now }, now);
+      put(books, 'entries', { id, d, k: r.k, amt: r.amt, cat: r.k === 'move' ? '' : r.cat, sub: r.k === 'move' ? '' : r.sub || '', note: r.note || '', a: r.a, via: r.via || '', to: r.k === 'move' ? r.to : '', rec: r.id, t: now }, now);
       n++;
     }
   }

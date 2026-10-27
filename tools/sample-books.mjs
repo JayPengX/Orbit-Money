@@ -15,18 +15,19 @@ acct('a3', '國泰 CUBE 卡', 'credit', 0, { brand: 'cathay', pay: 'a1', close: 
 acct('a4', '台新 Richart', 'bank', 120000, { brand: 'taishin', inTotal: false });
 acct('a5', 'LINE Pay', 'wallet', 0, { brand: 'linepay' });
 put(b, 'cards', { id: 'c1', acct: 'a1', name: '玉山 Debit', last4: '4821' }, now);
-const spend = [['food', 120, '早餐'], ['drink', 65, '路易莎'], ['transport', 30, '捷運'], ['food', 180, '午餐'], ['daily', 420, '全聯'], ['shop', 990, 'Uniqlo'], ['fun', 320, '威秀']];
+const spend = [['food', 120, '', 'food:breakfast'], ['drink', 65, '路易莎', 'drink:coffee'], ['transport', 30, '', 'transport:mrt'], ['food', 180, '', 'food:lunch'], ['daily', 420, '全聯', 'daily:grocery'], ['shop', 990, 'Uniqlo', 'shop:clothes'], ['fun', 320, '威秀', 'fun:movie']];
 let n = 0;
 for (let i = 0; i < 26; i++) {
   const d = addDays(day, -i);
   for (let j = 0; j < (i % 3) + 1; j++) {
-    const [cat, amt, note] = spend[(i + j) % spend.length];
+    const [cat, amt, note, sub] = spend[(i + j) % spend.length];
     const a = ['cash', 'a3', 'a2', 'a1'][(i + j) % 4];
-    put(b, 'entries', { id: `e${n++}`, d, k: 'out', amt: amt + ((i * 7) % 40), cat, note, a, via: a === 'a1' ? 'c1' : '', to: '', t: now - i * 86_400_000 + j }, now);
+    put(b, 'entries', { id: `e${n++}`, d, k: 'out', amt: amt + ((i * 7) % 40), cat, sub, note, a, via: a === 'a1' ? 'c1' : '', to: '', t: now - i * 86_400_000 + j }, now);
   }
 }
 put(b, 'entries', { id: 'e-sal', d: addDays(day, -20), k: 'in', amt: 52000, cat: 'salary', note: '十月薪水', a: 'a1', via: '', to: '', t: now }, now);
 put(b, 'entries', { id: 'inv-AB12345678', d: addDays(day, -2), k: 'out', amt: 85, cat: 'food', note: '全家便利商店', a: 'cash', via: '', to: '', inv: { no: 'AB12345678', day: addDays(day, -2), sid: '16446274', seller: '全家便利商店', total: 85, items: [{ name: '拿鐵', qty: 1, price: 55 }, { name: '茶葉蛋', qty: 1, price: 30 }] }, t: now }, now);
+put(b, 'entries', { id: 'e-tpass', d: addDays(day, -12), k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', note: '', a: 'a1', via: 'c1', to: '', t: now }, now);
 put(b, 'budgets', { id: 'b-all', cat: '', amt: 20000 }, now);
 put(b, 'budgets', { id: 'b-food', cat: 'food', amt: 6000 }, now);
 b.carrier = { code: '/ABC1234', u: now };

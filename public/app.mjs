@@ -1,8 +1,9 @@
 // Orbit Money: the person's own books. Four tabs: 月曆 (each day's spending
 // on a month, the day's entries), 帳戶 (cash, banks, 悠遊卡, e-wallets and
-// credit cards, with the cards on them; what's counted in the 總資產; the
-// repeats), 統計 (where it went: by category, by day, against the budgets)
-// and 發票 (the 手機條碼 for the till, paper invoices scanned in, 對獎).
+// credit cards, with the cards on them; what's counted in the 總資產),
+// 統計 (where it went: by category, by day, against the budgets)
+// and 更多 (purchases brought in without typing, 對獎, the 手機條碼, the
+// categories, the repeats, the accounts put away, the books as a file).
 //
 // This file starts the app, saves and opens tabs; the screens are views/*.mjs,
 // the books lib/*.mjs. Nothing here is Orbit's money: the books are the app's
@@ -13,18 +14,20 @@ import { passSync } from '#kit/pass-sync.mjs';
 import { orbitSession, tabBar, topActions, installGate, watchUpdates, keepOffline, storedAccount, cachedPayload } from '#kit/orbit.mjs';
 import { decodeBooks, encodeBooks, mergeBooks, runRepeats, put } from './lib/books.mjs';
 import { state, hooks, lang, W, today } from './shell.mjs';
+import { useCats } from './lib/cats.mjs';
 import { renderCal } from './views/calendar.mjs';
 import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
-import { renderInvoices, loadDraws } from './views/invoices.mjs';
+import { loadDraws } from './views/invoices.mjs';
+import { renderMore } from './views/more.mjs';
 import { checkMail } from './views/carrier-import.mjs';
 import { openEntry } from './views/entry.mjs';
 
 document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
 const $ = id => document.getElementById(id);
-const TABS = ['cal', 'accts', 'stats', 'inv'];
-const VIEWS = { cal: renderCal, accts: renderAccts, stats: renderStats, inv: renderInvoices };
-const TITLES = { cal: W('月曆', 'Calendar'), accts: W('帳戶', 'Accounts'), stats: W('統計', 'Stats'), inv: W('發票', 'Invoices') };
+const TABS = ['cal', 'accts', 'stats', 'more'];
+const VIEWS = { cal: renderCal, accts: renderAccts, stats: renderStats, more: renderMore };
+const TITLES = { cal: W('月曆', 'Calendar'), accts: W('帳戶', 'Accounts'), stats: W('統計', 'Stats'), more: W('更多', 'More') };
 const VERSION = document.querySelector('meta[name="build-version"]')?.content || 'dev';
 
 const q = orbitSession('money', { lang });
@@ -91,29 +94,28 @@ function render({ ifChanged = false } = {}) {
   if (!box) return;
   if (ifChanged && box.dataset.drawn === String(stamp)) return;
   box.dataset.drawn = String(stamp);
+  useCats(state.books.cats);
   VIEWS[state.tab](box);
   if (state.tab !== TABS[0]) box.prepend(kitUI.navTitle(TITLES[state.tab]));
 }
-const TAB_ICONS = { cal: 'calendar', accts: 'wallet', stats: 'chart', inv: 'ticket' };
+const TAB_ICONS = { cal: 'calendar', accts: 'wallet', stats: 'chart', more: 'grid' };
 const tabNav = tabBar({
   tabs: TABS.map(id => ({ id, label: TITLES[id], icon: TAB_ICONS[id] })),
   onSelect: tab => showTab(tab),
   hash: id => `#${id}`,
   // 記一筆: the app's one main thing, its own button beside the tabs, on every tab.
-  action: { icon: kitUI.icons.plus, label: W('記一筆', 'Add an entry'), onTap: () => openEntry({ day: state.tab === 'cal' ? state.day : today() }) }
+  action: { icon: kitUI.icons.plus, label: W('記一筆', 'Add an entry'), onTap: () => (useCats(state.books.cats), openEntry({ day: state.tab === 'cal' ? state.day : today() })) }
 });
 function showTab(tab) {
   state.tab = tab;
   tabNav.select(tab);
   render({ ifChanged: true });
-  if (tab === 'inv') loadDraws().then(() => state.tab === 'inv' && render());
+  if (tab === 'more') loadDraws().then(() => state.tab === 'more' && render());
 }
 const quietRefresh = () => {
   if (document.querySelector('dialog.q-sheet[open]') || document.activeElement?.tagName === 'INPUT') return;
   if (state.loaded) render();
 };
-
-// The add button, over every tab but 發票.
 
 window.__fxStarted = true;
 const gated = installGate('money', lang);
@@ -152,7 +154,8 @@ if (!gated) boot();
 // The address: a tab (#stats).
 function openFromHash(start = false) {
   const hash = decodeURIComponent(location.hash.slice(1));
-  const tab = TABS.includes(hash) ? hash : start ? 'cal' : null;
+  // (#inv: the old 發票 tab's address, now 更多.)
+  const tab = TABS.includes(hash) ? hash : hash === 'inv' ? 'more' : start ? 'cal' : null;
   if (tab) showTab(tab);
 }
 window.addEventListener('hashchange', () => state.loaded && openFromHash());

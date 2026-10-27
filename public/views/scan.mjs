@@ -41,6 +41,27 @@ async function readCodes(canvas) {
   return out;
 }
 
+// The invoice in a picture (both its QR codes read where both show), or null:
+// free, on the phone (讀圖 tries this before anything goes to Gemini).
+export async function invoiceInPicture(blob) {
+  const img = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  const canvas = document.createElement('canvas');
+  const k = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+  canvas.width = Math.round(img.width * k);
+  canvas.height = Math.round(img.height * k);
+  canvas.getContext('2d', { willReadFrequently: true }).drawImage(img, 0, 0, canvas.width, canvas.height);
+  let left = null;
+  let right = null;
+  for (const c of await readCodes(canvas)) {
+    const text = c.bytes ? qrText(c.bytes) : c.text;
+    if (!left && isLeft(text)) {
+      const enc = qrEncoding(text);
+      left = parseLeft(c.bytes && enc === 'big5' ? qrText(c.bytes, 'big5') : text);
+    } else if (!right && isRight(text)) right = c;
+  }
+  return left ? joinQr(left, right ? parseRight(qrText(right.bytes || right.text, left.enc), left.enc) : []) : null;
+}
+
 export function openScanner() {
   return new Promise(resolve => {
     let left = null;

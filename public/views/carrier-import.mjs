@@ -7,7 +7,7 @@
 import { h, icons, sheet, toast, menu } from '#kit/ui.mjs';
 import { live, put } from '../lib/books.mjs';
 import { parseCarrierCsv, csvText } from '../lib/invoice.mjs';
-import { guessCat, glyph } from '../lib/cats.mjs';
+import { guessCat, guessSub, glyph } from '../lib/cats.mjs';
 import { workerJson } from '#kit/orbit.mjs';
 import { state, hooks, W, money, dayLabel, saved } from '../shell.mjs';
 import { payOptions, lastPay } from './entry.mjs';
@@ -47,10 +47,14 @@ export function importCarrier() {
 }
 
 // The invoices not in the books yet (nor voided, nor imported and deleted).
+// One with no number (a receipt read from a picture): not when an entry of
+// that day, amount and store is there already (the same picture read twice).
 function newOnes(list) {
   const b = state.books;
-  const have = new Set(live(b.entries).map(e => e.inv?.no).filter(Boolean));
-  return list.filter(i => !i.void && !have.has(i.no) && !b.entries[idOf(i.no)]);
+  const all = live(b.entries);
+  const have = new Set(all.map(e => e.inv?.no).filter(Boolean));
+  const same = i => all.some(e => e.k === 'out' && e.d === i.day && e.amt === Math.round(i.total) && e.note === (shortName(i.seller) || i.items[0]?.name || ''));
+  return list.filter(i => !i.void && (i.no ? !have.has(i.no) && !b.entries[idOf(i.no)] : !same(i)));
 }
 // Each invoice a spending entry, paid from `pay` ({ a, via }); how many.
 function addInvoices(list, pay) {
@@ -59,7 +63,9 @@ function addInvoices(list, pay) {
   const fallback = b.opt?.lastCat?.out || 'other';
   for (const [n, i] of list.entries()) {
     const seller = shortName(i.seller);
-    put(b, 'entries', { id: idOf(i.no), d: i.day, k: 'out', amt: Math.round(i.total), cat: guessCat(`${i.seller} ${i.items.map(x => x.name).join(' ')}`) || fallback, note: seller || i.items[0]?.name || '', a: pay.a, via: pay.via || '', to: '', inv: { no: i.no, day: i.day, sid: i.sid, seller, total: i.total, items: i.items, from: 'carrier' }, t: now + n }, now);
+    const words = `${i.seller} ${i.items.map(x => x.name).join(' ')}`;
+    const cat = guessCat(words) || fallback;
+    put(b, 'entries', { id: i.no ? idOf(i.no) : undefined, d: i.day, k: 'out', amt: Math.round(i.total), cat, sub: guessSub(cat, words), note: seller || i.items[0]?.name || '', a: pay.a, via: pay.via || '', to: '', inv: i.no ? { no: i.no, day: i.day, sid: i.sid || '', seller, total: i.total, items: i.items, from: i.from || 'carrier' } : null, t: now + n }, now);
     if (i.sid && seller) state.sellers[i.sid] = i.seller;
   }
   if (list.length) b.st = Math.round(now / 1000);
@@ -90,7 +96,7 @@ export async function checkMail({ force = false } = {}) {
     }
     await workerJson('/money-mail', 'op=took', { body: JSON.stringify({ upto: Math.max(...items.map(i => i.at || 0)) }) });
   }
-  if (state.tab === 'inv') hooks.render?.();
+  if (state.tab === 'more') hooks.render?.();
 }
 export async function newAddress() {
   const r = await workerJson('/money-mail', 'op=new', { body: '{}' });
@@ -98,7 +104,8 @@ export async function newAddress() {
   return Boolean(r);
 }
 
-function review(list) {
+// The invoices to add, looked over first: a 載具 file's, or a picture's (讀圖).
+export function review(list, { title = W('匯入載具發票', 'Import carrier invoices'), what = W('這個檔案的發票都記過了。', 'Every invoice in this file is already in.') } = {}) {
   const fresh = newOnes(list);
   const voided = list.filter(i => i.void).length;
   const pay = lastPay();
@@ -112,19 +119,19 @@ function review(list) {
   paintPay();
   const skipped = list.length - fresh.length - voided;
   const s = sheet({
-    title: W('匯入載具發票', 'Import carrier invoices'),
+    title,
     detent: 'large',
     cls: 'mn-import',
     body: [
       h('div', { class: 'q-fig mn-facts' }, [
-        h('div', {}, [h('small', { text: W('新發票', 'New') }), h('b', { class: 'num', text: String(fresh.length) })]),
+        h('div', {}, [h('small', { text: W('新的', 'New') }), h('b', { class: 'num', text: String(fresh.length) })]),
         h('div', {}, [h('small', { text: W('金額', 'Total') }), h('b', { class: 'num', text: money(sum) })])
       ]),
       h('p', { class: 'mn-hint', text: [from ? `${dayLabel(from, { week: false })} – ${dayLabel(to, { week: false })}` : '', skipped ? W(`${skipped} 張記過了`, `${skipped} already in`) : '', voided ? W(`${voided} 張作廢`, `${voided} voided`) : ''].filter(Boolean).join(' · ') }),
       fresh.length ? h('div', { class: 'mn-field' }, [h('span', { class: 'mn-field-l', text: W('從哪裡付', 'Paid from') }), payPill]) : null,
       fresh.length
         ? h('div', { class: 'q-rowcard mn-import-list' }, fresh.slice(-40).reverse().map(i => h('div', { class: 'q-ritem' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: shortName(i.seller) || i.items[0]?.name || i.no }), h('small', { text: `${dayLabel(i.day, { week: false })} · ${i.items.slice(0, 3).map(x => x.name).join('、') || i.no}` })]), h('span', { class: 'q-ritem-value num', text: money(i.total) })])))
-        : h('p', { class: 'mn-hint', text: W('這個檔案的發票都記過了。', 'Every invoice in this file is already in.') })
+        : h('p', { class: 'mn-hint', text: what })
     ],
     foot: fresh.length
       ? h('div', { class: 'q-sheet-foot' }, [

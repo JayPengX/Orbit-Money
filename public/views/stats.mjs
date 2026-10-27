@@ -4,7 +4,7 @@
 import { h, icons, tile, pickSeg, sheet, toast } from '#kit/ui.mjs';
 import { addDays } from '#kit/format.mjs';
 import { totals, entriesIn, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
-import { OUT, catOf, catName, glyph } from '../lib/cats.mjs';
+import { catList, catOf, catName, subOf, glyph } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, monthLabel, dayLabel, today, saved } from '../shell.mjs';
 import { entryRow } from './entry.mjs';
 
@@ -131,11 +131,42 @@ function catSection(title, cats, total, p) {
   ]);
 }
 
+// A category's entries, its subs first (each its share, tapped to show only
+// its own; tapped again for all).
 function openCat(cat, p) {
+  const c = catOf(cat);
   const list = entriesIn(state.books, p.from, p.to)
     .filter(e => (e.k === 'out' || e.k === 'in') && (e.cat || 'other') === cat)
     .sort((a, b) => b.d.localeCompare(a.d) || (b.t || 0) - (a.t || 0));
-  sheet({ title: catName(catOf(cat), lang), subtitle: p.label, detent: 'large', body: [h('div', { class: 'q-rowcard' }, list.map(e => entryRow(e, { day: true })))] });
+  const total = list.reduce((n, e) => n + e.amt, 0);
+  const by = new Map();
+  for (const e of list) {
+    const k = subOf(e.sub)?.parent === cat ? e.sub : '';
+    by.set(k, (by.get(k) || 0) + e.amt);
+  }
+  const rows = h('div', { class: 'q-rowcard' });
+  let only = null;
+  const paint = () => rows.replaceChildren(...list.filter(e => only === null || (subOf(e.sub)?.parent === cat ? e.sub : '') === only).map(e => entryRow(e, { day: true, inCat: true })));
+  const parts = [...by].sort((a, b) => b[1] - a[1]);
+  const split =
+    parts.length > 1
+      ? h(
+          'div',
+          { class: 'q-rowcard mn-subsplit' },
+          parts.map(([k, amt]) =>
+            h('button', { class: 'q-ritem mn-row mn-catrow', type: 'button', 'aria-pressed': 'false', onclick: e => {
+              only = only === k ? null : k;
+              for (const el of e.currentTarget.parentNode.children) el.setAttribute('aria-pressed', String(el === e.currentTarget && only !== null));
+              paint();
+            } }, [
+              h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: k ? catName(subOf(k), lang) : W('未分細項', 'No sub-category') }), h('span', { class: 'mn-share' }, [h('i', { style: `width:${Math.max(2, (amt / total) * 100)}%;background:${c.color}` })])]),
+              h('span', { class: 'mn-catval' }, [h('b', { class: 'num', text: money(amt) }), h('small', { class: 'num', text: `${Math.round((amt / total) * 100)}%` })])
+            ])
+          )
+        )
+      : null;
+  paint();
+  sheet({ title: catName(c, lang), subtitle: money(total), body: [split, rows] });
 }
 
 // ---- Budgets ----------------------------------------------------------------------
@@ -170,7 +201,7 @@ function budgetCard(ym, now, redraw) {
 function openBudgets(redraw) {
   const b = state.books;
   const have = Object.fromEntries(live(b.budgets).map(x => [x.cat, x]));
-  const rows = [{ cat: '', name: W('每月總預算', 'Monthly budget'), icon: 'target', color: 'var(--q-accent)' }, ...OUT.map(c => ({ cat: c.id, name: catName(c, lang), icon: c.icon, color: c.color }))];
+  const rows = [{ cat: '', name: W('每月總預算', 'Monthly budget'), icon: 'target', color: 'var(--q-accent)' }, ...catList('out').map(c => ({ cat: c.id, name: catName(c, lang), icon: c.icon, color: c.color }))];
   const inputs = new Map();
   const body = h(
     'div',

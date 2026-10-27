@@ -1,14 +1,14 @@
 // 帳戶: the 總資產 (what the counted accounts hold, less what the counted
-// cards owe), every account by kind with its balance, and the repeats
-// (固定收支). An account opens to its balance, its month, its cards and
+// cards owe) and every account by kind with its balance; the repeats
+// (固定收支) and the accounts put away open from 更多. An account opens to its balance, its month, its cards and
 // entries; a credit card to its bill too.
 import { h, icons, tile, sheet, toggle, toast, empty, segmented, menu } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
 import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, totals, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf, historyOf, hasHistory, closeAccount, closeCard, moveAccount, moveCard, snapshot, restore, accountParts } from '../lib/books.mjs';
 import { brandsFor, brandOf } from '../lib/brands.mjs';
-import { catName, glyph, lookOf } from '../lib/cats.mjs';
+import { catName, glyph, lookOf, subsOf, guessCat, guessSub } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, logoFor, card } from '../shell.mjs';
-import { entryRow, openEntry, payOptions, catTiles } from './entry.mjs';
+import { entryRow, openEntry, payOptions, catTiles, subChips } from './entry.mjs';
 
 // An account's picture: its brand's logo, else its kind's tile.
 export function acctTile(a, size = 40) {
@@ -25,7 +25,6 @@ export function renderAccts(box) {
   const bal = balances(b);
   const w = worth(b);
   const all = openAccounts();
-  const closed = allAccounts().filter(a => a.closed);
   const hero = h('section', { class: 'q-hero-card mn-hero' }, [
     h('span', { class: 'q-hc-eyebrow', text: W('總資產', 'Net worth') }),
     h('b', { class: 'q-hc-big num q-fit', text: money(w.net) }),
@@ -41,34 +40,47 @@ export function renderAccts(box) {
   });
   const add = h('button', { class: 'q-btn tinted block mn-add', type: 'button', onclick: () => openAccountEdit(null) }, [h('span', { html: icons.plus }), W('新增帳戶', 'Add an account')]);
 
-  // 固定收支.
-  const reps = live(b.recur).filter(r => acct(r.a));
+  box.replaceChildren(hero, ...groups.filter(Boolean), add);
+}
+
+// 固定收支 (from 更多): each with when it's next, soonest first.
+export const repeatsOf = () => live(state.books.recur).filter(r => acct(r.a));
+export function openRepeats() {
   const now = today();
-  const repSec = h('section', { class: 'q-section' }, [
-    h('div', { class: 'q-section-head' }, [h('h2', { text: W('固定收支', 'Repeats') }), h('button', { type: 'button', text: W('新增', 'Add'), onclick: () => openRepeat(null) })]),
-    reps.length
-      ? h(
-          'div',
-          { class: 'q-rowcard' },
-          reps
-            .map(r => ({ r, next: nextRepeat(r, now) }))
-            .sort((x, y) => (x.next || '9').localeCompare(y.next || '9'))
-            .map(({ r, next }) => {
-              const look = lookOf(r);
-              return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openRepeat(r) }, [
-                tile(glyph(look.icon), look.color),
-                h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: r.note || (r.k === 'move' ? W('轉帳', 'Transfer') : catName(look, lang)) }), h('small', { text: [everyText(r), next ? W(`下次 ${dayLabel(next, { week: false })}`, `next ${dayLabel(next, { week: false })}`) : ''].filter(Boolean).join(' · ') })]),
-                h('span', { class: `q-ritem-value num mn-amt ${r.k}`, text: r.k === 'in' ? money(r.amt, { sign: true }) : money(r.amt) })
-              ]);
-            })
-        )
-      : h('p', { class: 'mn-hint', text: W('房租、薪水、訂閱⋯每期自動記好。', 'Rent, pay, subscriptions: recorded for you each time.') })
-  ]);
-  // Put away (封存): at the foot, their history and balance kept.
-  const closedSec = closed.length
-    ? h('section', { class: 'q-section mn-closed' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: W('已封存', 'Put away') })]), h('div', { class: 'q-rowcard' }, closed.map(a => acctRow(a, bal[a.id] || 0)))])
-    : null;
-  box.replaceChildren(hero, ...groups.filter(Boolean), add, repSec, ...(closedSec ? [closedSec] : []));
+  const reps = repeatsOf();
+  const s = sheet({
+    title: W('固定收支', 'Repeats'),
+    detent: reps.length > 4 ? 'large' : '',
+    body: [
+      reps.length
+        ? h(
+            'div',
+            { class: 'q-rowcard' },
+            reps
+              .map(r => ({ r, next: nextRepeat(r, now) }))
+              .sort((x, y) => (x.next || '9').localeCompare(y.next || '9'))
+              .map(({ r, next }) => {
+                const look = lookOf(r);
+                return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => (s.close(), openRepeat(r)) }, [
+                  tile(glyph(look.icon), look.color),
+                  h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: r.note || (r.k === 'move' ? W('轉帳', 'Transfer') : catName(look, lang)) }), h('small', { text: [everyText(r), next ? W(`下次 ${dayLabel(next, { week: false })}`, `next ${dayLabel(next, { week: false })}`) : ''].filter(Boolean).join(' · ') })]),
+                  h('span', { class: `q-ritem-value num mn-amt ${r.k}`, text: r.k === 'in' ? money(r.amt, { sign: true }) : money(r.amt) })
+                ]);
+              })
+          )
+        : h('p', { class: 'mn-hint', text: W('房租、薪水、TPASS、訂閱⋯每期自動記好。', 'Rent, pay, TPASS, subscriptions: recorded for you each time.') })
+    ],
+    foot: h('div', { class: 'q-sheet-foot' }, [h('button', { class: 'q-btn primary block', type: 'button', onclick: () => (s.close(), openRepeat(null)) }, [h('span', { html: icons.plus }), W('新增固定收支', 'New repeat')])])
+  });
+}
+// Put away (封存, from 更多): their history and balance kept.
+export function openClosed() {
+  const bal = balances(state.books);
+  const closed = allAccounts().filter(a => a.closed);
+  sheet({
+    title: W('已封存', 'Put away'),
+    body: [closed.length ? h('div', { class: 'q-rowcard' }, closed.map(a => acctRow(a, bal[a.id] || 0))) : h('p', { class: 'mn-hint', text: W('不再用的帳戶封存後會在這裡，紀錄和餘額都留著。', 'Accounts you put away wait here, with their history and balance.') })]
+  });
 }
 
 const fig = (label, value) => h('div', { class: 'mn-fig' }, [h('small', { text: label }), h('b', { class: 'num q-fit', text: value })]);
@@ -416,12 +428,21 @@ function everyText(r) {
 
 export function openRepeat(r) {
   const now = today();
-  const f = { k: r?.k || 'out', amt: r?.amt ? String(r.amt) : '', cat: r?.cat || 'home', a: r?.a || 'cash', via: r?.via || '', to: r?.to || '', every: r?.every || 'month', day: r?.day ?? Number(now.slice(8, 10)), from: r?.from || now, note: r?.note || '' };
+  const f = { k: r?.k || 'out', amt: r?.amt ? String(r.amt) : '', cat: r?.cat || 'home', sub: r?.sub || '', a: r?.a || 'cash', via: r?.via || '', to: r?.to || '', every: r?.every || 'month', day: r?.day ?? Number(now.slice(8, 10)), from: r?.from || now, note: r?.note || '' };
   const body = h('div', { class: 'mn-form' });
   const amtIn = h('input', { class: 'q-field num mn-big-in', type: 'text', inputmode: 'numeric', placeholder: 'NT$', value: f.amt });
   amtIn.addEventListener('input', () => (f.amt = amtIn.value));
   const noteIn = h('input', { class: 'q-field', type: 'text', maxlength: '40', placeholder: W('例如：房租、Netflix', 'e.g. Rent, Netflix'), value: f.note });
   noteIn.addEventListener('input', () => (f.note = noteIn.value));
+  // (The name says the category where it can: 「TPASS」 is 交通 · TPASS.)
+  let picked = Boolean(r);
+  noteIn.addEventListener('change', () => {
+    if (picked || f.k === 'move') return;
+    const c = f.k === 'out' ? guessCat(f.note) : '';
+    if (c) f.cat = c;
+    f.sub = guessSub(f.cat, f.note);
+    paint();
+  });
   const fromIn = h('input', { class: 'q-field', type: 'date', value: f.from });
   fromIn.addEventListener('change', () => (f.from = fromIn.value || f.from));
   const kinds = segmented(
@@ -430,7 +451,7 @@ export function openRepeat(r) {
       { id: 'in', label: W('收入', 'Income') },
       { id: 'move', label: W('轉帳', 'Transfer') }
     ],
-    { value: f.k, onChange: k => ((f.k = k), (f.cat = k === 'in' ? 'salary' : 'home'), paint()) }
+    { value: f.k, onChange: k => ((f.k = k), (f.cat = k === 'in' ? 'salary' : 'home'), (f.sub = ''), paint()) }
   );
   const everySeg = segmented(
     [
@@ -466,7 +487,8 @@ export function openRepeat(r) {
         // (What it is first: the name is what the list shows.)
         field(W('名稱', 'Name'), noteIn),
         field(W('金額', 'Amount'), amtIn),
-        f.k !== 'move' ? field(W('分類', 'Category'), h('div', { class: 'mn-cats', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((f.cat = id), paint())))) : null,
+        f.k !== 'move' ? field(W('分類', 'Category'), h('div', { class: 'mn-cats', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())))) : null,
+        f.k !== 'move' && subsOf(f.cat).length ? h('div', { class: 'mn-subs', role: 'group', 'aria-label': W('細項', 'Sub-category') }, subChips(f.cat, f.sub, id => ((f.sub = id), paint()))) : null,
         field(f.k === 'move' ? W('從', 'From') : f.k === 'in' ? W('存入', 'Into') : W('付款方式', 'Paid with'), pick('a', f.k === 'move')),
         f.k === 'move' ? field(W('到', 'To'), pick('to', true)) : null,
         field(W('多久一次', 'How often'), everySeg),
@@ -489,7 +511,7 @@ export function openRepeat(r) {
         onclick: () => {
           const amt = Math.round(Number(String(f.amt).replace(/[^\d.]/g, '')));
           if (!(amt > 0) || !acct(f.a) || (f.k === 'move' && (!acct(f.to) || f.to === f.a))) return toast(W('請填好金額和帳戶', 'Fill in the amount and account'), { tone: 'bad' });
-          put(state.books, 'recur', { ...(r || {}), k: f.k, amt, cat: f.k === 'move' ? '' : f.cat, a: f.a, via: f.k === 'move' ? '' : f.via, to: f.k === 'move' ? f.to : '', every: f.every, day: f.day, from: f.from, note: f.note.trim() });
+          put(state.books, 'recur', { ...(r || {}), k: f.k, amt, cat: f.k === 'move' ? '' : f.cat, sub: f.k === 'move' ? '' : f.sub, a: f.a, via: f.k === 'move' ? '' : f.via, to: f.k === 'move' ? f.to : '', every: f.every, day: f.day, from: f.from, note: f.note.trim() });
           runRepeats(state.books, today());
           s.close();
           saved();
