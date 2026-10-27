@@ -85,3 +85,16 @@ test('a merge undone puts every record back', () => {
   assert.equal(C.subOf('drink:tea').parent, 'drink');
   assert.ok(C.catList('out').some(c => c.id === 'drink'));
 });
+
+test('what a pick fills in: nothing until set, a sub’s own over its category’s', () => {
+  const b = sample();
+  C.useCats(b.cats);
+  assert.deepEqual(C.defaultsOf('transport', 'transport:youbike'), { pay: null, amt: 0, unit: 0 });
+  C.saveCat(b, { id: 'transport', pay: { a: 'bank', via: '' } }, T);
+  C.saveCat(b, { id: 'transport:youbike', pay: { a: 'card', via: '' }, unit: 5 }, T);
+  C.saveCat(b, { id: 'transport:tpass', amt: 1200 }, T);
+  C.useCats(b.cats);
+  assert.deepEqual(C.defaultsOf('transport', 'transport:youbike'), { pay: { a: 'card', via: '' }, unit: 5, amt: 0 });
+  assert.deepEqual(C.defaultsOf('transport', 'transport:tpass'), { pay: { a: 'bank', via: '' }, amt: 1200, unit: 0 });
+  assert.deepEqual(C.defaultsOf('transport', ''), { pay: { a: 'bank', via: '' }, amt: 0, unit: 0 });
+});

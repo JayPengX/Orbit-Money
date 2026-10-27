@@ -4,9 +4,9 @@
 // 發票 it came from. A scanned 發票 opens it filled in.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { put, drop, live } from '../lib/books.mjs';
-import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub } from '../lib/cats.mjs';
-import { state, W, en, lang, money, dayLabel, today, saved, acct, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
+import { put, drop, live, usualFor } from '../lib/books.mjs';
+import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
+import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 
 // ---- A row ----------------------------------------------------------------------
 
@@ -52,7 +52,25 @@ export function lastPay() {
 // The categories as tiles (two rows across, the picked one lit): the entry
 // sheet's and a repeat's, one look.
 export function catTiles(kind, cur, onPick) {
-  return catsFor(kind).map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
+  const tiles = catsFor(kind).map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
+  // (Whole pages of ten: the last one filled out, so it lines up like the rest.)
+  const pad = (10 - (tiles.length % 10)) % 10;
+  return tiles.length > 10 ? [...tiles, ...Array.from({ length: pad }, () => h('span', { class: 'mn-cat-pad', 'aria-hidden': 'true' }))] : tiles;
+}
+// The dots under the tiles: one a page, the one in view lit.
+export function pageDots(grid) {
+  const dots = h('div', { class: 'mn-dots', 'aria-hidden': 'true' });
+  const paint = () => {
+    const pages = Math.ceil(grid.children.length / 10);
+    dots.hidden = pages < 2;
+    const at = Math.round(grid.scrollLeft / Math.max(1, grid.clientWidth + 4));
+    if (dots.children.length !== pages) dots.replaceChildren(...Array.from({ length: pages }, () => h('i')));
+    [...dots.children].forEach((d, i) => d.classList.toggle('on', i === at));
+  };
+  grid.addEventListener('scroll', () => requestAnimationFrame(paint), { passive: true });
+  new MutationObserver(paint).observe(grid, { childList: true });
+  requestAnimationFrame(paint);
+  return dots;
 }
 
 // A category's subs as chips under the tiles: one lit, tapped again to let go
@@ -87,7 +105,9 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     to: was?.to || (acct(to) ? to : ''),
     d: was?.d || day,
     note: was?.note ?? note,
-    inv: was?.inv || inv
+    inv: was?.inv || inv,
+    // (auto: the amount is a category's default, so another pick may change it; a key typed keeps it.)
+    auto: false
   };
   // The sub: the entry's own, or what the note or the store or the hour says.
   const fresh = !was && day === today();
@@ -95,13 +115,31 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   f.sub = was ? was.sub || '' : guess();
   if (f.k === 'move' && !f.to) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
 
+  // A category's own way to pay and amount (set in 分類), filled in when it's
+  // picked; anything typed or chosen after stays.
+  const usable = p => p && acct(p.a) && !acct(p.a).closed && (!p.via || (card(p.via) && !card(p.via).closed));
+  function applyDefaults({ pay = true } = {}) {
+    if (f.k !== 'out' && f.k !== 'in') return;
+    const d = defaultsOf(f.cat, f.sub);
+    if (pay && usable(d.pay)) (f.a = d.pay.a), (f.via = d.pay.via || '');
+    if (!f.auto && f.expr) return;
+    const v = d.amt || d.unit;
+    f.expr = v ? String(v) : f.auto ? '' : f.expr;
+    f.auto = Boolean(v);
+  }
+  if (!was && !amt) applyDefaults({ pay: !from });
+
   const amountEl = h('b', { class: 'num mn-amount-v' });
   const exprEl = h('small', { class: 'num mn-amount-x' });
   const catTile = h('span', { class: 'mn-amount-tile' });
   const amountRow = h('div', { class: 'mn-amount' }, [catTile, h('div', { class: 'mn-amount-n' }, [exprEl, amountEl])]);
   // (.q-kb-hide: behind the keys while the note is typed, so the sheet fits above them.)
   const cats = h('div', { class: 'mn-cats q-kb-hide', role: 'radiogroup', 'aria-label': W('分類', 'Category') });
+  const catDots = pageDots(cats);
+  catDots.classList.add('q-kb-hide');
   const subs = h('div', { class: 'mn-subs q-kb-hide', role: 'group', 'aria-label': W('細項', 'Sub-category') });
+  // NT$5 × 1–6: a category priced by the unit (YouBike's half hours).
+  const unitRow = h('div', { class: 'mn-units q-kb-hide' });
   const moveRow = h('div', { class: 'mn-move' });
   const payBtn = h('button', { class: 'mn-pill', type: 'button', onclick: e => pickPay(e.currentTarget) });
   const dateIn = h('input', { class: 'mn-date', type: 'date', value: f.d, max: '2099-12-31', 'aria-label': W('日期', 'Date') });
@@ -124,7 +162,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       label: W('種類', 'Kind'),
       onChange: k => {
         f.k = k;
-        if (k !== 'move') (f.cat = opt.lastCat?.[k] || (k === 'in' ? 'salary' : 'food')), (f.sub = guess());
+        if (k !== 'move') (f.cat = opt.lastCat?.[k] || (k === 'in' ? 'salary' : 'food')), (f.sub = guess()), applyDefaults();
         if (k === 'move') {
           f.via = '';
           if (!f.to || f.to === f.a) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
@@ -140,6 +178,24 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     amountEl.textContent = money(Math.max(0, sum));
     exprEl.textContent = /[+−-]/.test(f.expr.slice(1)) ? f.expr : '';
     save.disabled = !(sum > 0) || (f.k === 'move' && (!f.to || f.to === f.a));
+    paintUnits();
+  }
+  // Under the subs, one row of quick amounts: a category priced by the unit
+  // (NT$5 × 1, 2, 3…), else the amounts it's usually been (常用), each a tap.
+  let usualKey = '';
+  let usual = null;
+  function paintUnits() {
+    const on = f.k === 'out' || f.k === 'in';
+    const unit = on ? defaultsOf(f.cat, f.sub).unit : 0;
+    const key = `${f.k}|${f.cat}|${f.sub}`;
+    if (on && !unit && key !== usualKey) (usualKey = key), (usual = usualFor(b, { k: f.k, cat: f.cat, sub: f.sub }, today()));
+    const amts = !on || unit ? [] : usual?.amts || [];
+    unitRow.hidden = !unit && !amts.length;
+    if (unitRow.hidden) return;
+    const sum = sumOf(f.expr);
+    const chip = (text, v) => h('button', { class: 'mn-subchip num', type: 'button', 'aria-pressed': String(sum === v), text, onclick: () => (tick(), (f.expr = String(v)), (f.auto = false), paintAmount()) });
+    unitRow.classList.toggle('usual', !unit);
+    unitRow.replaceChildren(...(unit ? [h('span', { class: 'mn-units-l num', text: `${money(unit)} ×` }), ...[1, 2, 3, 4, 6, 8].map(n => chip(String(n), unit * n))] : [h('span', { class: 'mn-units-l', text: W('常用 NT$', 'Usual NT$') }), ...amts.map(x => chip(plain(x.amt), x.amt))]));
   }
   // A category picked: its tile and the ticks, the grid not drawn again.
   function paintCat() {
@@ -148,10 +204,9 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     paintSubs();
   }
   function paintSubs() {
-    const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((f.sub = id), paintSubs()));
+    const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((f.sub = id), applyDefaults(), paintAmount(), paintPay(), paintSubs()));
     subs.hidden = !list.length;
     subs.replaceChildren(...list);
-    subs.querySelector('[aria-pressed="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }
   let catsKind = '';
   function paint() {
@@ -160,21 +215,25 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     catTile.replaceChildren(tile(glyph(look.icon), look.color));
     amountRow.classList.toggle('in', f.k === 'in');
     cats.hidden = f.k === 'move' || f.k === 'adj';
+    catDots.hidden = cats.hidden || cats.children.length <= 10;
     moveRow.hidden = f.k !== 'move';
     payBtn.hidden = f.k === 'move';
     if (!cats.hidden && catsKind !== f.k) {
       catsKind = f.k;
-      cats.replaceChildren(...catTiles(f.k, f.cat, id => (id !== f.cat && ((f.cat = id), (f.sub = guess())), paintCat())));
+      cats.replaceChildren(...catTiles(f.k, f.cat, id => (id !== f.cat && ((f.cat = id), (f.sub = guess()), applyDefaults(), paintAmount(), paintPay()), paintCat())));
       paintSubs();
       requestAnimationFrame(() => cats.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }));
     } else if (!cats.hidden) paintCat();
     else paintSubs();
     if (!moveRow.hidden) moveRow.replaceChildren(acctPick('a', W('從', 'From')), h('span', { class: 'mn-move-arrow', html: icons.chevron }), acctPick('to', W('到', 'To')));
-    const p = payOf(f.a, f.via);
-    payBtn.replaceChildren(h('span', { html: glyph(p?.via ? 'card' : 'wallet') }), h('span', { class: 'mn-pill-t', text: p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
+    paintPay();
     dateBtn.querySelector('.mn-date-t').textContent = f.d === today() ? W('今天', 'Today') : dayLabel(f.d, { week: false, year: f.d.slice(0, 4) !== today().slice(0, 4) });
     invRow.hidden = !f.inv;
     if (f.inv) invRow.replaceChildren(h('button', { class: 'mn-invbtn', type: 'button', onclick: () => import('./invoices.mjs').then(m => m.openInvoice(f.inv)) }, [h('span', { html: glyph('receipt') }), h('span', { text: `${f.inv.no.slice(0, 2)}-${f.inv.no.slice(2)}${f.inv.items?.length ? W(` · ${f.inv.items.length} 項`, ` · ${f.inv.items.length} items`) : ''}` }), h('i', { html: icons.chevron })]));
+  }
+  function paintPay() {
+    const p = payOf(f.a, f.via);
+    payBtn.replaceChildren(h('span', { html: glyph(p?.via ? 'card' : 'wallet') }), h('span', { class: 'mn-pill-t', text: p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
   }
   function acctPick(field, label) {
     const a = acct(f[field]);
@@ -190,6 +249,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   // The keypad.
   const press = k => {
     tick();
+    f.auto = false;
     if (k === 'back') f.expr = f.expr.slice(0, -1);
     else if (k === 'clear') f.expr = '';
     else if (k === '+' || k === '−') f.expr = f.expr ? f.expr.replace(/[+−]$/, '') + k : '';
@@ -236,8 +296,28 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     state.day = f.d;
     state.month = f.d.slice(0, 7);
     s.close();
+    if (!was && (f.k === 'out' || f.k === 'in') && suggest(rec)) return saved();
     toast(was ? W('已更新', 'Updated') : W('記好了', 'Saved'));
     saved();
+  }
+
+  // A new entry that's the usual again (the same amount, or the same way to
+  // pay, most times lately): offered once as the category's own default.
+  function suggest(rec) {
+    const id = rec.sub || rec.cat;
+    const own = b.cats?.[id] && !b.cats[id].del ? b.cats[id] : {};
+    const asked = b.opt?.asked || {};
+    const u = usualFor(b, { k: rec.k, cat: rec.cat, sub: rec.sub }, today());
+    const name = catName(subOf(rec.sub) || catOf(rec.cat), lang);
+    const amtHit = !(own.amt > 0 || own.unit > 0) && !asked[`${id}|amt`] && u.amts[0]?.amt === rec.amt && u.amts[0].n >= 4 && u.amts[0].n / u.of >= 0.5;
+    const payHit = !own.pay?.a && !asked[`${id}|pay`] && u.pay && u.pay.a === rec.a && u.pay.via === (rec.via || '') && u.pay.n >= 4 && u.pay.n / u.of >= 0.8;
+    if (!amtHit && !payHit) return false;
+    const what = amtHit ? 'amt' : 'pay';
+    b.opt = { ...b.opt, asked: { ...asked, [`${id}|${what}`]: 1 } };
+    b.st = Math.round(Date.now() / 1000);
+    const text = amtHit ? W(`${name} 常是 ${money(rec.amt)}`, `${name} is often ${money(rec.amt)}`) : W(`${name} 常用 ${payOf(rec.a, rec.via)?.label || ''}`, `${name} is usually ${payOf(rec.a, rec.via)?.label || ''}`);
+    toast(text, { ms: 7000, action: { label: W('設為預設', 'Make default'), onTap: () => (saveCat(b, amtHit ? { id, amt: rec.amt, unit: 0 } : { id, pay: { a: rec.a, via: rec.via || '' } }), saved(), toast(W(`下次選 ${name} 會自動帶入`, `Filled in next time you pick ${name}`))) } });
+    return true;
   }
 
   const lead = was
@@ -259,7 +339,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     lead,
     detent: 'large',
     cls: 'mn-entry',
-    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, subs, moveRow, pills, noteIn, invRow],
+    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, catDots, subs, unitRow, moveRow, pills, noteIn, invRow],
     foot: pad
   });
   paint();

@@ -22,12 +22,13 @@ for (let i = 0; i < 26; i++) {
   for (let j = 0; j < (i % 3) + 1; j++) {
     const [cat, amt, note, sub] = spend[(i + j) % spend.length];
     const a = ['cash', 'a3', 'a2', 'a1'][(i + j) % 4];
-    put(b, 'entries', { id: `e${n++}`, d, k: 'out', amt: amt + ((i * 7) % 40), cat, sub, note, a, via: a === 'a1' ? 'c1' : '', to: '', t: now - i * 86_400_000 + j }, now);
+    put(b, 'entries', { id: `e${n++}`, d, k: 'out', amt: amt + (sub === 'food:breakfast' ? (i % 2) * 14 : (i * 7) % 40), cat, sub, note, a, via: a === 'a1' ? 'c1' : '', to: '', t: now - i * 86_400_000 + j }, now);
   }
 }
 put(b, 'entries', { id: 'e-sal', d: addDays(day, -20), k: 'in', amt: 52000, cat: 'salary', note: '十月薪水', a: 'a1', via: '', to: '', t: now }, now);
 put(b, 'entries', { id: 'inv-AB12345678', d: addDays(day, -2), k: 'out', amt: 85, cat: 'food', note: '全家便利商店', a: 'cash', via: '', to: '', inv: { no: 'AB12345678', day: addDays(day, -2), sid: '16446274', seller: '全家便利商店', total: 85, items: [{ name: '拿鐵', qty: 1, price: 55 }, { name: '茶葉蛋', qty: 1, price: 30 }] }, t: now }, now);
 put(b, 'entries', { id: 'e-tpass', d: addDays(day, -12), k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', note: '', a: 'a1', via: 'c1', to: '', t: now }, now);
+put(b, 'cats', { id: 'transport:youbike', pay: { a: 'a2', via: '' }, unit: 5 }, now);
 put(b, 'budgets', { id: 'b-all', cat: '', amt: 20000 }, now);
 put(b, 'budgets', { id: 'b-food', cat: 'food', amt: 6000 }, now);
 b.carrier = { code: '/ABC1234', u: now };

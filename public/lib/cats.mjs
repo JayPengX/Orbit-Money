@@ -96,6 +96,15 @@ export const catOf = id => {
 };
 export const subOf = id => (id && table.get(id)?.parent ? table.get(id) : null);
 export const isBuiltIn = id => BUILT.has(id);
+// What picking it fills in (Jay 2026-10-27: YouBike always on his 儲值卡, NT$5
+// a unit; TPASS always the same price): { pay: { a, via }, amt, unit }, a
+// sub's own over its category's; nothing until the person sets it.
+export function defaultsOf(cat, sub = '') {
+  const c = table.get(cat) || {};
+  const x = (sub && table.get(sub)?.parent === cat && table.get(sub)) || {};
+  const amtOf = r => (r.unit > 0 ? { unit: r.unit, amt: 0 } : r.amt > 0 ? { amt: r.amt, unit: 0 } : null);
+  return { pay: x.pay?.a ? x.pay : c.pay?.a ? c.pay : null, ...(amtOf(x) || amtOf(c) || { amt: 0, unit: 0 }) };
+}
 export const catsFor = kind => catList(kind === 'in' ? 'in' : 'out');
 
 // ---- Changing them ------------------------------------------------------------------

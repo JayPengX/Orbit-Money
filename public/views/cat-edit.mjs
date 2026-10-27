@@ -6,7 +6,8 @@
 import { h, icons, tile, sheet, segmented, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
 import { catList, catOf, subsOf, subOf, catName, glyph, usesOf, saveCat, addCat, moveCat, mergeCat, removeCat, isBuiltIn, catUndo, useCats, CAT_ICONS, CAT_COLORS } from '../lib/cats.mjs';
-import { state, W, lang, saved } from '../shell.mjs';
+import { state, W, lang, saved, money, acct, card } from '../shell.mjs';
+import { payOptions } from './entry.mjs';
 
 const changed = () => (useCats(state.books.cats), saved());
 
@@ -78,7 +79,7 @@ export function openCats(kind = 'out') {
     const subs = subsOf(id, { all: true });
     const subRows = subs.map(x =>
       h('button', { class: `q-ritem mn-row mn-subrow${x.hidden ? ' mn-hiddencat' : ''}`, type: 'button', onclick: e => actions(e.currentTarget, x) }, [
-        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(x, lang) }), x.hidden ? h('small', { text: W('已隱藏', 'Hidden') }) : null]),
+        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(x, lang) }), x.hidden || defText(x) ? h('small', { text: x.hidden ? W('已隱藏', 'Hidden') : defText(x) }) : null]),
         h('span', { class: 'mn-more', 'aria-hidden': 'true', text: '⋯' })
       ])
     );
@@ -88,6 +89,7 @@ export function openCats(kind = 'out') {
       head,
       c.hidden ? h('div', { class: 'mn-closed-note' }, [h('span', { text: W('已隱藏：記帳時不會出現，紀錄還在', 'Hidden: off the picker, history kept') }), h('button', { class: 'q-btn tinted small', type: 'button', text: W('顯示', 'Show'), onclick: () => (saveCat(b, { id, hidden: false }), changed(), paint()) })]) : null,
       looks,
+      h('div', { class: 'q-rowcard' }, [h('button', { class: 'q-ritem chevron mn-row mn-defrow', type: 'button', onclick: () => openDefaults(c, paint) }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('自動帶入', 'Fill in') }), h('small', { text: defText(c) || W('付款方式、金額', 'Way to pay, amount') })])])]),
       h('section', { class: 'q-section' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: W('細項', 'Subs') })]), subs.length ? h('div', { class: 'q-rowcard' }, subRows) : h('p', { class: 'mn-hint', text: W('還沒有細項。', 'No subs yet.') })])
       ].filter(Boolean)
     );
@@ -108,6 +110,7 @@ export function openCats(kind = 'out') {
         const name = await nameAsk(W('名稱', 'Name'), catName(c, lang));
         if (name && name !== c.zh) (saveCat(b, { id: c.id, zh: name }), changed(), paint());
       } } : null,
+      sub ? { label: W('自動帶入⋯', 'Fill in…'), onClick: () => openDefaults(c, paint) } : null,
       at > 0 ? { label: W('往前移', 'Move up'), onClick: () => (moveCat(b, c.id, -1), changed(), paint()) } : null,
       at < sibs.length - 1 ? { label: W('往後移', 'Move down'), onClick: () => (moveCat(b, c.id, 1), changed(), paint()) } : null,
       { label: c.hidden ? W('顯示', 'Show') : W('隱藏', 'Hide'), onClick: () => (saveCat(b, { id: c.id, hidden: !c.hidden }), changed(), paint()) },
@@ -142,6 +145,60 @@ export function openCats(kind = 'out') {
 
   paint();
   return s;
+}
+
+// What picking it fills in, in a few words ('' none): 「悠遊卡 · NT$5 一單位」.
+function defText(c) {
+  const pay = c.pay?.a && acct(c.pay.a) ? (c.pay.via && card(c.pay.via) ? `${acct(c.pay.a).name} · ${card(c.pay.via).name}` : acct(c.pay.a).name) : '';
+  const amt = c.unit > 0 ? W(`${money(c.unit)} 一單位`, `${money(c.unit)} a unit`) : c.amt > 0 ? W(`固定 ${money(c.amt)}`, `always ${money(c.amt)}`) : '';
+  return [pay, amt].filter(Boolean).join(' · ');
+}
+
+// 自動帶入: the way to pay and the amount a category (or a sub) fills in when
+// it's picked. Nothing until the person sets it; the entry can still change both.
+function openDefaults(c, done) {
+  const b = state.books;
+  const f = { pay: c.pay?.a ? { a: c.pay.a, via: c.pay.via || '' } : null, mode: c.unit > 0 ? 'unit' : c.amt > 0 ? 'amt' : 'none', n: String(c.unit || c.amt || '') };
+  const payBtn = h('button', { class: 'mn-pill', type: 'button' });
+  const paintPay = () => payBtn.replaceChildren(h('span', { class: 'mn-pill-t', text: (f.pay && payOptions({ all: true }).find(o => o.a === f.pay.a && o.via === f.pay.via)?.label) || W('不指定', 'Any') }), h('i', { html: icons.chevron }));
+  payBtn.onclick = e => menu(e.currentTarget, [{ label: W('不指定', 'Any'), icon: f.pay ? '' : '✓', onClick: () => ((f.pay = null), paintPay()) }, ...payOptions({ keep: f.pay ? [f.pay.a, f.pay.via] : [] }).map(o => ({ label: o.label, icon: f.pay?.a === o.a && f.pay?.via === o.via ? '✓' : '', onClick: () => ((f.pay = { a: o.a, via: o.via }), paintPay()) }))]);
+  paintPay();
+  const num = h('input', { class: 'q-field num', type: 'text', inputmode: 'numeric', maxlength: '7', placeholder: 'NT$', value: f.n, 'aria-label': W('金額', 'Amount') });
+  num.addEventListener('input', () => (f.n = num.value));
+  const hint = h('p', { class: 'mn-hint' });
+  const paintMode = () => {
+    num.hidden = f.mode === 'none';
+    hint.textContent = f.mode === 'unit' ? W('記帳時點 ×1、×2 就算好。', 'Tap ×1, ×2… when recording.') : f.mode === 'amt' ? W('每次都填這個金額。', 'The same amount every time.') : W('選它時自動填好，還是可以改。', 'Filled in when picked; still changeable.');
+  };
+  const modes = segmented(
+    [
+      { id: 'none', label: W('不帶入', 'None') },
+      { id: 'amt', label: W('固定金額', 'Fixed') },
+      { id: 'unit', label: W('每單位', 'Per unit') }
+    ],
+    { value: f.mode, label: W('金額', 'Amount'), onChange: m => ((f.mode = m), paintMode(), m !== 'none' && num.focus()) }
+  );
+  paintMode();
+  const field = (label, ctl) => h('div', { class: 'mn-field' }, [h('span', { class: 'mn-field-l', text: label }), ctl]);
+  const s = sheet({
+    title: W(`${catName(c, lang)} 自動帶入`, `${catName(c, lang)}: fill in`),
+    body: [h('div', { class: 'mn-form' }, [field(W('付款方式', 'Paid with'), payBtn), field(W('金額', 'Amount'), modes), num, hint])],
+    foot: h('div', { class: 'q-sheet-foot' }, [
+      h('button', {
+        class: 'q-btn primary',
+        type: 'button',
+        text: W('儲存', 'Save'),
+        onclick: () => {
+          const v = Math.round(Number(String(f.n).replace(/[^\d]/g, '')) || 0);
+          if (f.mode !== 'none' && !(v > 0)) return toast(W('請填金額', 'Fill in the amount'), { tone: 'bad' });
+          saveCat(b, { id: c.id, pay: f.pay, amt: f.mode === 'amt' ? v : 0, unit: f.mode === 'unit' ? v : 0 });
+          changed();
+          s.close();
+          done();
+        }
+      })
+    ])
+  });
 }
 
 // A name typed in a small sheet of its own (the keyboard rule keeps it above the keys).

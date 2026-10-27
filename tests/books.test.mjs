@@ -148,3 +148,21 @@ test('removed with its history, then 復原 puts every record back', () => {
   assert.deepEqual(B.balances(b), { cash: 1800, bank: 88500, cc: -3000, save: 100000 });
   assert.equal(b.accts.cc.pay, 'bank');
 });
+
+test('a category’s usual amounts and way to pay, from its own history', () => {
+  const b = B.emptyBooks();
+  const add = (id, d, amt, a, sub = 'food:breakfast') => B.put(b, 'entries', { id, d, k: 'out', amt, cat: 'food', sub, a }, T);
+  add('a', '2026-10-20', 34, 'cash');
+  add('b', '2026-10-21', 34, 'cash');
+  add('c', '2026-10-22', 55, 'cash');
+  add('d', '2026-10-23', 55, 'card');
+  add('e', '2026-10-24', 34, 'cash');
+  add('f', '2026-10-25', 120, 'cash', 'food:lunch');
+  add('g', '2026-01-01', 99, 'cash');
+  add('h', '2026-01-02', 99, 'cash');
+  const u = B.usualFor(b, { k: 'out', cat: 'food', sub: 'food:breakfast' }, '2026-10-27');
+  assert.deepEqual(u.amts, [{ amt: 34, n: 3 }, { amt: 55, n: 2 }]);
+  assert.deepEqual(u.pay, { a: 'cash', via: '', n: 4 });
+  assert.equal(u.of, 5);
+  assert.equal(B.usualFor(b, { k: 'out', cat: 'food' }, '2026-10-27').of, 6);
+});

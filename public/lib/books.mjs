@@ -343,6 +343,36 @@ export function cardBill(books, card, today) {
   return { closed, opened, bill, paid, left: Math.max(0, bill - paid), due };
 }
 
+// ---- What's usual ------------------------------------------------------------------
+
+// A category's (or a sub's) usual amounts and way to pay, from the last 120
+// days of the person's own entries (Jay 2026-10-27: breakfast is often NT$34,
+// the bread): amounts seen at least twice, most often first (the newer of two
+// as often); the way to pay used most, with how many of how many. Only ever
+// offered, never filled in by itself.
+export function usualFor(books, { k, cat, sub = '' }, today, { days = 120, max = 4 } = {}) {
+  const from = addDays(today, -days);
+  const list = live(books.entries)
+    .filter(e => e.k === k && e.cat === cat && (!sub || e.sub === sub) && e.d >= from && e.d <= today)
+    .sort((a, b) => b.d.localeCompare(a.d) || (b.t || 0) - (a.t || 0));
+  const amts = new Map();
+  const pays = new Map();
+  list.forEach((e, i) => {
+    const x = amts.get(e.amt) || { amt: e.amt, n: 0, last: i };
+    x.n++;
+    amts.set(e.amt, x);
+    const key = `${e.a}|${e.via || ''}`;
+    pays.set(key, (pays.get(key) || 0) + 1);
+  });
+  const top = [...pays].sort((a, b) => b[1] - a[1])[0];
+  return {
+    of: list.length,
+    amts: [...amts.values()].filter(x => x.n >= 2).sort((a, b) => b.n - a.n || a.last - b.last).slice(0, max).map(x => ({ amt: x.amt, n: x.n })),
+    pay: top ? { a: top[0].split('|')[0], via: top[0].split('|')[1], n: top[1] } : null,
+    last: list.slice(0, 6)
+  };
+}
+
 // ---- Merging and saving ------------------------------------------------------------
 
 // Two copies made one: each record the one changed last; the settings the newer

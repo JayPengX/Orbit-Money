@@ -8,7 +8,7 @@ import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, tota
 import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { catName, glyph, lookOf, subsOf, guessCat, guessSub } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, logoFor, card } from '../shell.mjs';
-import { entryRow, openEntry, payOptions, catTiles, subChips } from './entry.mjs';
+import { entryRow, openEntry, payOptions, catTiles, subChips, pageDots } from './entry.mjs';
 
 // An account's picture: its brand's logo, else its kind's tile.
 export function acctTile(a, size = 40) {
@@ -89,7 +89,7 @@ function acctRow(a, balance) {
   const cards = cardsOf(a.id);
   // (Short: the balance needs its room on a 320 px phone.)
   const one = cards.length === 1 ? cards[0] : null;
-  const sub = a.closed ? W('已封存', 'Put away') : !a.inTotal ? W('不計入總資產', 'Not in the total') : cards.length > 1 ? W(`${cards.length} 種付款方式`, `${cards.length} ways to pay`) : one ? one.name : a.kind === 'credit' && a.due ? W(`每月 ${a.due} 日繳款`, `due day ${a.due}`) : '';
+  const sub = a.closed ? W('已封存', 'Put away') : !a.inTotal ? W('不計入總資產', 'Not in the total') : cards.length > 1 ? W(`${cards.length} 種付款方式`, `${cards.length} ways to pay`) : one ? one.name : a.kind === 'credit' && a.due ? W(`${a.due} 日繳款`, `due on the ${a.due}`) : '';
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openAccount(a.id) }, [
     acctTile(a),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: a.name }), sub ? h('small', { text: sub }) : null]),
@@ -487,7 +487,13 @@ export function openRepeat(r) {
         // (What it is first: the name is what the list shows.)
         field(W('名稱', 'Name'), noteIn),
         field(W('金額', 'Amount'), amtIn),
-        f.k !== 'move' ? field(W('分類', 'Category'), h('div', { class: 'mn-cats', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())))) : null,
+        f.k !== 'move'
+          ? (() => {
+              const grid = h('div', { class: 'mn-cats', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())));
+              requestAnimationFrame(() => grid.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }));
+              return field(W('分類', 'Category'), h('div', {}, [grid, pageDots(grid)]));
+            })()
+          : null,
         f.k !== 'move' && subsOf(f.cat).length ? h('div', { class: 'mn-subs', role: 'group', 'aria-label': W('細項', 'Sub-category') }, subChips(f.cat, f.sub, id => ((f.sub = id), paint()))) : null,
         field(f.k === 'move' ? W('從', 'From') : f.k === 'in' ? W('存入', 'Into') : W('付款方式', 'Paid with'), pick('a', f.k === 'move')),
         f.k === 'move' ? field(W('到', 'To'), pick('to', true)) : null,
