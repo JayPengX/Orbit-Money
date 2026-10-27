@@ -393,3 +393,15 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-form input[type='date'] { width: 100%; min-width: 0; max-width: 100%; }
 .mn-weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .mn-weekdays .mn-subchip { padding: 0; font-size: 13px; }
+/* 到期提醒 (views/renew.mjs). */
+.mn-renew-open { border: 0; background: none; padding: 0; text-align: left; color: inherit; font: inherit; }
+.mn-pass-head { display: grid; gap: 4px; padding: 4px 0 16px; text-align: center; }
+.mn-pass-status { font: 700 22px/28px var(--q-font-rounded); }
+.mn-pass-status.soon { color: var(--q-red); }
+.mn-pass-row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 8px; }
+.mn-pass-row .q-field { min-height: 44px; }
+.mn-pass-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: var(--q-r-cell); background: var(--q-surface); }
+.mn-pass-switch .mn-field-l { color: var(--q-label); font: 500 16px/20px var(--q-font); }
+.mn-pass-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.mn-pass-chips[hidden] { display: none; }
+.mn-pass-when { display: grid; gap: 10px; }

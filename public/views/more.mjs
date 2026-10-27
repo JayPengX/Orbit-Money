@@ -5,8 +5,9 @@
 // once one is, it lives in 統計), the accounts put away (when there are any), the books as a file.
 import { h, toast } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
-import { catList, catName, subOf, catOf, glyph } from '../lib/cats.mjs';
-import { state, W, today, acctName, card, allAccounts } from '../shell.mjs';
+import { catList, catName, subOf, catOf, glyph, passes } from '../lib/cats.mjs';
+import { openRenewals } from './renew.mjs';
+import { state, W, lang, today, dayLabel, acctName, card, allAccounts } from '../shell.mjs';
 import { scanInvoice, invoiceState, wonCard, openInvoices, openBarcode } from './invoices.mjs';
 import { importCarrier } from './carrier-import.mjs';
 import { readPicture } from './read.mjs';
@@ -34,6 +35,7 @@ export function renderMore(box) {
   const reps = repeatsOf();
   const closed = allAccounts().filter(a => a.closed);
   const cats = catList('out').length + catList('in').length;
+  const pass = passes(state.books, today(), { all: true })[0];
   const tool = (label, value, onclick) => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), h('span', { class: 'q-ritem-value num', text: value })]);
   const tools = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('工具', 'Tools') })]),
@@ -41,6 +43,8 @@ export function renderMore(box) {
       tool(W('發票對獎', 'Invoices'), inv.count ? W(`${inv.count} 張`, `${inv.count}`) : W('自動對獎', 'Auto-checked'), () => openInvoices()),
       tool(W('手機條碼', 'Barcode'), carrier || W('未設定', 'Not set'), () => openBarcode()),
       tool(W('分類', 'Categories'), W(`${cats} 個`, `${cats}`), () => openCats()),
+      // (TPASS and anything else that lasts a while: when it ends, when to be told.)
+      tool(W('到期提醒', 'Renewals'), pass ? `${catName(subOf(pass.sub) || catOf(pass.cat), lang)} ${pass.end ? dayLabel(pass.end, { week: false }) : W('未設定', 'not set')}` : '', () => openRenewals()),
       // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
       tool(W('固定收支', 'Repeats'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : '', () => openRepeats()),
       live(state.books.budgets).length ? null : tool(W('預算', 'Budget'), '', () => openBudgets()),

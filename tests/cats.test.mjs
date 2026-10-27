@@ -148,3 +148,32 @@ test('digital things land in 數位: Claude, Cloudflare, Steam', () => {
   assert.equal(C.guessSub('digital', 'Claude.ai subscription'), 'digital:ai');
   assert.equal(C.guessCat('威秀影城'), 'fun');
 });
+
+test('到期提醒 settings: a start day set by hand wins while it’s the latest; when the notices go out', () => {
+  const b = sample();
+  C.useCats(b.cats);
+  // Nothing logged: every kind listed with `all`, none shown otherwise.
+  const empty = B.emptyBooks();
+  assert.equal(C.passes(empty, '2026-10-27').length, 0);
+  assert.deepEqual(C.passes(empty, '2026-10-27', { all: true }).map(p => [p.id, p.end]), [['transport:tpass', '']]);
+  // Set by hand (bought before the books): it counts from there.
+  C.saveCat(b, { id: 'transport:tpass', start: '2026-10-10' });
+  C.useCats(b.cats);
+  let [p] = C.passes(b, '2026-10-27');
+  assert.equal(p.src, 'set');
+  assert.equal(p.end, '2026-11-08');
+  // A newer one logged takes over; a spend's own `from` (first ridden later) moves it.
+  B.put(b, 'entries', { id: 'e9', d: '2026-11-08', k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', a: 'cash', from: '2026-11-09' }, T);
+  [p] = C.passes(b, '2026-11-09');
+  assert.equal(p.src, 'entry');
+  assert.equal(p.end, '2026-12-08');
+  // Defaults: the evening before and that morning; turned off: none.
+  assert.deepEqual(C.remindTimes(p).map(x => new Date(x.at).toISOString()), ['2026-12-07T12:00:00.000Z', '2026-12-08T00:00:00.000Z']);
+  C.saveCat(b, { id: 'transport:tpass', remind: { on: true, at: [3] } });
+  C.useCats(b.cats);
+  assert.deepEqual(C.remindTimes(p).map(x => x.n), [3]);
+  C.saveCat(b, { id: 'transport:tpass', remind: { on: false, at: [3] } });
+  C.useCats(b.cats);
+  assert.equal(C.remindTimes(p).length, 0);
+  C.useCats({});
+});

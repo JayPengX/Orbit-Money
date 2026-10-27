@@ -33,7 +33,7 @@ export function renderAccts(box) {
   });
   const add = h('button', { class: 'q-btn tinted block mn-add', type: 'button', onclick: () => openAccountEdit(null) }, [h('span', { html: icons.plus }), W('新增帳戶', 'Add an account')]);
 
-  box.replaceChildren(hero, ...groups.filter(Boolean), owedSection(), add);
+  box.replaceChildren(hero, ...[...groups, owedSection()].filter(Boolean), add);
 }
 
 // 朋友還沒給: a friend's share of a spend not handed over yet; a tap says

@@ -25,7 +25,8 @@ Live: https://orbit.jaypengx.com/money/
   bring older books up on open (退款 income → money back for its likeliest
   spend; 訂閱/遊戲 from 娛樂 to 數位). 到期提醒: a sub with `days` (TPASS 30)
   counts down on 月曆 and sends a notice (`renew`) the evening before and the
-  morning of its last day. Every record has `u`; a removal is a tombstone kept 120
+  morning of its last day; 更多 › 到期提醒 (views/renew.mjs) sets the start day
+  (shows where it comes from), the days, and when to be told. Every record has `u`; a removal is a tombstone kept 120
   days; two devices merge record by record, newest `u` wins. Stored on the
   Pass as `m1:` + gzip base64 (`orbit-money`, 1 MB).
 - **發票** (`lib/invoice.mjs`, tested): both QR codes of a paper

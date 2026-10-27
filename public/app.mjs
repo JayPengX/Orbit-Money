@@ -12,10 +12,9 @@
 import * as kitUI from '#kit/ui.mjs';
 import { passSync } from '#kit/pass-sync.mjs';
 import { orbitSession, tabBar, topActions, installGate, watchUpdates, keepOffline, storedAccount, cachedPayload, schedulePush, setNotifyOn, enablePush } from '#kit/orbit.mjs';
-import { addDays } from '#kit/format.mjs';
 import { decodeBooks, encodeBooks, mergeBooks, runRepeats, upgradeBooks, put } from './lib/books.mjs';
 import { state, hooks, lang, W, today, dayLabel } from './shell.mjs';
-import { useCats, upgradeCats, passes, catOf, subOf, catName } from './lib/cats.mjs';
+import { useCats, upgradeCats, passes, remindTimes, catOf, subOf, catName } from './lib/cats.mjs';
 import { renderCal } from './views/calendar.mjs';
 import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
@@ -74,16 +73,17 @@ document.addEventListener('visibilitychange', () => document.visibilityState ===
 hooks.changed = () => (stamp++, pass.changed(), keepLocal(), sync({ soon: true }), render(), plan());
 
 // 到期提醒 as phone notices (kind 'renew', its switch in the Pass sheet): each
-// pass the evening before its last day and that morning, Taiwan time.
+// pass at the times its own settings say (更多 › 到期提醒, lib/cats.mjs remindTimes).
 function plan() {
   const now = Date.now();
   const items = passes(state.books, today()).filter(p => p.left >= 0).flatMap(p => {
-    const name = catName(subOf(p.e.sub) || catOf(p.e.cat), lang);
+    const name = catName(subOf(p.sub) || catOf(p.cat), lang);
     const last = dayLabel(p.end, { week: false });
-    return [
-      { at: Date.parse(`${addDays(p.end, -1)}T20:00:00+08:00`), title: W(`${name} 明天到期`, `${name} ends tomorrow`), body: W(`${last}是最後一天，記得續購。`, `${last} is its last day.`), tag: `renew:${p.id}:${p.end}:1`, kind: 'renew', hash: 'cal' },
-      { at: Date.parse(`${p.end}T08:00:00+08:00`), title: W(`${name} 今天到期`, `${name} ends today`), body: W('今天是最後一天。', 'Today is its last day.'), tag: `renew:${p.id}:${p.end}:0`, kind: 'renew', hash: 'cal' }
-    ];
+    return remindTimes(p).map(({ n, at }) =>
+      n
+        ? { at, title: W(n === 1 ? `${name} 明天到期` : `${name} ${n} 天後到期`, n === 1 ? `${name} ends tomorrow` : `${name} ends in ${n} days`), body: W(`${last}是最後一天，記得續購。`, `${last} is its last day.`), tag: `renew:${p.id}:${p.end}:${n}`, kind: 'renew', hash: 'cal' }
+        : { at, title: W(`${name} 今天到期`, `${name} ends today`), body: W('今天是最後一天。', 'Today is its last day.'), tag: `renew:${p.id}:${p.end}:0`, kind: 'renew', hash: 'cal' }
+    );
   });
   schedulePush(q, items.filter(x => x.at > now));
 }

@@ -9,7 +9,8 @@ import { notifyOn } from '#kit/orbit.mjs';
 import { addDays } from '#kit/format.mjs';
 import { dayOffAt, myPlace } from '#kit/dayoff.mjs';
 import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState, lines } from '../lib/books.mjs';
-import { passes, catOf, subOf, catName, glyph } from '../lib/cats.mjs';
+import { passes, remindOf, catOf, subOf, catName, glyph } from '../lib/cats.mjs';
+import { openPass } from './renew.mjs';
 import { state, hooks, W, en, lang, money, short, monthLabel, dayLabel, today } from '../shell.mjs';
 import { entryRow, openEntry } from './entry.mjs';
 
@@ -97,7 +98,7 @@ export function renderCal(box) {
     daySec = next;
   };
 
-  box.replaceChildren(hero, renewals(b, now), h('div', { class: 'mn-cal-card' }, [calHead, grid]), daySec);
+  box.replaceChildren(...[hero, renewals(b, now)].filter(Boolean), h('div', { class: 'mn-cal-card' }, [calHead, grid]), daySec);
 }
 
 // 到期提醒 (Jay 2026-10-27: when the TPASS needs renewing, with a notice):
@@ -107,17 +108,17 @@ function renewals(b, now) {
   const list = passes(b, now);
   if (!list.length) return null;
   const rows = list.map(p => {
-    const look = subOf(p.e.sub) || catOf(p.e.cat);
-    const name = catName(look, lang);
+    const name = catName(subOf(p.sub) || catOf(p.cat), lang);
     const when = p.left > 0 ? W(`還有 ${p.left} 天`, `${p.left} day${p.left === 1 ? '' : 's'} left`) : p.left === 0 ? W('今天到期', 'Ends today') : W('已到期', 'Ended');
-    const ask = !notifyOn() && p.left >= 0;
+    const ask = !notifyOn() && p.left >= 0 && remindOf(p.id).on;
+    // (The row opens its settings: the start day and where it's from, the days, when to be told.)
     return h('div', { class: `q-ritem mn-row mn-renew${p.left <= 2 ? ' soon' : ''}` }, [
-      tile(glyph(catOf(p.e.cat).icon), catOf(p.e.cat).color),
-      h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: `${name} ${when}` }), h('small', { text: W(`${dayLabel(p.end, { week: false })}到期`, `Ends ${dayLabel(p.end, { week: false })}`) })]),
+      tile(glyph(catOf(p.cat).icon), catOf(p.cat).color),
+      h('button', { class: 'q-ritem-text mn-renew-open', type: 'button', onclick: () => openPass(p.id) }, [h('span', { class: 'q-ritem-title', text: `${name} ${when}` }), h('small', { text: [W(`${dayLabel(p.end, { week: false })}到期`, `Ends ${dayLabel(p.end, { week: false })}`), remindOf(p.id).on ? '' : W('不提醒', 'No reminder')].filter(Boolean).join(' · ') })]),
       // (Notices off: turned on from here first. The next one starts the day after this one ends.)
       ask
         ? h('button', { class: 'q-btn tinted small', type: 'button', text: W('提醒我', 'Remind me'), onclick: async () => (await hooks.notices?.()) && render() })
-        : h('button', { class: 'q-btn tinted small', type: 'button', text: W('續購', 'Renew'), onclick: () => openEntry({ cat: p.e.cat, sub: p.e.sub, day: p.left >= 0 ? addDays(p.end, 1) : now }) })
+        : h('button', { class: 'q-btn tinted small', type: 'button', text: W('續購', 'Renew'), onclick: () => openEntry({ cat: p.cat, sub: p.sub, day: p.left >= 0 ? addDays(p.end, 1) : now }) })
     ]);
   });
   return h('div', { class: 'q-rowcard mn-renews' }, rows);

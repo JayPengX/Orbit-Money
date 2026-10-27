@@ -28,7 +28,7 @@ export function entryRow(e, { day = false, inAcct = false, inCat = false, line =
   const what = fine ? catName(fine, lang) : inCat ? '' : catName(look, lang);
   const fee = line ? 0 : feeOf(e);
   // (A transfer's fee in its title: an ATM withdrawal's NT$15.)
-  const title = e.k === 'move' && fee && !e.note ? W(`轉帳 · 手續費 ${money(fee)}`, `Transfer · ${money(fee)} fee`) : titleOf(e);
+  const title = e.k === 'move' && fee && !e.note ? W(`轉帳 · 手續費 ${plain(fee)}`, `Transfer · fee ${plain(fee)}`) : titleOf(e);
   // (The category under a note or a store, so a row always says what it was.)
   const named = e.note || e.inv?.seller || line?.fee;
   // What came back for it, and its fee, in a few words.
@@ -36,7 +36,7 @@ export function entryRow(e, { day = false, inAcct = false, inCat = false, line =
   // (Said instead of how it was paid, so the line stays one line.)
   const extra = [got ? W(`退回 ${money(got)}`, `${money(got)} back`) : '', fee && e.k === 'out' ? W(`手續費 ${money(fee)}`, `fee ${money(fee)}`) : ''].filter(Boolean);
   const paid = extra.length ? extra.join(' · ') : inAcct ? state.books.cards?.[e.via]?.name || '' : inCat ? '' : payLabel(e);
-  const sub = [day ? dayLabel(e.d, { week: false }) : '', line?.fee || (named && e.k !== 'move' && e.k !== 'adj' && !e.also?.length) ? what : '', paid].filter(Boolean).join(' · ');
+  const sub = [day ? dayLabel(e.d, { week: false }) : '', line?.fee || (named && e.k !== 'move' && e.k !== 'adj' && !e.also?.length && !extra.length) ? what : '', paid].filter(Boolean).join(' · ');
   const sign = e.k === 'in' ? 'in' : e.k === 'out' ? 'out' : 'move';
   // (A spend: what it came to, less what came back, its fee with it.)
   const cost = line ? line.amt : e.k === 'out' ? Math.max(0, e.amt - got) + fee : e.amt;

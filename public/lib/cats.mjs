@@ -120,26 +120,55 @@ export function daysOf(cat, sub = '') {
 
 // ---- 到期提醒 ------------------------------------------------------------------------
 
-// What's bought for a while (a TPASS) and when it runs out: the latest of each
-// kind (one logged ahead counts: renewed), its last day (`days` from its own
-// day), and the days left (0 its last day, below 0 run out). Shown until a
-// week after it ran out. Soonest first.
+// What's bought for a while (a TPASS 30 days): a category or sub with `days`.
+// Each kind's own settings in books.cats: start (the day the current one
+// began, set by hand: one bought before the books, or first ridden later
+// than bought), remind { on, at: days before its last day, 0 that morning }.
+export const passKinds = () => [...table.values()].filter(c => Number(c.days) > 0 && !c.hidden);
+export function remindOf(id) {
+  const r = table.get(id)?.remind;
+  return { on: r?.on !== false, at: Array.isArray(r?.at) ? r.at.filter(n => [0, 1, 3].includes(n)) : [1, 0] };
+}
+// Each kind's current one: from the latest of its spends (its own `from`, the
+// day it began, else its day) or the start set by hand, whichever is later;
+// its last day and the days left (0 its last day, below 0 run out). Shown
+// until a week after it ran out (`all`: every kind, started or not). Soonest first.
 const dayGap = (a, b) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86_400_000);
-export function passes(books, today) {
+const kindOf = (cat, sub) => (sub && table.get(sub)?.parent === cat && Number(table.get(sub).days) ? sub : cat);
+export function passes(books, today, { all = false } = {}) {
   const last = new Map();
   for (const e of live(books.entries)) {
-    if (e.k !== 'out') continue;
-    const days = daysOf(e.cat, e.sub);
-    if (!days) continue;
-    const id = e.sub && table.get(e.sub)?.parent === e.cat && Number(table.get(e.sub).days) ? e.sub : e.cat;
-    const was = last.get(id);
-    if (!was || e.d > was.e.d) last.set(id, { id, e, days });
+    if (e.k !== 'out' || !daysOf(e.cat, e.sub)) continue;
+    const id = kindOf(e.cat, e.sub);
+    const start = e.from || e.d;
+    if (!last.has(id) || start > last.get(id).start) last.set(id, { id, e, start, src: 'entry' });
   }
-  return [...last.values()]
-    .map(x => ({ ...x, end: addDays(x.e.d, x.days - 1), left: dayGap(today, addDays(x.e.d, x.days - 1)) }))
-    .filter(x => x.left >= -7)
-    .sort((a, b) => a.left - b.left);
+  const out = [];
+  for (const k of passKinds()) {
+    let x = last.get(k.id) || null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k.start || '') && (!x || k.start > x.start)) x = { id: k.id, e: x?.e || null, start: k.start, src: 'set' };
+    const cat = k.parent || k.id;
+    const sub = k.parent ? k.id : '';
+    if (!x) {
+      if (all) out.push({ id: k.id, cat, sub, days: Number(k.days), start: '', end: '', left: null, src: '', e: null });
+      continue;
+    }
+    const end = addDays(x.start, Number(k.days) - 1);
+    const left = dayGap(today, end);
+    if (all || left >= -7) out.push({ ...x, cat, sub, days: Number(k.days), end, left });
+  }
+  return out.sort((a, b) => (a.left ?? 9999) - (b.left ?? 9999));
 }
+
+// When a kind's notices go out (ms, Taiwan time): each day before its last
+// day it's set to remind, at 20:00; its last day itself at 08:00.
+export const remindTimes = p =>
+  !p?.end || !remindOf(p.id).on
+    ? []
+    : remindOf(p.id)
+        .at.slice()
+        .sort((a, b) => b - a)
+        .map(n => ({ n, at: Date.parse(n ? `${addDays(p.end, -n)}T20:00:00+08:00` : `${p.end}T08:00:00+08:00`) }));
 
 // ---- Changing them ------------------------------------------------------------------
 // (Each a change to the books; the caller saves. Nothing with history is ever
