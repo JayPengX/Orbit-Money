@@ -30,7 +30,7 @@ Live: https://orbit.jaypengx.com/money/
   the app (`views/carrier-import.mjs`) or mailed to the Pass's own
   address (`<box>@MAIL_DOMAIN`, the Worker's `money-mail.js`) and added on
   the next open: the person sets that address as the 手機條碼's email on
-  the platform with 消費發票彙整通知 on, so 財政部 mails it weekly by itself;
+  the platform with 消費發票彙整通知 on, so 財政部 mails it monthly by itself;
   財政部's check of the address shows in the app as 完成驗證. Each invoice is `inv-<number>`, so nothing comes in twice.
   The category is guessed from the store and items (`lib/cats.mjs guessCat`).
 - **Proxy** (`https://invoice.orbit/…` through `proxyJson`, Orbit-Core
