@@ -17,7 +17,6 @@ import { renderCal } from './views/calendar.mjs';
 import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
 import { renderInvoices, loadDraws } from './views/invoices.mjs';
-import { openEntry } from './views/entry.mjs';
 import { checkMail } from './views/carrier-import.mjs';
 
 document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
@@ -105,7 +104,6 @@ const quietRefresh = () => {
 };
 
 // The add button, over every tab but 發票.
-const fab = kitUI.h('button', { class: 'mn-fab', type: 'button', 'data-q-fab': '', 'aria-label': W('記一筆', 'Add'), html: kitUI.icons.plus, onclick: () => openEntry({ day: state.tab === 'cal' ? state.day : today() }) });
 
 window.__fxStarted = true;
 const gated = installGate('money', lang);
@@ -118,7 +116,6 @@ async function boot() {
   const show = () => {
     if (!state.loaded) {
       state.loaded = true;
-      document.body.append(fab);
       openFromHash(true);
     } else render();
     kitUI.ready(Promise.resolve());

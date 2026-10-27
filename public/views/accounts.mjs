@@ -9,7 +9,6 @@ import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { catsFor, catOf, catName, glyph, lookOf } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, cardsOf, logoFor, card } from '../shell.mjs';
 import { entryRow, openEntry, payOptions } from './entry.mjs';
-import { oldSection } from './old-import.mjs';
 
 // An account's picture: its brand's logo, else its kind's tile.
 export function acctTile(a, size = 40) {
@@ -64,7 +63,7 @@ export function renderAccts(box) {
         )
       : h('p', { class: 'mn-hint', text: W('房租、薪水、訂閱⋯每期自動記好。', 'Rent, pay, subscriptions: recorded for you each time.') })
   ]);
-  box.replaceChildren(hero, ...groups.filter(Boolean), add, repSec, oldSection());
+  box.replaceChildren(hero, ...groups.filter(Boolean), add, repSec);
 }
 
 const fig = (label, value) => h('div', { class: 'mn-fig' }, [h('small', { text: label }), h('b', { class: 'num q-fit', text: value })]);

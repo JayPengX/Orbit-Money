@@ -13,7 +13,9 @@ import { state, W, en, lang, money, dayLabel, today, saved, acct, allAccounts, c
 export function entryRow(e, { day = false } = {}) {
   const look = lookOf(e);
   const title = e.note || e.inv?.seller || (e.k === 'move' ? W('轉帳', 'Transfer') : e.k === 'adj' ? W('調整餘額', 'Balance fix') : catName(look, lang));
-  const sub = [day ? dayLabel(e.d, { week: false }) : '', payLabel(e)].filter(Boolean).join(' · ');
+  // (The category under a note or a store, so a row always says what it was.)
+  const named = e.note || e.inv?.seller;
+  const sub = [day ? dayLabel(e.d, { week: false }) : '', named && e.k !== 'move' && e.k !== 'adj' ? catName(look, lang) : '', payLabel(e)].filter(Boolean).join(' · ');
   const sign = e.k === 'in' ? 'in' : e.k === 'out' ? 'out' : 'move';
   const amt = e.k === 'in' ? money(e.amt, { sign: true }) : e.k === 'adj' ? money(e.amt, { sign: true }) : money(e.amt);
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openEntry({ entry: e }) }, [
