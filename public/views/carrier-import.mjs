@@ -106,7 +106,7 @@ export async function newAddress() {
   if (r) state.mail = mailOf(r);
   return Boolean(r);
 }
-const mailOf = r => ({ address: r.address || '', note: r.note || null, got: r.got || null });
+const mailOf = r => ({ address: r.address || '', note: r.note || null, got: r.got || null, fwd: r.fwd || '', sent: r.sent || null });
 
 // Where mail-in stands, for 更多's row and the sheet: 'off' (address not
 // given yet), 'check' (財政部's check of the address is here to tap), 'wait'
@@ -190,6 +190,22 @@ export async function openMailSetup() {
   const status = h('div', { class: 'mn-mailstate' });
   const steps = h('ol', { class: 'mn-msteps' });
   const note = h('div');
+  // The person's own inbox: 財政部's mail is copied there, so giving the
+  // platform this address loses nothing.
+  const fwdIn = h('input', { class: 'mn-fwd-in', type: 'email', inputmode: 'email', autocomplete: 'email', placeholder: W('你的信箱（選填）', 'Your email (optional)'), value: state.mail?.fwd || '' });
+  const fwdNote = h('small', { class: 'mn-fwd-note' });
+  const fwdSave = h('button', { class: 'q-btn glass mn-fwd-save', type: 'button', text: W('儲存', 'Save') });
+  fwdSave.onclick = async () => {
+    const to = fwdIn.value.trim();
+    fwdSave.disabled = true;
+    const r = await workerJson('/money-mail', 'op=fwd', { body: JSON.stringify({ to }) });
+    fwdSave.disabled = false;
+    if (!r || r.error) return toast(W('這個信箱不行', 'That address won’t work'), { tone: 'bad' });
+    state.mail = { ...state.mail, fwd: r.fwd || '', sent: null };
+    toast(r.fwd ? W('之後財政部的信也會寄一份到這裡', 'Ministry mail will be copied there') : W('不再轉寄', 'Copies off'));
+    paint();
+  };
+  const fwd = h('div', { class: 'mn-fwd' }, [h('span', { class: 'mn-field-l', text: W('也寄一份到我的信箱', 'Also send a copy to my inbox') }), h('div', { class: 'mn-fwd-row' }, [fwdIn, fwdSave]), fwdNote]);
   const foot = h('div', { class: 'q-sheet-foot' });
   const copy = () =>
     navigator.clipboard?.writeText(m().address).then(
@@ -233,6 +249,12 @@ export async function openMailSetup() {
       step(given, copied && !given, W('到電子發票平台貼上', 'Paste it on the e-invoice platform'), h('small', { text: W('用手機條碼登入，把手機條碼的電子信箱改成這個地址，再打開「消費發票彙整通知」（明細寄到這個信箱）', 'Sign in with your barcode, change its email to this address, then turn on the invoice summary (it goes to that email)') })),
       step(stage === 'on' || (n?.link && stage !== 'check'), stage === 'check', W('點財政部的驗證信', 'Tap the Ministry’s check'), h('small', { text: n?.link ? (n.code ? W(`驗證碼 ${n.code}`, `Code ${n.code}`) : n.subject || '') : W('驗證信會直接出現在這裡', 'It shows up right here') }))
     );
+    const { fwd: to, sent } = m();
+    fwdNote.textContent = !to
+      ? W('財政部的信（中獎通知等）照樣收得到', 'Keep getting the Ministry’s mail (prize notices too)')
+      : sent && !sent.ok
+        ? W('轉寄還沒開通，信都有記下，開通後會寄', 'Copies aren’t on yet; mail is still recorded')
+        : W(`財政部的信會寄一份到 ${to}`, `The Ministry’s mail is copied to ${to}`);
     // 財政部's other mail (a prize notice) once it's set up: shown, never lost.
     note.replaceChildren(...(stage === 'on' && n && n.at > got.at - 1 ? [h('a', { class: 'mn-mailnote', href: n.link || PLATFORM, target: '_blank', rel: 'noopener' }, [h('small', { text: W('財政部來信', 'From the Ministry') }), h('span', { text: n.subject || W('打開', 'Open') })])] : []));
     const [label, act, cls] =
@@ -251,6 +273,7 @@ export async function openMailSetup() {
     body: [
       status,
       steps,
+      fwd,
       note,
       h('p', { class: 'mn-hint' }, [
         W('這個地址只屬於你的 Orbit Pass，只收財政部的明細。', 'The address is your Orbit Pass’s alone and only reads the Ministry’s invoices. '),

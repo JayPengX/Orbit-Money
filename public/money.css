@@ -362,3 +362,10 @@ h1, h2, h3, p { margin: 0; }
 /* A new account's kind: four across, one row. */
 .mn-kinds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .mn-kinds .q-chip { justify-content: center; min-width: 0; padding-inline: 4px; }
+/* Mail-in: the person's own inbox for 財政部's mail. */
+.mn-fwd { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 10px; padding: 0 4px; }
+.mn-fwd-row { display: flex; gap: 8px; }
+.mn-fwd-in { flex: 1; width: 0; min-width: 0; height: 44px; padding: 0 12px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); font: 16px/22px var(--q-font); }
+.mn-fwd-save { flex: none; width: auto; min-width: 0; padding: 0 16px; }
+.mn-fwd-row > * { margin: 0; }
+.mn-fwd-note { color: var(--q-label-2); font: var(--q-t-footnote); }

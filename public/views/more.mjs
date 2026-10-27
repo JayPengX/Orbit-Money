@@ -15,7 +15,7 @@ import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
 
 export function renderMore(box) {
   const way = (glyphName, label, onclick, value = '', tone = '') => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'mn-addrow-i mn-quiet', html: glyph(glyphName) }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), value ? h('span', { class: `q-ritem-value ${tone}`.trim(), text: value }) : null]);
-  // Mail-in first: set once, the 載具's invoices then come by themselves every week.
+  // Mail-in first: set once, the 載具's invoices then come by themselves every month.
   const stage = mailStage();
   // Bringing purchases in without typing: a plain section like the tools
   // below (Jay 10-27: no display headline), the scan button, then the other ways.
