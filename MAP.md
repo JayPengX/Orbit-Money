@@ -27,7 +27,8 @@ Live: https://orbit.jaypengx.com/money/
   membership or card fee, each with its start, how long it lasts, whether it
   renews itself, the category whose spend restarts it, and when to be told;
   `upgradeRenew` turns the old TPASS setting into the first item. Due ones show
-  on 月曆 and become notices (`renew`); 更多 › 到期提醒 (views/renew.mjs) edits them. Every record has `u`; a removal is a tombstone kept 120
+  on 月曆 and become notices (`renew`, at its own time of day `tm`, 08:00 unless set);
+  更多 › 到期提醒 (views/renew.mjs) edits them. Every record has `u`; a removal is a tombstone kept 120
   days; two devices merge record by record, newest `u` wins. Stored on the
   Pass as `m1:` + gzip base64 (`orbit-money`, 1 MB).
 - **發票** (`lib/invoice.mjs`, tested): both QR codes of a paper

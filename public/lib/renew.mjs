@@ -8,7 +8,8 @@
 //          out and is renewed by hand (a TPASS: the reminder is for its last
 //          day). cat, sub: a spend logged there starts a new one (its `from`,
 //          the day it began, else its day). on, at: told or not, and how many
-//          days before (0: that morning).
+//          days before (0: that day). tm: the time of day it's told ('HH:MM';
+//          Jay 2026-10-27: his to choose, by 20:00 he's home, too late to renew).
 import { addDays } from '#kit/format.mjs';
 import { live, put, monthDays } from './books.mjs';
 
@@ -17,6 +18,7 @@ export const UNITS = ['day', 'month', 'year'];
 export const CYCLES = [[7, 'day'], [30, 'day'], [90, 'day'], [1, 'month'], [3, 'month'], [6, 'month'], [1, 'year']];
 export const AT = [7, 3, 1, 0];
 export const DEFAULT_AT = [1, 0];
+export const DEFAULT_TM = '08:00';
 
 // `day` moved on by n days, months (the same date, the month's last when
 // it's shorter) or years.
@@ -70,8 +72,10 @@ export const reminders = (books, today) =>
 
 // How many days before it's told (0 that morning), largest first.
 export const atOf = r => (Array.isArray(r?.at) ? r.at : DEFAULT_AT).filter(n => AT.includes(n)).sort((a, b) => b - a);
-// When the phone is told (ms, Taiwan time): each day before at 20:00, the day itself at 08:00.
-export const remindTimes = (r, s) => (r?.on === false || !s?.due ? [] : atOf(r).map(n => ({ n, day: addDays(s.due, -n), at: Date.parse(n ? `${addDays(s.due, -n)}T20:00:00+08:00` : `${s.due}T08:00:00+08:00`) })));
+// The time of day it's told, the one set or 08:00.
+export const tmOf = r => (/^([01]\d|2[0-3]):[0-5]\d$/.test(r?.tm || '') ? r.tm : DEFAULT_TM);
+// When the phone is told (ms, Taiwan time): each day picked, at its time of day.
+export const remindTimes = (r, s) => (r?.on === false || !s?.due ? [] : atOf(r).map(n => ({ n, day: addDays(s.due, -n), at: Date.parse(`${addDays(s.due, -n)}T${tmOf(r)}:00+08:00`) })));
 
 // Renewed by hand (no spend to log): the next one starts the day after this one ends.
 export const renewedBy = (r, s) => (s?.due ? (r.roll ? s.due : addDays(s.due, 1)) : '');

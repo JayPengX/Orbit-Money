@@ -7,7 +7,7 @@ import { h, icons, tile, sheet, toggle, toast, tick, menu } from '#kit/ui.mjs';
 import { ask, notifyOn } from '#kit/orbit.mjs';
 import { addDays } from '#kit/format.mjs';
 import { put, drop } from '../lib/books.mjs';
-import { reminders, standing, renewedBy, CYCLES, AT, DEFAULT_AT } from '../lib/renew.mjs';
+import { reminders, standing, renewedBy, CYCLES, AT, DEFAULT_AT, tmOf } from '../lib/renew.mjs';
 import { catList, catOf, subOf, catName, glyph } from '../lib/cats.mjs';
 import { state, hooks, W, lang, money, dayLabel, today, saved } from '../shell.mjs';
 
@@ -62,7 +62,7 @@ export function openReminder(id, done = () => {}) {
   const b = state.books;
   const was = id && b.renew?.[id] && !b.renew[id].del ? b.renew[id] : null;
   const now = today();
-  const f = { name: was?.name || '', start: was?.start || '', n: Number(was?.n) || 30, unit: was?.unit || 'day', roll: Boolean(was?.roll), cat: was?.cat || '', sub: was?.sub || '', on: was?.on !== false, at: new Set(Array.isArray(was?.at) ? was.at : DEFAULT_AT) };
+  const f = { name: was?.name || '', start: was?.start || '', n: Number(was?.n) || 30, unit: was?.unit || 'day', roll: Boolean(was?.roll), cat: was?.cat || '', sub: was?.sub || '', on: was?.on !== false, at: new Set(Array.isArray(was?.at) ? was.at : DEFAULT_AT), tm: tmOf(was) };
   // Where it would stand as the sheet is now (the start shown: the one in force, a spend's too).
   const st = () => standing(b, f, now);
   f.start = st().start || f.start;
@@ -87,6 +87,11 @@ export function openReminder(id, done = () => {}) {
   // (The times are rows of the same card, under its switch.)
   const onRow = h('div', { class: 'q-ritem mn-rm-row' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('提醒我', 'Remind me') })]), onSw]);
   const times = h('div', { class: 'q-rowcard mn-rm-card' });
+  // The time of day, one for each day picked (the phone's own clock picker).
+  const tmIn = h('input', { class: 'mn-date', type: 'time', value: f.tm, 'aria-label': W('提醒時間', 'Time') });
+  tmIn.addEventListener('change', () => ((f.tm = /^\d\d:\d\d$/.test(tmIn.value) ? tmIn.value : f.tm), paint()));
+  const tmV = h('span', { class: 'q-ritem-value num' });
+  const tmRow = h('label', { class: 'q-ritem mn-rm-row chevron mn-rm-date' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('提醒時間', 'Time') })]), tmV, tmIn]);
 
   const text = (title, small = null) => h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: title }), small]);
   const row = (title, value, { small = null, onclick = null, cls = '' } = {}) => h(onclick ? 'button' : 'div', { class: `q-ritem mn-rm-row${onclick ? ' chevron' : ''} ${cls}`.trim(), ...(onclick ? { type: 'button', onclick } : {}) }, [text(title, small), value]);
@@ -120,15 +125,17 @@ export function openReminder(id, done = () => {}) {
     linkV.textContent = linkName(f) || W('不跟著', 'None');
     rollSub.textContent = f.roll ? W('像訂閱、年費，會自己扣款', 'Like a subscription') : W('到期要自己續，像 TPASS', 'Renewed by hand, like a TPASS');
     // Each time it can tell, its day beside it; the picked ones ticked in the accent.
+    tmV.textContent = f.tm;
     times.replaceChildren(
       onRow,
+      ...(f.on ? [tmRow] : []),
       ...(!f.on ? [] : AT).map(n => {
         const on = f.at.has(n);
-        const what = n === 0 ? W('當天早上', 'That morning') : W(`前 ${n} 天晚上`, `${n} day${n === 1 ? '' : 's'} before`);
+        const what = n === 0 ? W('當天', 'That day') : W(`前 ${n} 天`, `${n} day${n === 1 ? '' : 's'} before`);
         return h('button', { class: 'q-ritem mn-rm-row mn-rm-at', type: 'button', role: 'checkbox', 'aria-checked': String(on), onclick: () => (tick(), on ? f.at.delete(n) : f.at.add(n), paint()) }, [
           h('span', { class: 'mn-rm-check', html: on ? icons.check : '' }),
           text(what),
-          h('span', { class: 'q-ritem-value num', text: s.due ? `${md(addDays(s.due, -n))} ${n ? '20:00' : '08:00'}` : '' })
+          h('span', { class: 'q-ritem-value num', text: s.due ? `${md(addDays(s.due, -n))} ${f.tm}` : '' })
         ]);
       }),
       // (This phone hasn't allowed notices: asked from here.)
@@ -175,7 +182,7 @@ export function openReminder(id, done = () => {}) {
           const name = f.name.trim() || linkName(f);
           if (!name) return toast(W('請取個名字', 'Give it a name'), { tone: 'bad' }), nameIn.focus();
           const cur = st();
-          put(b, 'renew', { ...(was || {}), name, start: f.start, n: f.n, unit: f.unit, roll: f.roll, cat: f.cat, sub: f.sub, on: f.on, at: [...f.at].sort((x, y) => y - x) });
+          put(b, 'renew', { ...(was || {}), name, start: f.start, n: f.n, unit: f.unit, roll: f.roll, cat: f.cat, sub: f.sub, on: f.on, at: [...f.at].sort((x, y) => y - x), tm: f.tm });
           // (A start moved later than the spend it follows: that spend began then, ridden later than bought.)
           if (cur.src === 'entry' && f.start && f.start > cur.e.d) put(b, 'entries', { ...b.entries[cur.e.id], from: f.start });
           s.close();
