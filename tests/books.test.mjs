@@ -190,3 +190,19 @@ test('自動加值: a spend that sets it off brings the reload in from the card 
   B.put(b, 'accts', { ...b.accts.ez, reload: { ...b.accts.ez.reload, on: false } }, T);
   assert.equal(spend('r4', 5000), 0);
 });
+
+test('自動加值 with nothing behind it: the card’s balance goes up, nobody else’s, not income or spending', () => {
+  const b = sample();
+  B.put(b, 'accts', { id: 'ez', name: '悠遊卡', kind: 'ticket', open: 50, inTotal: true, reload: { on: true, from: '', amt: 500, below: 100 } }, T);
+  const before = B.balances(b);
+  const t0 = B.totals(b, '2026-10-01', '2026-10-31');
+  const e = B.put(b, 'entries', { id: 'm1', d: '2026-10-25', k: 'out', amt: 15, cat: 'transport', a: 'ez' }, T);
+  assert.equal(B.autoReload(b, e, T), 500);
+  assert.equal(b.entries['m1-r'].k, 'adj');
+  const after = B.balances(b);
+  assert.equal(after.ez, 535);
+  assert.equal(after.cc, before.cc);
+  const t1 = B.totals(b, '2026-10-01', '2026-10-31');
+  assert.equal(t1.in, t0.in);
+  assert.equal(t1.out, t0.out + 15);
+});

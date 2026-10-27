@@ -11,7 +11,8 @@
 //            wallet (電子支付: 悠遊付, LINE Pay…); other, from before, shows as wallet.
 //            open: the balance when it was added (a credit card's: what it owed, negative).
 //            inTotal: counted in the 總資產. brand: a logo key (brands.mjs).
-//            reload: a stored-value card's 自動加值 { on, from, amt, below } (autoReload).
+//            reload: a stored-value card's 自動加值 { on, from, amt, below } (autoReload;
+//            from '': nobody in the books pays, the balance just goes up).
 //            A credit card's pay: the account its bill is paid from; close / due: its
 //            statement and payment days of the month. closed: when it was put
 //            away (封存): out of every picker, its entries and balance kept.
@@ -357,12 +358,17 @@ export function autoReload(books, e, now = Date.now()) {
   for (const r of live(books.entries)) if (r.for === e.id) drop(books, 'entries', r.id, now);
   const a = books.accts[e.a];
   const r = a?.reload;
-  if (!e || e.del || e.k !== 'out' || !r?.on || !(r.amt > 0) || !books.accts[r.from] || books.accts[r.from].del || r.from === a.id) return 0;
+  // (No account behind it, left empty: paid by someone not in the books, a
+  // parent's card (Jay 2026-10-27). The card's balance just goes up: neither
+  // spending nor income.)
+  const outside = !r?.from || !books.accts[r.from] || books.accts[r.from].del;
+  if (!e || e.del || e.k !== 'out' || !r?.on || !(r.amt > 0) || r.from === a.id) return 0;
   const bal = balances(books, e.d)[a.id];
   if (bal + e.amt >= (Number(r.below) || 0) && bal >= 0) return 0;
   let n = 1;
   while (bal + n * r.amt < 0 && n < 20) n++;
-  put(books, 'entries', { id: `${e.id}-r`, d: e.d, k: 'move', amt: n * r.amt, cat: '', note: '', a: r.from, via: '', to: a.id, auto: 'reload', for: e.id, t: (e.t || now) - 1 }, now);
+  const base = { id: `${e.id}-r`, d: e.d, amt: n * r.amt, via: '', auto: 'reload', for: e.id, t: (e.t || now) - 1 };
+  put(books, 'entries', outside ? { ...base, k: 'adj', cat: '', note: '', a: a.id, to: '' } : { ...base, k: 'move', cat: '', note: '', a: r.from, to: a.id }, now);
   return n * r.amt;
 }
 

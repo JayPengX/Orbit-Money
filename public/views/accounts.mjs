@@ -379,7 +379,8 @@ export function openAccountEdit(a, host = null) {
       f.kind === 'credit'
         ? h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [{ label: W('不設定', 'None'), onClick: () => ((f.pay = ''), paint()) }, ...openAccounts().filter(x => x.kind === 'bank' && x.id !== a?.id).map(x => ({ label: x.name, icon: x.id === f.pay ? '✓' : '', onClick: () => ((f.pay = x.id), paint()) }))]) }, [h('span', { class: 'mn-pill-t', text: f.pay ? acctName(f.pay) : W('選銀行帳戶', 'Choose a bank account') }), h('i', { html: icons.chevron })])
         : null;
-    const reloadFrom = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, openAccounts().filter(x => x.id !== a?.id && (x.kind === 'bank' || x.kind === 'credit')).map(x => ({ label: x.name, icon: x.id === rl.from ? '✓' : '', onClick: () => ((rl.from = x.id), paint()) }))) }, [h('span', { class: 'mn-pill-t', text: rl.from && acct(rl.from) ? acctName(rl.from) : W('選信用卡或帳戶', 'Choose a card or account') }), h('i', { html: icons.chevron })]);
+    // (Left empty: nobody in the books pays, a parent's card; the balance just goes up. Jay 2026-10-27.)
+    const reloadFrom = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [{ label: W('不設定', 'None'), icon: rl.from ? '' : '✓', onClick: () => ((rl.from = ''), paint()) }, ...openAccounts().filter(x => x.id !== a?.id && (x.kind === 'bank' || x.kind === 'credit')).map(x => ({ label: x.name, icon: x.id === rl.from ? '✓' : '', onClick: () => ((rl.from = x.id), paint()) }))]) }, [h('span', { class: 'mn-pill-t', text: rl.from && acct(rl.from) ? acctName(rl.from) : W('不設定，只加餘額', 'None: just the balance') }), h('i', { html: icons.chevron })]);
     body.replaceChildren(
       ...[
         kindPick ? field(W('種類', 'Kind'), kindPick) : null,
@@ -388,7 +389,7 @@ export function openAccountEdit(a, host = null) {
         isNew ? field(f.kind === 'credit' ? W('目前欠款', 'Owed now') : W('目前餘額', 'Balance now'), openIn) : null,
         f.kind === 'credit' ? field(W('繳款帳戶', 'Paid from'), payPick) : null,
         f.kind === 'credit' ? h('div', { class: 'mn-two' }, [field(W('結帳日（每月）', 'Statement day'), closeIn), field(W('繳款截止日', 'Due day'), dueIn)]) : null,
-        f.kind === 'ticket' || f.kind === 'wallet' ? h('div', { class: 'mn-switch-row' }, [h('span', {}, [h('b', { text: W('自動加值', 'Auto top-up') }), h('small', { text: W('餘額不足時從綁定的卡加值', 'Tops up from a linked card') })]), reloadOn]) : null,
+        f.kind === 'ticket' || f.kind === 'wallet' ? h('div', { class: 'mn-switch-row' }, [h('span', {}, [h('b', { text: W('自動加值', 'Auto top-up') }), h('small', { text: W('餘額不足時自動加值', 'Tops up when it runs low') })]), reloadOn]) : null,
         (f.kind === 'ticket' || f.kind === 'wallet') && rl.on ? field(W('從哪裡加值', 'Topped up from'), reloadFrom) : null,
         (f.kind === 'ticket' || f.kind === 'wallet') && rl.on ? h('div', { class: 'mn-two' }, [field(W('每次加值', 'Each time'), reloadAmt), field(W('餘額低於', 'When under'), reloadBelow)]) : null,
         h('div', { class: 'mn-switch-row' }, [h('span', {}, [h('b', { text: W('計入總資產', 'Count in net worth') }), h('small', { text: W('定存、別人的錢可以關掉', 'Off for savings or others’ money') })]), counted])
@@ -402,8 +403,7 @@ export function openAccountEdit(a, host = null) {
     const rec = { ...(a || {}), kind: f.kind, brand: f.brand, name, inTotal: f.inTotal, pay: f.kind === 'credit' ? f.pay : '', close: f.kind === 'credit' ? day(f.close) : '', due: f.kind === 'credit' ? day(f.due) : '' };
     const whole = v => Math.max(0, Math.round(Number(String(v).replace(/[^\d]/g, '')) || 0));
     if (f.kind === 'ticket' || f.kind === 'wallet') {
-      if (rl.on && !acct(rl.from)) return toast(W('請選從哪裡加值', 'Choose where it tops up from'), { tone: 'bad' });
-      rec.reload = rl.on ? { on: true, from: rl.from, amt: whole(rl.amt) || 500, below: whole(rl.below) } : a?.reload ? { ...a.reload, on: false } : undefined;
+      rec.reload = rl.on ? { on: true, from: acct(rl.from) ? rl.from : '', amt: whole(rl.amt) || 500, below: whole(rl.below) } : a?.reload ? { ...a.reload, on: false } : undefined;
     } else delete rec.reload;
     if (isNew) {
       const v = Math.round(Number(String(f.open).replace(/[^\d.-]/g, '')) || 0);
