@@ -94,7 +94,7 @@ export async function checkMail({ force = false } = {}) {
     const pay = lastPay();
     if (fresh.length) {
       addInvoices(fresh, { a: pay?.a || 'cash', via: pay?.via || '' });
-      toast(W(`載具匯入 ${fresh.length} 筆`, `${fresh.length} carrier invoices added`));
+      toast(W(`載具匯入 ${fresh.length} 筆`, `${fresh.length} carrier invoice${fresh.length === 1 ? '' : 's'} added`));
       saved();
     }
     await workerJson('/money-mail', 'op=took', { body: JSON.stringify({ upto: Math.max(...items.map(i => i.at || 0)) }) });

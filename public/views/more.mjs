@@ -20,7 +20,7 @@ export function renderMore(box) {
   // The focal point open on the page: bringing a purchase in without typing.
   const hero = h('section', { class: 'q-focus mn-focus' }, [
     h('span', { class: 'q-focus-label', text: W('帶入消費，不用打字', 'Bring purchases in') }),
-    brought.length ? h('b', { class: 'q-focus-value q-fit', text: W(`${brought.length} 張發票`, `${brought.length} invoices`) }) : h('b', { class: 'q-focus-value q-words q-fit', text: W('店家、金額、品項', 'Store, total, items') }),
+    brought.length ? h('b', { class: 'q-focus-value q-fit', text: W(`${brought.length} 張發票`, `${brought.length} invoice${brought.length === 1 ? '' : 's'}`) }) : h('b', { class: 'q-focus-value q-words q-fit', text: W('店家、金額、品項', 'Store, total, items') }),
     h('span', { class: 'q-focus-sub', text: brought.length ? W(`這個月帶入 · ${money(total)}`, `this month · ${money(total)}`) : W('自動填好，記下前先看過', 'filled in for you to check') }),
     h('button', { class: 'q-btn primary block mn-scanbtn', type: 'button', onclick: () => scanInvoice() }, [h('span', { class: 'mn-btn-glyph', html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')])
   ]);
