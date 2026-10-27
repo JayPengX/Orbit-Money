@@ -76,7 +76,7 @@ function addInvoices(list, pay) {
 // ---- By mail ------------------------------------------------------------------------
 // The account's own address (the Worker's money-mail.js), given to the 電子發票
 // 平台 as the 手機條碼's email with 消費發票彙整通知 on: the platform mails the
-// 載具's invoices there every week by itself, and they go straight into the
+// 載具's invoices there every month by itself, and they go straight into the
 // books the next time the app opens (paid from the account last used), then
 // are dropped from the box. state.mail: { address, note, got } once asked
 // (note: 財政部's last mail without invoices, such as the check of the
@@ -126,7 +126,7 @@ export function mailStage(m = state.mail || {}) {
 }
 export function mailLabel(m = state.mail || {}) {
   const stage = mailStage(m);
-  if (stage === 'on') return W('每週自動', 'Weekly');
+  if (stage === 'on') return W('每月自動', 'Monthly');
   if (stage === 'check') return W('去驗證', 'Confirm');
   if (stage === 'wait') return W('等第一封信', 'Waiting');
   return W('未設定', 'Not set');
@@ -219,18 +219,18 @@ export async function openMailSetup() {
         h('small', {
           text:
             stage === 'on'
-              ? W(`上次 ${dayLabel(new Date(got.at + 8 * 3600_000).toISOString().slice(0, 10), { week: false })} · ${got.n} 張 · 之後每週自動`, `Last ${dayLabel(new Date(got.at + 8 * 3600_000).toISOString().slice(0, 10), { week: false })} · ${got.n} · weekly now`)
+              ? W(`上次 ${dayLabel(new Date(got.at + 8 * 3600_000).toISOString().slice(0, 10), { week: false })} · ${got.n} 張 · 之後每月自動`, `Last ${dayLabel(new Date(got.at + 8 * 3600_000).toISOString().slice(0, 10), { week: false })} · ${got.n} · monthly now`)
               : stage === 'check'
                 ? W('點下面的「完成驗證」就好', 'Tap “Confirm” below')
                 : given
-                  ? W('財政部每週寄一次明細，到了會自動記好', 'The Ministry mails your invoices weekly; they’ll be added')
-                  : W('設定一次，載具發票每週自動記好', 'Set it once: carrier invoices come in every week')
+                  ? W('財政部每月寄一次明細，到了會自動記好', 'The Ministry mails your invoices monthly; they’ll be added')
+                  : W('設定一次，載具發票每月自動記好', 'Set it once: carrier invoices come in every month')
         })
       ])
     );
     steps.replaceChildren(
       step(copied || given, !copied && !given, W('複製你的專屬地址', 'Copy your own address'), h('button', { class: 'mn-mailbox', type: 'button', onclick: copy }, [h('span', { class: 'q-fit', text: address || W('取得地址中…', 'Getting your address…') }), h('small', { text: W('點一下複製', 'Tap to copy') })])),
-      step(given, copied && !given, W('到電子發票平台貼上', 'Paste it on the e-invoice platform'), h('small', { text: W('用手機條碼登入 ›「個人化設定」：電子信箱換成這個地址，打開「消費發票彙整通知」', 'Sign in with your barcode › personal settings: set this as your email, turn on the weekly invoice summary') })),
+      step(given, copied && !given, W('到電子發票平台貼上', 'Paste it on the e-invoice platform'), h('small', { text: W('用手機條碼登入，把手機條碼的電子信箱改成這個地址，再打開「消費發票彙整通知」（明細寄到這個信箱）', 'Sign in with your barcode, change its email to this address, then turn on the invoice summary (it goes to that email)') })),
       step(stage === 'on' || (n?.link && stage !== 'check'), stage === 'check', W('點財政部的驗證信', 'Tap the Ministry’s check'), h('small', { text: n?.link ? (n.code ? W(`驗證碼 ${n.code}`, `Code ${n.code}`) : n.subject || '') : W('驗證信會直接出現在這裡', 'It shows up right here') }))
     );
     // 財政部's other mail (a prize notice) once it's set up: shown, never lost.
