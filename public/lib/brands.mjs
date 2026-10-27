@@ -53,5 +53,5 @@ export const BRANDS = [
 ];
 const BY_ID = new Map(BRANDS.map(b => [b.id, b]));
 export const brandOf = id => BY_ID.get(id) || null;
-export const brandsFor = kind => BRANDS.filter(b => b.kind === (kind === 'credit' ? 'bank' : kind));
+export const brandsFor = kind => BRANDS.filter(b => (kind === 'credit' ? b.kind === 'bank' : kind === 'wallet' ? b.kind === 'wallet' || b.kind === 'ticket' : b.kind === kind));
 export const logoOf = id => (BY_ID.has(id) && LOGOS.has(id) ? `./img/brand/${id}.png` : '');

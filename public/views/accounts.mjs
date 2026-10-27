@@ -4,7 +4,7 @@
 // entries; a credit card to its bill too.
 import { h, icons, tile, sheet, toggle, toast, empty, segmented, menu } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, totals, nextRepeat, runRepeats, ACCOUNT_KINDS } from '../lib/books.mjs';
+import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, totals, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf } from '../lib/books.mjs';
 import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { catsFor, catOf, catName, glyph, lookOf } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, cardsOf, logoFor, card } from '../shell.mjs';
@@ -31,7 +31,7 @@ export function renderAccts(box) {
     h('div', { class: 'mn-hero-figs two' }, [fig(W('資產', 'Assets'), money(w.assets)), fig(W('負債', 'Debts'), money(w.debts))])
   ]);
   const groups = ACCOUNT_KINDS.map(kind => {
-    const list = all.filter(a => a.kind === kind);
+    const list = all.filter(a => groupOf(a.kind) === kind);
     if (!list.length) return null;
     return h('section', { class: 'q-section' }, [
       h('div', { class: 'q-section-head' }, [h('h2', { text: kindName(kind) })]),
@@ -72,7 +72,7 @@ function acctRow(a, balance) {
   const cards = cardsOf(a.id);
   // (Short: the balance needs its room on a 320 px phone.)
   const one = cards.length === 1 ? cards[0] : null;
-  const sub = !a.inTotal ? W('不計入總資產', 'Not in the total') : cards.length > 1 ? W(`${cards.length} 張簽帳卡`, `${cards.length} debit cards`) : one ? `${W('簽帳卡', 'Debit')}${one.last4 ? ` •${one.last4}` : ''}` : a.kind === 'credit' && a.due ? W(`每月 ${a.due} 日繳款`, `due day ${a.due}`) : '';
+  const sub = !a.inTotal ? W('不計入總資產', 'Not in the total') : cards.length > 1 ? W(`${cards.length} 種付款方式`, `${cards.length} ways to pay`) : one ? `${one.name}${one.last4 ? ` •${one.last4}` : ''}` : a.kind === 'credit' && a.due ? W(`每月 ${a.due} 日繳款`, `due day ${a.due}`) : '';
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openAccount(a.id) }, [
     acctTile(a),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: a.name }), sub ? h('small', { text: sub }) : null]),
@@ -82,7 +82,7 @@ function acctRow(a, balance) {
 
 // ---- One account ----------------------------------------------------------------
 
-export function openAccount(id) {
+export function openAccount(id, host = null) {
   const b = state.books;
   const a = acct(id);
   if (!a) return;
@@ -94,10 +94,10 @@ export function openAccount(id) {
   const bill = a.kind === 'credit' ? cardBill(b, a, now) : null;
   const hero = h('div', { class: 'mn-acct-hero' }, [acctTile(a, 56), h('small', { text: a.kind === 'credit' ? W('目前欠款', 'Owed now') : W('餘額', 'Balance') }), h('b', { class: 'num q-fit', text: money(a.kind === 'credit' ? -bal : bal) })]);
   const facts = h('div', { class: 'q-fig mn-facts' }, [
-    h('div', {}, [h('small', { text: W('本月支出', 'Spent this month') }), h('b', { class: 'num', text: money(month.out) })]),
+    h('div', {}, [h('small', { text: W('本月支出', 'Spent this month') }), h('b', { class: 'num q-fit', text: money(month.out) })]),
     bill
-      ? h('div', {}, [h('small', { text: W('本期帳單', 'This bill') }), h('b', { class: 'num', text: money(bill.left) })])
-      : h('div', {}, [h('small', { text: W('本月收入', 'In this month') }), h('b', { class: 'num', text: money(month.in) })]),
+      ? h('div', {}, [h('small', { text: W('本期帳單', 'This bill') }), h('b', { class: 'num q-fit', text: money(bill.left) })])
+      : h('div', {}, [h('small', { text: W('本月收入', 'In this month') }), h('b', { class: 'num q-fit', text: money(month.in) })]),
     bill?.due ? h('div', {}, [h('small', { text: W('繳款截止', 'Due') }), h('b', { text: dayLabel(bill.due, { week: false }) })]) : null
   ]);
   const actions = h('div', { class: 'mn-actions' }, [
@@ -105,55 +105,88 @@ export function openAccount(id) {
     action('exchange', W('轉帳', 'Transfer'), () => (s.close(), openEntry({ kind: 'move', from: a.id }))),
     a.kind === 'credit' && a.pay && acct(a.pay) ? action('card', W('繳卡費', 'Pay bill'), () => (s.close(), payBill(a, bill))) : null
   ]);
-  const cardSec = a.kind === 'bank' ? cardsSection(a, () => (s.close(), openAccount(id))) : null;
+  const cardSec = a.kind !== 'cash' ? cardsSection(a, () => s) : null;
   const recent = mine.sort((x, y) => y.d.localeCompare(x.d) || (y.t || 0) - (x.t || 0)).slice(0, 40);
   const list = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head' }, [h('h2', { text: W('最近', 'Recent') })]),
-    recent.length ? h('div', { class: 'q-rowcard' }, recent.map(e => entryRow(e, { day: true }))) : h('p', { class: 'mn-hint', text: W('還沒有紀錄', 'Nothing yet') })
+    recent.length ? h('div', { class: 'q-rowcard' }, recent.map(e => entryRow(e, { day: true, inAcct: true }))) : h('p', { class: 'mn-hint', text: W('還沒有紀錄', 'Nothing yet') })
   ]);
-  const edit = h('button', { class: 'q-btn plain small', type: 'button', text: W('編輯', 'Edit'), onclick: () => (s.close(), openAccountEdit(a)) });
-  const s = sheet({ title: a.name, trailing: edit, lead: h('button', { class: 'q-close', type: 'button', 'data-q-close': '', 'aria-label': W('關閉', 'Close'), text: '✕' }), detent: 'large', cls: 'mn-acct', body: [hero, facts, actions, cardSec, list] });
+  const edit = h('button', { class: 'q-btn plain small', type: 'button', text: W('編輯', 'Edit'), onclick: () => openAccountEdit(a, s) });
+  const page = { title: a.name, trailing: edit, lead: h('button', { class: 'q-close', type: 'button', 'data-q-close': '', 'aria-label': W('關閉', 'Close'), text: '✕' }), detent: 'large', cls: 'mn-acct', body: [hero, facts, actions, cardSec, list] };
+  const s = host ? swapPage(host, page) : sheet(page);
+}
+
+// A sheet's page changed in place (編輯 inside an account, and back to it):
+// the person stays in the one sheet, never thrown out to the tab.
+function swapPage(s, { title, lead = null, trailing = null, body = [], foot = null, cls }) {
+  const d = s.el;
+  d.classList.remove('mn-acct', 'mn-acct-edit');
+  d.classList.add(cls);
+  d.classList.toggle('q-has-foot', Boolean(foot));
+  const head = h('div', { class: 'q-sheet-head' }, [lead || h('span'), h('h2', {}, [title]), trailing || h('button', { class: 'q-close', type: 'button', 'data-q-close': '', 'aria-label': W('關閉', 'Close'), text: '✕' })]);
+  d.replaceChildren(head, ...[].concat(body).filter(Boolean), ...(foot ? [foot] : []));
+  d.scrollTop = 0;
+  return s;
 }
 const action = (icon, label, onClick) => h('button', { class: 'mn-action', type: 'button', onclick: onClick }, [h('span', { class: 'mn-action-i', html: glyph(icon) }), h('span', { text: label })]);
 
-function cardsSection(a, reopen) {
+// The ways to pay that sit under an account: a debit card on a bank, Apple
+// Pay or LINE Pay on a credit card… Each is picked by itself when recording,
+// the money still from (or owed on) this account.
+const METHODS = {
+  bank: ['金融卡', 'Apple Pay', 'Google Pay', 'LINE Pay', '街口支付', '全支付'],
+  credit: ['實體卡', 'Apple Pay', 'Google Pay', 'Samsung Pay', 'LINE Pay', '街口支付'],
+  wallet: ['手機付款', '實體卡', 'Apple Pay']
+};
+const methodsFor = a => METHODS[a.kind] || METHODS.wallet;
+const methodNote = a => (a.kind === 'credit' ? W('用它付，記在這張卡', 'Charged to this card') : W('用它付，從這個帳戶扣', 'Paid from this account'));
+
+function cardsSection(a, host) {
   const cards = cardsOf(a.id);
   return h('section', { class: 'q-section' }, [
-    h('div', { class: 'q-section-head' }, [h('h2', { text: W('付款方式', 'Ways to pay') }), h('button', { type: 'button', text: W('新增金融卡', 'Add debit card'), onclick: () => editCard(a, null, reopen) })]),
+    h('div', { class: 'q-section-head' }, [h('h2', { text: W('付款方式', 'Ways to pay') }), h('button', { type: 'button', text: W('新增', 'Add'), onclick: () => editCard(a, null, host()) })]),
     h(
       'div',
       { class: 'q-rowcard' },
       [
-        h('div', { class: 'q-ritem' }, [tile(glyph('exchange'), '#8e8e93'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('轉帳／提款', 'Transfer or ATM') })])]),
+        a.kind === 'bank' ? h('div', { class: 'q-ritem' }, [tile(glyph('exchange'), '#8e8e93'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('轉帳／提款', 'Transfer or ATM') })])]) : null,
         ...cards.map(c =>
-          h('button', { class: 'q-ritem chevron', type: 'button', onclick: () => editCard(a, c, reopen) }, [tile(glyph('card'), '#0088ff'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: `${c.name}${c.last4 ? ` •${c.last4}` : ''}` }), h('small', { text: W('簽帳金融卡：刷了直接從這個帳戶扣', 'Debit card: paid straight from this account') })])])
+          h('button', { class: 'q-ritem chevron', type: 'button', onclick: () => editCard(a, c, host()) }, [tile(glyph('card'), '#0088ff'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: `${c.name}${c.last4 ? ` •${c.last4}` : ''}` }), h('small', { text: methodNote(a) })])])
         ),
         ...allAccounts()
           .filter(x => x.kind === 'credit' && x.pay === a.id)
-          .map(x => h('div', { class: 'q-ritem' }, [acctTile(x), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: x.name }), h('small', { text: W('信用卡：帳單從這個帳戶繳', 'Credit card: its bill is paid from here') })])]))
-      ]
-    )
+          .map(x => h('div', { class: 'q-ritem' }, [acctTile(x), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: x.name }), h('small', { text: W('信用卡：帳單從這個帳戶繳', 'Credit card: its bill is paid from here') })])])),
+        // (None yet: the row that adds one says what goes here.)
+        cards.length || a.kind === 'bank' ? null : h('button', { class: 'q-ritem chevron', type: 'button', onclick: () => editCard(a, null, host()) }, [tile(icons.plus, '#8e8e93'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('新增付款方式', 'Add a way to pay') }), h('small', { text: 'Apple Pay、LINE Pay…' })])])
+      ].filter(Boolean)
+    ),
   ]);
 }
 
-function editCard(a, c, reopen) {
-  const name = h('input', { class: 'q-field', type: 'text', maxlength: '20', placeholder: W('名稱（例如：金融卡）', 'Name (e.g. Debit card)'), value: c?.name || W('金融卡', 'Debit card') });
-  const last4 = h('input', { class: 'q-field', type: 'text', inputmode: 'numeric', maxlength: '4', placeholder: W('末四碼（可不填）', 'Last 4 digits (optional)'), value: c?.last4 || '' });
-  const s = sheet({
-    title: c ? W('金融卡', 'Debit card') : W('新增金融卡', 'Add debit card'),
-    detent: 'medium',
-    body: [h('div', { class: 'mn-form' }, [field(W('名稱', 'Name'), name), field(W('末四碼', 'Last 4'), last4)])],
+// One way to pay, in the account's own sheet (‹ back to it).
+function editCard(a, c, host) {
+  const name = h('input', { class: 'q-field', type: 'text', maxlength: '20', placeholder: W('名稱', 'Name'), value: c?.name || methodsFor(a)[0] });
+  const last4 = h('input', { class: 'q-field', type: 'text', inputmode: 'numeric', maxlength: '4', placeholder: W('可不填', 'Optional'), value: c?.last4 || '' });
+  const chips = h('div', { class: 'q-chips mn-kinds' });
+  const paintChips = () => chips.replaceChildren(...methodsFor(a).map(m => h('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(name.value === m), text: m, onclick: () => ((name.value = m), paintChips()) })));
+  name.addEventListener('input', paintChips);
+  paintChips();
+  const back = () => openAccount(a.id, host);
+  swapPage(host, {
+    title: c ? c.name : W('新增付款方式', 'Add a way to pay'),
+    lead: h('button', { class: 'q-close mn-back', type: 'button', 'aria-label': W('返回', 'Back'), html: icons.chevron, onclick: back }),
+    cls: 'mn-acct-edit',
+    body: [h('div', { class: 'mn-form' }, [chips, field(W('名稱', 'Name'), name), field(W('卡號末四碼', 'Last 4 digits'), last4)])],
     foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [
-      c ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('刪除', 'Delete'), onclick: () => (drop(state.books, 'cards', c.id), s.close(), saved(), reopen()) }) : null,
+      c ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('刪除', 'Delete'), onclick: () => (drop(state.books, 'cards', c.id), saved(), back()) }) : null,
       h('button', {
         class: 'q-btn primary',
         type: 'button',
         text: W('儲存', 'Save'),
         onclick: () => {
-          put(state.books, 'cards', { ...(c || {}), acct: a.id, name: name.value.trim() || W('金融卡', 'Debit card'), last4: last4.value.replace(/\D/g, '').slice(0, 4) });
-          s.close();
+          put(state.books, 'cards', { ...(c || {}), acct: a.id, name: name.value.trim() || methodsFor(a)[0], last4: last4.value.replace(/\D/g, '').slice(0, 4) });
           saved();
-          reopen();
+          back();
         }
       })
     ])
@@ -194,7 +227,7 @@ const payBill = (a, bill) => openEntry({ kind: 'move', amt: bill?.left || 0, not
 
 // ---- Adding or changing an account ----------------------------------------------
 
-export function openAccountEdit(a) {
+export function openAccountEdit(a, host = null) {
   const isNew = !a;
   const f = { kind: a?.kind || 'bank', brand: a?.brand || '', name: a?.name || '', open: '', inTotal: a ? Boolean(a.inTotal) : true, pay: a?.pay || '', close: a?.close || '', due: a?.due || '' };
   const body = h('div', { class: 'mn-form' });
@@ -214,7 +247,7 @@ export function openAccountEdit(a) {
   function paint() {
     const brands = brandsFor(f.kind);
     const kindPick = isNew
-      ? h('div', { class: 'q-chips mn-kinds' }, ACCOUNT_KINDS.map(k => h('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(k === f.kind), text: kindName(k), onclick: () => ((f.kind = k), (f.brand = ''), paint()) })))
+      ? h('div', { class: 'q-chips mn-kinds' }, ACCOUNT_KINDS.filter(k => k !== 'cash').map(k => h('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(k === f.kind), text: kindName(k), onclick: () => ((f.kind = k), (f.brand = ''), paint()) })))
       : null;
     const brandGrid = brands.length
       ? h(
@@ -235,7 +268,7 @@ export function openAccountEdit(a) {
     body.replaceChildren(
       ...[
         kindPick ? field(W('種類', 'Kind'), kindPick) : null,
-        brandGrid ? field(f.kind === 'ticket' ? W('哪一張', 'Which card') : f.kind === 'wallet' ? W('哪一個', 'Which one') : W('銀行', 'Bank'), brandGrid) : null,
+        brandGrid ? field(f.kind === 'wallet' ? W('哪一個', 'Which one') : W('銀行', 'Bank'), brandGrid) : null,
         field(W('名稱', 'Name'), nameIn),
         isNew ? field(f.kind === 'credit' ? W('目前欠款', 'Owed now') : W('目前餘額', 'Balance now'), openIn) : null,
         f.kind === 'credit' ? field(W('繳款帳戶', 'Paid from'), payPick) : null,
@@ -255,8 +288,9 @@ export function openAccountEdit(a) {
       rec.order = allAccounts().length;
     }
     const saved_ = put(state.books, 'accts', rec);
-    s.close();
     saved();
+    if (host) return openAccount(rec.id, host);
+    s.close();
     if (isNew) toast(W(`已新增 ${saved_.name}`, `${saved_.name} added`));
   };
   const remove = async () => {
@@ -265,13 +299,16 @@ export function openAccountEdit(a) {
     s.close();
     saved();
   };
-  const s = sheet({
+  const page = {
     title: isNew ? W('新增帳戶', 'Add an account') : W('編輯帳戶', 'Edit account'),
+    // (Inside an account: ‹ goes back to it.)
+    lead: host ? h('button', { class: 'q-close mn-back', type: 'button', 'aria-label': W('返回', 'Back'), html: icons.chevron, onclick: () => openAccount(a.id, host) }) : null,
     detent: 'large',
     cls: 'mn-acct-edit',
     body: [body],
     foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [a && a.id !== 'cash' ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('刪除', 'Delete'), onclick: remove }) : null, h('button', { class: 'q-btn primary', type: 'button', text: W('儲存', 'Save'), onclick: save })])
-  });
+  };
+  const s = host ? swapPage(host, page) : sheet(page);
 }
 const field = (label, control) => h('label', { class: 'mn-field' }, [h('span', { class: 'mn-field-l', text: label }), control]);
 

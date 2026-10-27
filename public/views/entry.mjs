@@ -10,12 +10,12 @@ import { state, W, en, lang, money, dayLabel, today, saved, acct, allAccounts, c
 
 // ---- A row ----------------------------------------------------------------------
 
-export function entryRow(e, { day = false } = {}) {
+export function entryRow(e, { day = false, inAcct = false } = {}) {
   const look = lookOf(e);
   const title = e.note || e.inv?.seller || (e.k === 'move' ? W('轉帳', 'Transfer') : e.k === 'adj' ? W('調整餘額', 'Balance fix') : catName(look, lang));
   // (The category under a note or a store, so a row always says what it was.)
   const named = e.note || e.inv?.seller;
-  const sub = [day ? dayLabel(e.d, { week: false }) : '', named && e.k !== 'move' && e.k !== 'adj' ? catName(look, lang) : '', payLabel(e)].filter(Boolean).join(' · ');
+  const sub = [day ? dayLabel(e.d, { week: false }) : '', named && e.k !== 'move' && e.k !== 'adj' ? catName(look, lang) : '', inAcct ? state.books.cards?.[e.via]?.name || '' : payLabel(e)].filter(Boolean).join(' · ');
   const sign = e.k === 'in' ? 'in' : e.k === 'out' ? 'out' : 'move';
   const amt = e.k === 'in' ? money(e.amt, { sign: true }) : e.k === 'adj' ? money(e.amt, { sign: true }) : money(e.amt);
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openEntry({ entry: e }) }, [
@@ -32,7 +32,7 @@ export function payOptions({ moving = false } = {}) {
   const out = [];
   for (const a of allAccounts()) {
     out.push({ a: a.id, via: '', label: a.name, sub: kindName(a.kind) });
-    if (!moving) for (const c of cardsOf(a.id)) out.push({ a: a.id, via: c.id, label: `${a.name} · ${c.name}${c.last4 ? ` •${c.last4}` : ''}`, sub: W('簽帳金融卡', 'Debit card') });
+    if (!moving) for (const c of cardsOf(a.id)) out.push({ a: a.id, via: c.id, label: `${a.name} · ${c.name}${c.last4 ? ` •${c.last4}` : ''}`, sub: kindName(a.kind) });
   }
   return out;
 }
@@ -108,31 +108,42 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     }
   );
 
-  function paint() {
+  // The amount alone (each key): the rest of the sheet left as it is, so typing stays quick.
+  function paintAmount() {
     const sum = sumOf(f.expr);
     amountEl.textContent = money(Math.max(0, sum));
     exprEl.textContent = /[+−-]/.test(f.expr.slice(1)) ? f.expr : '';
+    save.disabled = !(sum > 0) || (f.k === 'move' && (!f.to || f.to === f.a));
+  }
+  // A category picked: its tile and the ticks, the grid not drawn again.
+  function paintCat() {
+    catTile.replaceChildren(tile(glyph(catOf(f.cat).icon), catOf(f.cat).color));
+    for (const el of cats.children) el.setAttribute('aria-checked', String(el.dataset.cat === f.cat));
+  }
+  let catsKind = '';
+  function paint() {
+    paintAmount();
     const look = f.k === 'move' ? lookOf({ k: 'move' }) : catOf(f.cat);
     catTile.replaceChildren(tile(glyph(look.icon), look.color));
     amountRow.classList.toggle('in', f.k === 'in');
     cats.hidden = f.k === 'move' || f.k === 'adj';
     moveRow.hidden = f.k !== 'move';
     payBtn.hidden = f.k === 'move';
-    if (!cats.hidden) {
+    if (!cats.hidden && catsKind !== f.k) {
+      catsKind = f.k;
       cats.replaceChildren(
         ...catsFor(f.k).map(c =>
-          h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'aria-checked': String(c.id === f.cat), onclick: () => ((f.cat = c.id), tick(), paint()) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })])
+          h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === f.cat), onclick: () => ((f.cat = c.id), tick(), paintCat()) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })])
         )
       );
-      cats.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-    }
+      requestAnimationFrame(() => cats.querySelector('[aria-checked="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }));
+    } else if (!cats.hidden) paintCat();
     if (!moveRow.hidden) moveRow.replaceChildren(acctPick('a', W('從', 'From')), h('span', { class: 'mn-move-arrow', html: icons.chevron }), acctPick('to', W('到', 'To')));
     const p = payOf(f.a, f.via);
     payBtn.replaceChildren(h('span', { html: glyph(p?.via ? 'card' : 'wallet') }), h('span', { class: 'mn-pill-t', text: p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
     dateBtn.querySelector('.mn-date-t').textContent = f.d === today() ? W('今天', 'Today') : dayLabel(f.d, { week: false, year: f.d.slice(0, 4) !== today().slice(0, 4) });
     invRow.hidden = !f.inv;
     if (f.inv) invRow.replaceChildren(h('button', { class: 'mn-invbtn', type: 'button', onclick: () => import('./invoices.mjs').then(m => m.openInvoice(f.inv)) }, [h('span', { html: glyph('receipt') }), h('span', { text: `${f.inv.no.slice(0, 2)}-${f.inv.no.slice(2)}${f.inv.items?.length ? W(` · ${f.inv.items.length} 項`, ` · ${f.inv.items.length} items`) : ''}` }), h('i', { html: icons.chevron })]));
-    save.disabled = !(sumOf(f.expr) > 0) || (f.k === 'move' && (!f.to || f.to === f.a));
   }
   function acctPick(field, label) {
     const a = acct(f[field]);
@@ -157,7 +168,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       if (!last && k === '00') return;
       f.expr += k;
     }
-    paint();
+    paintAmount();
   };
   const KEYS = ['7', '8', '9', 'back', '4', '5', '6', '−', '1', '2', '3', '+', 'clear', '0', '00'];
   const keyLabel = { back: '⌫', clear: 'C' };

@@ -53,7 +53,7 @@ export const KINDS = {
   cash: { zh: '現金', en: 'Cash', icon: 'coin', color: '#34c759' },
   bank: { zh: '銀行帳戶', en: 'Bank accounts', icon: 'bank', color: '#0088ff' },
   ticket: { zh: '電子票證', en: 'Transit cards', icon: 'ticket', color: '#00c3d0' },
-  wallet: { zh: '電子支付', en: 'E-wallets', icon: 'phone', color: '#cb30e0' },
+  wallet: { zh: '電子錢包', en: 'E-wallets', icon: 'phone', color: '#cb30e0' },
   credit: { zh: '信用卡', en: 'Credit cards', icon: 'card', color: '#ff8d28' },
   other: { zh: '其他', en: 'Other', icon: 'wallet', color: '#8e8e93' }
 };

@@ -160,7 +160,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-key { height: 48px; border: 0; border-radius: 14px; background: var(--q-surface); color: var(--q-label); font: 500 22px/1 var(--q-font-rounded); }
 .mn-key.op { background: var(--q-fill-3); color: var(--q-label-2); font-size: 20px; }
 .mn-key:active { background: var(--q-fill-2); }
-.mn-key.save { background: var(--q-accent); color: #fff; font: 700 17px/1 var(--q-font); }
+.mn-key.save { background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08; font: 700 17px/1 var(--q-font); }
 .mn-key.save:disabled { opacity: 0.4; }
 @media (max-height: 700px) {
   .mn-key { height: 42px; }
@@ -180,7 +180,8 @@ h1, h2, h3, p { margin: 0; }
 .mn-acct-hero b { max-width: 100%; font: 700 34px/40px var(--q-font-rounded); white-space: nowrap; }
 .mn-acct .q-sheet-head h2, .mn-acct-edit .q-sheet-head h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mn-facts { margin-top: 10px; padding: 12px 0; border-radius: 18px; background: var(--q-surface); }
-.mn-facts b { font-size: 17px; line-height: 22px; white-space: nowrap; }
+.mn-facts > div { min-width: 0; padding-inline: 6px; }
+.mn-facts b { display: block; max-width: 100%; overflow: hidden; font-size: 17px; line-height: 22px; white-space: nowrap; }
 .mn-actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin-top: 10px; }
 .mn-action { display: grid; justify-items: center; gap: 4px; padding: 10px 4px; border: 0; border-radius: 16px; background: var(--q-surface); color: var(--q-label); font: 500 13px/16px var(--q-font); }
 .mn-action-i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: color-mix(in srgb, var(--q-accent) 14%, transparent); color: var(--q-accent); }
@@ -296,3 +297,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-way:active { transform: scale(0.98); }
 .mn-inhero .mn-hero-tag { justify-self: start; }
 .mn-drawwrap { display: grid; gap: 10px; }
+/* Typing a note: the phone's keys replace the keypad (both up crushed the sheet). */
+.mn-entry:has(.mn-note:focus) .mn-pad { display: none; }
+.mn-back svg { width: 18px; height: 18px; transform: rotate(180deg); }
+.mn-row .q-ritem-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

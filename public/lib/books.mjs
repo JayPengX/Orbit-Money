@@ -7,12 +7,14 @@
 // last (mergeBooks).
 //
 //   accts    { id: { id, name, kind, open, inTotal, brand?, pay?, close?, due?, order } }
-//            kind: cash | bank | ticket (悠遊卡, 一卡通…) | wallet (電子支付) | credit | other.
+//            kind: cash | bank | credit | wallet (電子錢包: 悠遊卡, 一卡通, LINE Pay…);
+//            ticket and other, from before, are shown with the wallets.
 //            open: the balance when it was added (a credit card's: what it owed, negative).
 //            inTotal: counted in the 總資產. brand: a logo key (brands.mjs).
 //            A credit card's pay: the account its bill is paid from; close / due: its
 //            statement and payment days of the month.
-//   cards    { id: { id, acct, name, last4 } } debit cards (簽帳金融卡): they spend
+//   cards    { id: { id, acct, name, last4 } } ways to pay under an account (a
+//            debit card, Apple Pay or LINE Pay on a card…): they spend
 //            straight from their bank account.
 //   entries  { id: { id, d, k, amt, cat, note, a, via, to, inv, rec } }
 //            d: the day, 'YYYY-MM-DD'. k: out | in | move | adj (a balance set by hand).
@@ -32,7 +34,9 @@ export const COLLECTIONS = ['accts', 'cards', 'entries', 'budgets', 'recur'];
 // Removed records are kept this long (a device away longer than this can't
 // bring one back: by then its copy is older than the removal).
 export const KEEP_GONE_MS = 120 * 86_400_000;
-export const ACCOUNT_KINDS = ['cash', 'bank', 'ticket', 'wallet', 'credit', 'other'];
+// Four kinds (Jay 2026-10-27: fewer); the old ticket and other show as wallets.
+export const ACCOUNT_KINDS = ['cash', 'bank', 'credit', 'wallet'];
+export const groupOf = kind => (ACCOUNT_KINDS.includes(kind) ? kind : 'wallet');
 
 export const emptyBooks = () => ({ accts: {}, cards: {}, entries: {}, budgets: {}, recur: {}, carrier: null, st: 0, opt: {} });
 
