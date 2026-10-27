@@ -272,3 +272,6 @@ h1, h2, h3, p { margin: 0; }
 .mn-confirm b { font: 700 24px/30px var(--q-font-rounded); letter-spacing: 0.08em; }
 .mn-scanrow + .q-rowcard { margin-top: -4px; }
 .mn-draw-note { margin: 8px 4px 0; }
+.mn-oldbtn { gap: 8px; width: 100%; min-height: 48px; }
+.mn-oldbtn span { display: grid; width: 20px; height: 20px; }
+.mn-oldbtn svg { width: 20px; height: 20px; }

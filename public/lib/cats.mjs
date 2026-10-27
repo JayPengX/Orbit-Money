@@ -54,6 +54,7 @@ export const IN = [
   { id: 'bonus', zh: '獎金', en: 'Bonus', icon: 'spark', color: '#eab308' },
   { id: 'invest', zh: '投資', en: 'Investing', icon: 'chart', color: '#0d9488' },
   { id: 'side', zh: '兼職', en: 'Side work', icon: 'work', color: '#2563eb' },
+  { id: 'allowance', zh: '零用錢', en: 'Allowance', icon: 'coin', color: '#65a30d' },
   { id: 'redenv', zh: '紅包', en: 'Red envelope', icon: 'gift', color: '#dc2626' },
   { id: 'refund', zh: '退款', en: 'Refund', icon: 'swap', color: '#0891b2' },
   { id: 'prize', zh: '中獎', en: 'Prize', icon: 'trophy', color: '#f59e0b' },

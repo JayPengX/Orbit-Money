@@ -74,6 +74,8 @@ export const logoFor = a => (a?.brand && brandOf(a.brand) ? logoOf(a.brand) : ''
 
 // How an entry was paid: the card's name with its account, or the account's.
 export function payLabel(e) {
+  // (Another app's history: its account's name, tied to none here.)
+  if (!e.a && e.old) return W(`舊帳 · ${e.old}`, `Old books · ${e.old}`);
   if (e.k === 'move') return `${acctName(e.a)} → ${acctName(e.to)}`;
   const c = e.via && card(e.via);
   return c ? `${acctName(e.a)} · ${c.name}${c.last4 ? ` •${c.last4}` : ''}` : acctName(e.a);
