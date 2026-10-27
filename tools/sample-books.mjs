@@ -1,7 +1,7 @@
 // Made-up books for a preview (tools/preview.mjs money --payload <file>): a
 // few accounts and a month of spending around today. Never real data.
 //   node tools/sample-books.mjs > /tmp/books.txt
-import { emptyBooks, put, encodeBooks } from '../public/lib/books.mjs';
+import { emptyBooks, put, encodeBooks, autoReload, live } from '../public/lib/books.mjs';
 import { addDays } from '#kit/format.mjs';
 
 const b = emptyBooks();
@@ -10,7 +10,7 @@ const day = new Date(now + 8 * 3_600_000).toISOString().slice(0, 10);
 const acct = (id, name, kind, open, more = {}) => put(b, 'accts', { id, name, kind, open, inTotal: true, order: Object.keys(b.accts).length, ...more }, now);
 acct('cash', '現金', 'cash', 9000);
 acct('a1', '玉山 薪轉', 'bank', 86000, { brand: 'esun' });
-acct('a2', '悠遊卡', 'ticket', 350, { brand: 'easycard' });
+acct('a2', '悠遊卡', 'ticket', 350, { brand: 'easycard', reload: { on: true, from: 'a1', amt: 500, below: 100 } });
 acct('a3', '國泰 CUBE 卡', 'credit', 0, { brand: 'cathay', pay: 'a1', close: 5, due: 20 });
 acct('a4', '台新 Richart', 'bank', 120000, { brand: 'taishin', inTotal: false });
 acct('a5', 'LINE Pay', 'wallet', 0, { brand: 'linepay' });
@@ -31,5 +31,11 @@ put(b, 'entries', { id: 'e-tpass', d: addDays(day, -12), k: 'out', amt: 1200, ca
 put(b, 'cats', { id: 'transport:youbike', pay: { a: 'a2', via: '' }, unit: 5 }, now);
 put(b, 'budgets', { id: 'b-all', cat: '', amt: 20000 }, now);
 put(b, 'budgets', { id: 'b-food', cat: 'food', amt: 6000 }, now);
+put(b, 'entries', { id: 'inv-KX20418836', d: addDays(day, -9), k: 'out', amt: 149, cat: 'shop', note: '7-ELEVEN', a: 'a3', via: '', to: '', inv: { no: 'KX20418836', day: addDays(day, -9), sid: '', seller: '7-ELEVEN', total: 149, items: [{ name: '美式咖啡', qty: 1, price: 45 },{ name: '御飯糰', qty: 2, price: 52 }] }, t: now }, now);
+put(b, 'entries', { id: 'inv-LM55093127', d: addDays(day, -15), k: 'out', amt: 386, cat: 'shop', note: '全聯福利中心', a: 'a3', via: '', to: '', inv: { no: 'LM55093127', day: addDays(day, -15), sid: '', seller: '全聯福利中心', total: 386, items: [{ name: '鮮奶', qty: 2, price: 93 },{ name: '吐司', qty: 1, price: 45 },{ name: '雞蛋', qty: 1, price: 155 }] }, t: now }, now);
+put(b, 'entries', { id: 'inv-JQ81120554', d: addDays(day, -62), k: 'out', amt: 130, cat: 'shop', note: '路易莎咖啡', a: 'a3', via: '', to: '', inv: { no: 'JQ81120554', day: addDays(day, -62), sid: '', seller: '路易莎咖啡', total: 130, items: [{ name: '拿鐵', qty: 1, price: 80 },{ name: '可頌', qty: 1, price: 50 }] }, t: now }, now);
+put(b, 'entries', { id: 'inv-VB30642978', d: addDays(day, -70), k: 'out', amt: 259, cat: 'shop', note: '屈臣氏', a: 'a3', via: '', to: '', inv: { no: 'VB30642978', day: addDays(day, -70), sid: '', seller: '屈臣氏', total: 259, items: [{ name: '洗髮精', qty: 1, price: 259 }] }, t: now }, now);
+// The EasyCard tops itself up from the bank, as the app does when a spend sets it off.
+for (const e of live(b.entries).filter(e => e.a === 'a2').sort((x, y) => x.d.localeCompare(y.d) || x.t - y.t)) autoReload(b, e, now);
 b.carrier = { code: '/ABC1234', u: now };
 process.stdout.write(await encodeBooks(b));
