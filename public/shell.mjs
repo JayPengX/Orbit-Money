@@ -17,9 +17,12 @@ export const state = {
   // 月曆: the month shown and the day picked.
   month: today().slice(0, 7),
   day: today(),
-  // 統計: week | month | year, and the day it's around.
+  // 統計: 支出 or 收入 (never netted), week | month | year | custom (its
+  // dates in `custom`), and the day it's around.
+  kind: 'out',
   range: 'month',
   at: today(),
+  custom: null,
   // 發票: the draws (財政部's numbers) and the names behind 統編, as read.
   draws: null,
   sellers: {}

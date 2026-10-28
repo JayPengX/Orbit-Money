@@ -48,6 +48,21 @@ put(b, 'entries', { id: 'x-lp', d: day, k: 'out', amt: 359, cat: 'shop', sub: 's
 put(b, 'entries', { id: 'x-atm', d: day, k: 'move', amt: 3000, a: 'a1', to: 'cash', fee: 15, t: now + 3 }, now);
 put(b, 'entries', { id: 'x-ai', d: addDays(day, -3), k: 'out', amt: 650, cat: 'digital', sub: 'digital:ai', note: 'Claude Pro', a: 'a3', via: '', to: '', fee: 10, t: now }, now);
 put(b, 'entries', { id: 'x-ref', d: day, k: 'back', why: 'refund', of: 'e5', amt: 200, a: 'cash', cat: 'daily', sub: 'daily:grocery', t: now + 2 }, now);
+// The months before (for 統計's trends), 數位 split (tools against games and
+// streaming), a rent paid by a repeat, last month's pay.
+for (let m = 1; m <= 4; m++) {
+  const d = addDays(day, -30 * m);
+  put(b, 'entries', { id: `h-sal-${m}`, d: addDays(d, -5), k: 'in', amt: 52000, cat: 'salary', note: '薪水', a: 'a1', via: '', to: '', t: now }, now);
+  put(b, 'entries', { id: `h-food-${m}`, d, k: 'out', amt: 5200 + m * 430, cat: 'food', sub: 'food:lunch', note: '', a: 'cash', via: '', to: '', t: now }, now);
+  put(b, 'entries', { id: `h-shop-${m}`, d: addDays(d, 3), k: 'out', amt: 3100 + ((m * 977) % 2400), cat: 'shop', sub: 'shop:online', note: '蝦皮', a: 'a3', via: '', to: '', t: now }, now);
+  put(b, 'entries', { id: `h-tr-${m}`, d: addDays(d, 1), k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', note: '', a: 'a1', via: 'c1', to: '', t: now }, now);
+  put(b, 'entries', { id: `r-rent-${addDays(d, -3)}`, d: addDays(d, -3), k: 'out', amt: 8000, cat: 'home', sub: 'home:rent', note: '房租', a: 'a1', via: '', to: '', t: now }, now);
+}
+put(b, 'entries', { id: `r-rent-${addDays(day, -2)}`, d: addDays(day, -2), k: 'out', amt: 8000, cat: 'home', sub: 'home:rent', note: '房租', a: 'a1', via: '', to: '', t: now }, now);
+put(b, 'entries', { id: 'x-steam', d: addDays(day, -6), k: 'out', amt: 1290, cat: 'digital', sub: 'digital:games', note: 'Steam', a: 'a3', via: '', to: '', t: now }, now);
+put(b, 'entries', { id: 'x-cf', d: addDays(day, -11), k: 'out', amt: 155, cat: 'digital', sub: 'digital:cloud', note: 'Cloudflare', a: 'a3', via: '', to: '', t: now }, now);
+put(b, 'entries', { id: 'x-nf', d: addDays(day, -12), k: 'out', amt: 390, cat: 'digital', sub: 'digital:subs', note: 'Netflix', a: 'a3', via: '', to: '', t: now }, now);
+put(b, 'entries', { id: 'x-div', d: addDays(day, -8), k: 'in', amt: 1860, cat: 'invest', sub: 'invest:dividend', note: '0050 股利', a: 'a4', via: '', to: '', t: now }, now);
 // The EasyCard tops itself up from the bank, as the app does when a spend sets it off.
 for (const e of live(b.entries).filter(e => e.a === 'a2').sort((x, y) => x.d.localeCompare(y.d) || x.t - y.t)) autoReload(b, e, now);
 b.carrier = { code: '/ABC1234', u: now };

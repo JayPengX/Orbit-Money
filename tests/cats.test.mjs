@@ -105,7 +105,7 @@ test('訂閱 and 遊戲 moved to 數位: entries, repeats and the person’s own
   B.put(b, 'recur', { id: 'n', k: 'out', amt: 390, cat: 'fun', sub: 'fun:subs', a: 'cash', every: 'month', day: 5, from: '2026-10-05' }, T);
   C.saveCat(b, { id: 'fun:subs', zh: '串流', amt: 390 }, T);
   C.saveCat(b, { id: 'refund', hidden: true }, T);
-  assert.equal(C.upgradeCats(b, T + 1), 4);
+  assert.equal(C.upgradeCats(b, T + 1), 5);
   assert.equal(b.entries.g.cat, 'digital');
   assert.equal(b.entries.g.sub, 'digital:games');
   assert.equal(b.recur.n.sub, 'digital:subs');

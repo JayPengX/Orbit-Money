@@ -43,8 +43,11 @@ export const OUT = [
   { id: 'bills', zh: '水電瓦斯', en: 'Utilities', icon: 'bolt', color: '#e3a008', subs: S('bills', [['power', '電費', 'Power'], ['water', '水費', 'Water'], ['gas', '瓦斯', 'Gas']]) },
   { id: 'phone', zh: '通訊', en: 'Phone', icon: 'phone', color: '#34c759', subs: S('phone', [['mobile', '手機', 'Mobile'], ['net', '網路', 'Internet']]) },
   { id: 'fun', zh: '娛樂', en: 'Fun', icon: 'tv', color: '#cb30e0', subs: S('fun', [['movie', '電影', 'Movies'], ['show', '展演', 'Shows'], ['ktv', 'KTV', 'KTV']]) },
-  // (Jay 2026-10-27: a domain, Claude Pro, Cloudflare's plan, TDX's quota, games.)
-  { id: 'digital', zh: '數位', en: 'Digital', icon: 'cloud', color: '#5e5ce6', subs: S('digital', [['subs', '訂閱', 'Subscriptions'], ['ai', 'AI', 'AI'], ['cloud', '雲端・網域', 'Cloud & domains'], ['apps', 'App・軟體', 'Apps'], ['games', '遊戲', 'Games']]) },
+  // (Jay 2026-10-27: a domain, Claude Pro, Cloudflare's plan, TDX's quota,
+  // games. Then: what keeps things running and what's for fun are "really
+  // different", so the tools come first and 影音串流 and 遊戲 stand apart;
+  // 統計 shows each sub on its own. `subs` was 訂閱 until then.)
+  { id: 'digital', zh: '數位', en: 'Digital', icon: 'cloud', color: '#5e5ce6', subs: S('digital', [['ai', 'AI', 'AI'], ['cloud', '雲端網域', 'Cloud'], ['apps', '軟體', 'Apps'], ['subs', '影音串流', 'Media'], ['games', '遊戲', 'Games']]) },
   { id: 'health', zh: '醫療', en: 'Health', icon: 'health', color: '#ff383c', subs: S('health', [['clinic', '看診', 'Doctor'], ['meds', '藥品', 'Medicine'], ['dental', '牙醫', 'Dentist']]) },
   { id: 'learn', zh: '學習', en: 'Learning', icon: 'book', color: '#00c8b3', subs: S('learn', [['books', '書', 'Books'], ['class', '課程', 'Classes']]) },
   { id: 'social', zh: '人情', en: 'Gifts', icon: 'gift', color: '#f59e0b', subs: S('social', [['gift', '禮物', 'Gifts'], ['redenv', '紅包', 'Red envelopes'], ['treat', '請客', 'Treating']]) },
@@ -233,9 +236,9 @@ const SUB_GUESS = [
   ['car:park', /停車/],
   ['daily:grocery', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市/i],
   ['digital:ai', /anthropic|claude|openai|chatgpt|gemini|perplexity|midjourney/i],
-  ['digital:cloud', /cloudflare|github|aws|google cloud|vercel|godaddy|namecheap|gandi|網域|tdx/i],
-  ['digital:games', /steam|playstation|nintendo|xbox|epic games/i],
-  ['digital:subs', /netflix|spotify|youtube premium|disney|apple music|icloud|google one|kkbox/i],
+  ['digital:cloud', /cloudflare|github|aws|google cloud|vercel|godaddy|namecheap|gandi|網域|tdx|icloud|google one|dropbox|onedrive/i],
+  ['digital:games', /steam|playstation|nintendo|xbox|epic games|遊戲|點數卡|mycard|gash/i],
+  ['digital:subs', /netflix|spotify|youtube|disney|apple music|apple tv|kkbox|friday|catchplay|hbo|動畫瘋|愛奇藝|iqiyi/i],
   ['digital:apps', /app store|google play|apple\.com\/bill/i],
   ['fun:ktv', /ktv|錢櫃|好樂迪/i],
   ['shop:online', /momo|蝦皮|shopee|pchome|博客來/i],
@@ -259,13 +262,26 @@ export function guessSub(cat, text = '', at = null) {
 // 訂閱 and 遊戲 moved from 娛樂 to 數位 (2026-10-27): their entries, repeats and
 // the person's changes to them go along. The 退款 income category is gone
 // (books.mjs upgradeBooks turns its entries into money back): a change to it
-// is let go. → how many records changed.
+// is let go. 訂閱 became 影音串流 (2026-10-28): one under it that was storage
+// (iCloud, Google One) moves to 雲端・網域, and one logged under 數位 with no
+// sub gets the one its words say; once (books.opt.dig2), so a later choice of
+// the person's stands. → how many records changed.
 const MOVED = { 'fun:subs': 'digital:subs', 'fun:games': 'digital:games' };
+const STORAGE = /icloud|google one|dropbox|onedrive|雲端硬碟/i;
 export function upgradeCats(books, now = Date.now()) {
   let n = 0;
+  const split = !books.opt?.dig2;
   for (const col of ['entries', 'recur'])
-    for (const e of live(books[col]))
+    for (const e of live(books[col])) {
+      const words = `${e.note || ''} ${e.inv?.seller || ''} ${(e.inv?.items || []).map(x => x.name).join(' ')}`;
       if (MOVED[e.sub]) put(books, col, { ...e, cat: 'digital', sub: MOVED[e.sub] }, now), n++;
+      else if (!split) continue;
+      else if (e.sub === 'digital:subs' && STORAGE.test(words)) put(books, col, { ...e, sub: 'digital:cloud' }, now), n++;
+      else if (e.cat === 'digital' && !e.sub) {
+        const sub = guessSub('digital', words);
+        if (sub) put(books, col, { ...e, sub }, now), n++;
+      }
+    }
   for (const [from, to] of Object.entries(MOVED)) {
     const mine = books.cats?.[from];
     if (!mine || mine.del) continue;
@@ -275,6 +291,7 @@ export function upgradeCats(books, now = Date.now()) {
     n++;
   }
   if (books.cats?.refund && !books.cats.refund.del) drop(books, 'cats', 'refund', now), n++;
+  if (split) (books.opt ||= {}).dig2 = 1, n++;
   if (n) useCats(books.cats);
   return n;
 }

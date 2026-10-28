@@ -11,7 +11,13 @@ Live: https://orbit.jaypengx.com/money/
 - **Tabs:** 月曆 (the month's spent / income / left and the total budget;
   each day's spending in its square, days off from `#kit/dayoff.mjs`; a
   day's entries below) · 帳戶 (總資產, accounts by kind, 固定收支) · 統計
-  (week / month / year, against the last, by category, budgets) · 發票
+  (支出 and 收入 as two views, never netted, Jay 2026-10-27; week / month /
+  year / any dates from the period's label; numbers in `lib/stats.mjs`,
+  tested: each category with its subs and their share of the whole, against
+  the period before, by account and way to pay, fixed against day to day,
+  fees and money back, the largest, places paid twice or more, weekdays, the
+  month's pace, recent months, income against spending; every row opens its
+  entries, a category's with its last twelve months) · 發票
   (手機條碼, scan, 載具 import, 對獎). The + adds an entry anywhere.
 - **The books** (`lib/books.mjs`, pure, tested): accounts (cash, bank,
   電子票證, 電子支付, credit, other; `inTotal: false` keeps one out of
