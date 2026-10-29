@@ -199,6 +199,7 @@ test('自動加值 with nothing behind it (a parent’s card): the card’s bala
   const e = B.put(b, 'entries', { id: 'm1', d: '2026-10-25', k: 'out', amt: 15, cat: 'transport', a: 'ez' }, T);
   assert.equal(B.autoReload(b, e, T), 500);
   assert.equal(b.entries['m1-r'].k, 'in');
+  assert.equal(b.entries['m1-r'].cat, 'topup');
   const after = B.balances(b);
   assert.equal(after.ez, 535);
   assert.equal(after.cc, before.cc);
@@ -298,6 +299,20 @@ test('older books brought up: 退款 income becomes money back for its likeliest
   const t = B.totals(b, '2026-10-01', '2026-10-31');
   assert.equal(t.in, 40000 + 500);
   assert.equal(t.cats.find(c => c.cat === 'shop').amt, 2500);
+  assert.equal(B.upgradeBooks(b, T + 2), 0);
+});
+
+test('older books brought up: a 自動加值 already under 其他 moves to its own 自動加值 income, hand-logged ones too; others stay', () => {
+  const b = sample();
+  B.put(b, 'entries', { id: 'a1', d: '2026-10-09', k: 'in', amt: 500, cat: 'otherin', sub: '', a: 'cash', auto: 'reload', for: 'e1' }, T);
+  B.put(b, 'entries', { id: 'a2', d: '2026-10-10', k: 'in', amt: 500, cat: 'otherin', a: 'cash', note: '悠遊卡自動加值' }, T);
+  B.put(b, 'entries', { id: 'a3', d: '2026-10-11', k: 'in', amt: 200, cat: 'otherin', a: 'cash', note: '撿到錢' }, T);
+  B.put(b, 'entries', { id: 'a4', d: '2026-10-12', k: 'in', amt: 500, cat: 'redenv', a: 'cash', auto: 'reload' }, T);
+  const bal0 = B.balances(b);
+  assert.equal(B.upgradeBooks(b, T + 1), 2);
+  assert.deepEqual(['a1', 'a2', 'a3', 'a4'].map(id => b.entries[id].cat), ['topup', 'topup', 'otherin', 'redenv']);
+  assert.deepEqual(B.balances(b), bal0);
+  assert.equal(B.totals(b, '2026-10-01', '2026-10-31').incCats.find(c => c.cat === 'topup')?.amt, 1000);
   assert.equal(B.upgradeBooks(b, T + 2), 0);
 });
 

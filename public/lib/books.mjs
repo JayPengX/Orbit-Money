@@ -434,7 +434,7 @@ export function autoReload(books, e, now = Date.now()) {
   const a = books.accts[e.a];
   const r = a?.reload;
   // (No account behind it, left empty: paid by someone not in the books, a
-  // parent's card (Jay 2026-10-27): it comes in as income, 其他.)
+  // parent's card (Jay 2026-10-27): it comes in as income, under 自動加值, Jay 2026-10-29.)
   const outside = !r?.from || !books.accts[r.from] || books.accts[r.from].del;
   if (!e || e.del || e.k !== 'out' || !r?.on || !(r.amt > 0) || r.from === a.id) return 0;
   const bal = balances(books, e.d)[a.id];
@@ -442,7 +442,7 @@ export function autoReload(books, e, now = Date.now()) {
   let n = 1;
   while (bal + n * r.amt < 0 && n < 20) n++;
   const base = { id: `${e.id}-r`, d: e.d, amt: n * r.amt, via: '', auto: 'reload', for: e.id, t: (e.t || now) - 1 };
-  put(books, 'entries', outside ? { ...base, k: 'in', cat: 'otherin', sub: '', note: '', a: a.id, to: '' } : { ...base, k: 'move', cat: '', note: '', a: r.from, to: a.id }, now);
+  put(books, 'entries', outside ? { ...base, k: 'in', cat: 'topup', sub: '', note: '', a: a.id, to: '' } : { ...base, k: 'move', cat: '', note: '', a: r.from, to: a.id }, now);
   return n * r.amt;
 }
 
@@ -580,15 +580,18 @@ export const backsFor = (books, id) => live(books.entries).filter(e => e.k === '
 // comes off what it was for) becomes money back for the spend it most likely
 // was: in the 90 days before it, at least its amount; the same amount, then
 // the same account, then the latest first. None: money back on its own day.
-// A 自動加值 nobody in the books paid for (an adj, before) becomes income.
+// A 自動加值 nobody in the books paid for (an adj, before) becomes income,
+// under 自動加值 (Jay 2026-10-29: not 其他), as does a 其他 income that is one:
+// the app's own, or logged by hand with 加值 / top up in its note.
 // → how many entries changed.
+const TOPUP = /加值|儲值|top.?up|reload/i;
 export function upgradeBooks(books, now = Date.now()) {
   let n = 0;
   const all = live(books.entries);
   const back = backs(books);
   for (const e of all.sort((a, b) => a.d.localeCompare(b.d))) {
-    if (e.k === 'adj' && e.auto === 'reload') {
-      put(books, 'entries', { ...e, k: 'in', cat: 'otherin', sub: '' }, now);
+    if ((e.k === 'adj' && e.auto === 'reload') || (e.k === 'in' && e.cat === 'otherin' && (e.auto === 'reload' || TOPUP.test(e.note || '')))) {
+      put(books, 'entries', { ...e, k: 'in', cat: 'topup', sub: '' }, now);
       n++;
     } else if (e.k === 'in' && e.cat === 'refund') {
       const from = addDays(e.d, -90);

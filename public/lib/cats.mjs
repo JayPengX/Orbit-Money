@@ -71,6 +71,8 @@ export const IN = [
   // (No 退款: money back comes off what it was for, Jay 2026-10-27.)
   { id: 'cashback', zh: '回饋', en: 'Cashback', icon: 'star', color: '#0891b2', subs: S('cashback', [['points', '點數', 'Points'], ['cash', '現金回饋', 'Cash back']]) },
   { id: 'prize', zh: '中獎', en: 'Prize', icon: 'trophy', color: '#f59e0b', subs: [] },
+  // A card's 自動加值 paid by nobody in the books (a parent's card): its own, not 其他 (Jay 2026-10-29).
+  { id: 'topup', zh: '自動加值', en: 'Auto top-up', icon: 'swap', color: '#0ea5e9', subs: [] },
   { id: 'otherin', zh: '其他', en: 'Other', icon: 'grid', color: '#8e8e93', subs: [] }
 ];
 const BUILT = new Map([...OUT, ...IN].flatMap(c => [[c.id, { ...c, k: IN.includes(c) ? 'in' : 'out', parent: '' }], ...c.subs.map(x => [x.id, { ...x, k: IN.includes(c) ? 'in' : 'out' }])]));
