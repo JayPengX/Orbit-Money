@@ -7,7 +7,7 @@ import { h, toast, sheet, toggle } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph, presetOf } from '../lib/cats.mjs';
 import { reminders } from '../lib/renew.mjs';
-import { guessScore } from '../lib/guess.mjs';
+import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
 import { state, W, today, acctName, card, allAccounts, saved } from '../shell.mjs';
 import { scanInvoice, invoiceState, wonCard, openInvoices, openBarcode } from './invoices.mjs';
@@ -67,7 +67,10 @@ const pct = (n, of) => `${Math.round((n / of) * 100)}%`;
 // on: the browser asks once; a place is kept to about 100 m, in the books only).
 function openGuessing() {
   const b = state.books;
-  const r = guessScore(b);
+  // (Few live guesses yet: the same guesses replayed on what's been logged, so there's a number from day one.)
+  const kept = guessScore(b);
+  const replayed = kept.of < 10 ? guessReplay(b) : null;
+  const r = replayed?.of >= 10 ? replayed : kept;
   const geo = toggle({
     checked: Boolean(b.opt?.geo),
     label: W('用所在位置', 'Use where I am'),
@@ -86,8 +89,8 @@ function openGuessing() {
     body: [
       h('p', { class: 'mn-hint', text: W('記一筆時，照你自己記過的帳：差不多這個時間、平日或週末、同一個地方常記的，先選好收支、分類和付款方式。金額放在「常用」第一個，點了才填。', 'New entries start as what you usually log at this time, on this kind of day and in this place: kind, category and way to pay picked for you. The amount waits first in Usual until you tap it.') }),
       h('div', { class: 'mn-switch-row' }, [h('span', {}, [h('b', { text: W('用所在位置', 'Use where I am') }), h('small', { text: W('只記到約 100 公尺，存在你自己的帳本裡', 'Kept to about 100 m, only in your own books') })]), geo]),
-      r.of >= 1 ? h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W(`最近 ${r.of} 筆猜中`, `Right in the last ${r.of}`) })]) : null,
-      r.of >= 1 ? h('div', { class: 'q-rowcard' }, [row(W('分類', 'Category'), r.what), row(W('付款方式', 'Way to pay'), r.pay), row(W('金額', 'Amount'), r.amt)]) : null
+      r.of >= 1 ? h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: r === replayed ? W(`用你記過的 ${r.of} 筆重猜`, `Replayed on your last ${r.of}`) : W(`最近 ${r.of} 筆猜中`, `Right in the last ${r.of}`) })]) : null,
+      r.of >= 1 ? h('div', { class: 'q-rowcard' }, [row(W('分類', 'Category'), r.what), row(W('付款方式', 'Way to pay'), r.pay), row(W('金額', 'Amount'), r.amt), ...(r.chips != null ? [row(W('金額在常用裡', 'Amount in Usual'), r.chips)] : [])]) : null
     ]
   });
 }

@@ -116,3 +116,23 @@ test('how often the guesses were right', () => {
   B.put(b, 'entries', { id: 'c', d: '2026-10-29', k: 'out', cat: 'drink', amt: 55, a: 'cash', t: 1 }, 0);
   assert.deepEqual(G.guessScore(b), { of: 2, what: 1, pay: 2, amt: 1 });
 });
+
+test('what was logged today counts: a second lunch is rare, and what usually comes next comes first', () => {
+  const b = books();
+  const add = (id, d, hm, cat, sub, amt, a) => B.put(b, 'entries', { id, d, k: 'out', cat, sub, amt, a, via: '', t: at(d, hm) }, 0);
+  // Lunch already logged at 12:05: at 12:20 the guess isn't lunch again.
+  add('l', '2026-10-29', '12:05', 'food', 'food:lunch', 120, 'linepay');
+  const g = G.guessWhat(G.cluesFor(b, { day: '2026-10-29', at: at('2026-10-29', '12:40') }));
+  assert.notEqual(g.sub, 'food:lunch');
+  // A catch-up at night: breakfast just logged, so the next is what follows it (lunch), not the evening's movie.
+  add('b', '2026-10-30', '22:00', 'food', 'food:breakfast', 60, 'cash');
+  const next = G.guessWhat(G.cluesFor(b, { day: '2026-10-30', at: at('2026-10-30', '22:02') }));
+  assert.equal(next.sub, 'food:lunch');
+});
+
+test('guessReplay guesses each entry again from what came before it', () => {
+  const r = G.guessReplay(books(), { skip: 5 });
+  assert.ok(r.of > 10);
+  assert.ok(r.what / r.of > 0.5, JSON.stringify(r));
+  assert.ok(r.chips >= r.amt);
+});

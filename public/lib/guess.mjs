@@ -46,13 +46,70 @@ function weigh(e, { day, at, pl }) {
   return w;
 }
 
+// What an entry is, for counting habits: its kind, category and sub.
+const what = e => `${e.k}|${e.cat}|${e.sub || ''}`;
+// Logged this near another of the same day: written down together (an
+// evening's catch-up), so the hour it was logged says little.
+const TOGETHER = 10 * 60_000;
+// Logged this soon after the last one: the same catch-up, so now's hour says little too.
+const BATCH = 15 * 60_000;
+
+// The person's habits, from their own order of logging: how often a thing
+// comes twice in one day (a second lunch is rare, a second drink isn't),
+// and what tends to come next after each thing logged in the same sitting
+// or later that day (breakfast, then the bus; lunch, then a drink).
+export function habitsOf(list) {
+  const byDay = new Map();
+  for (const e of list) if (e.t) byDay.set(e.d, [...(byDay.get(e.d) || []), e]);
+  const days = new Map();
+  const twice = new Map();
+  const next = new Map();
+  const after = new Map();
+  for (const es of byDay.values()) {
+    es.sort((x, y) => x.t - y.t);
+    const seen = new Map();
+    for (const e of es) seen.set(what(e), (seen.get(what(e)) || 0) + 1);
+    for (const [k, n] of seen) (days.set(k, (days.get(k) || 0) + 1), n > 1 && twice.set(k, (twice.get(k) || 0) + 1));
+    for (let i = 1; i < es.length; i++) {
+      const [a, b] = [what(es[i - 1]), what(es[i])];
+      after.set(a, (after.get(a) || 0) + 1);
+      next.set(`${a}>${b}`, (next.get(`${a}>${b}`) || 0) + 1);
+    }
+  }
+  return {
+    // The chance a thing comes again on a day it already came (a little room for the unseen).
+    again: k => ((twice.get(k) || 0) + 0.2) / ((days.get(k) || 0) + 1),
+    // The chance `b` is the next one logged after `a` that day.
+    then: (a, b) => (next.get(`${a}>${b}`) || 0) / ((after.get(a) || 0) + 1)
+  };
+}
+
 // The clues: every spend and income the person logged in the last half year
-// (not repeats, which come by themselves, nor automatic top-ups), each weighed.
+// (not repeats, which come by themselves, nor automatic top-ups), each weighed
+// by how much it looks like now, then by what's been logged today already:
+// a thing done today counts as often as it usually comes twice, and what
+// usually follows the last thing logged counts more.
 export function cluesFor(books, { day, at = null, pl = '' }) {
   const from = addDays(day, -DAYS);
-  return live(books.entries)
-    .filter(e => (e.k === 'out' || e.k === 'in') && e.cat && e.d >= from && e.d <= day && !e.auto && !String(e.id).startsWith('r-'))
-    .map(e => ({ e, w: weigh(e, { day, at, pl }) }));
+  const list = live(books.entries).filter(e => (e.k === 'out' || e.k === 'in') && e.cat && e.d >= from && e.d <= day && !e.auto && !String(e.id).startsWith('r-'));
+  // (Logged together with another of its day: its hour says little.)
+  const timed = list.filter(e => e.t).sort((x, y) => x.t - y.t);
+  const together = new Set();
+  for (let i = 1; i < timed.length; i++) if (timed[i].d === timed[i - 1].d && timed[i].t - timed[i - 1].t < TOGETHER) together.add(timed[i].id).add(timed[i - 1].id);
+  const done = at == null ? [] : timed.filter(e => e.d === day && e.t <= at);
+  const last = done.at(-1);
+  // (Just after another one: a catch-up, not something happening now.)
+  const now = last && at - last.t < BATCH ? null : at;
+  const habits = done.length ? habitsOf(list.filter(e => e.d < day)) : null;
+  const doneSet = new Set(done.map(what));
+  return list.map(e => {
+    let w = weigh(e, { day, at: together.has(e.id) ? null : now, pl });
+    if (habits) {
+      if (doneSet.has(what(e))) w *= habits.again(what(e));
+      w *= 1 + 3 * habits.then(what(last), what(e));
+    }
+    return { e, w };
+  });
 }
 
 const add = (m, key, w, extra = {}) => {
@@ -133,6 +190,36 @@ export function guessScore(books, n = 50) {
     if (cat === e.cat && sub === (e.sub || '')) r.what++;
     if (a === e.a && via === (e.via || '')) r.pay++;
     if (Number(amt) === e.amt) r.amt++;
+  }
+  return r;
+}
+
+// How the guesses would have done on the person's own books: each entry
+// logged by hand guessed again from only what was logged before it, at the
+// hour and place it was logged. { of, what, cat, pay, amt, chips } (how many
+// right of `of`; chips: the amount among the four offered). `skip`: the
+// first entries, too few to guess from.
+export function guessReplay(books, { skip = 20, last = 300 } = {}) {
+  const mine = live(books.entries)
+    .filter(e => (e.k === 'out' || e.k === 'in') && e.cat && e.t && !e.auto && !String(e.id).startsWith('r-') && !String(e.id).startsWith('inv-'))
+    .sort((x, y) => x.t - y.t);
+  const r = { of: 0, what: 0, cat: 0, pay: 0, amt: 0, chips: 0 };
+  const from = Math.max(skip, mine.length - last);
+  for (let i = from; i < mine.length; i++) {
+    const e = mine[i];
+    const before = {};
+    for (const x of live(books.entries)) if (x.id !== e.id && (x.t || 0) < e.t) before[x.id] = x;
+    const clues = cluesFor({ entries: before }, { day: e.d, at: twDay(e.t) === e.d ? e.t : null, pl: e.pl || '' });
+    const g = guessWhat(clues);
+    if (!g) continue;
+    r.of++;
+    if (g.cat === e.cat) r.cat++;
+    if (g.k === e.k && g.cat === e.cat && g.sub === (e.sub || '')) r.what++;
+    const p = guessPay(clues, { k: g.k, cat: g.cat, sub: g.sub })[0];
+    if (p && p.a === e.a && p.via === (e.via || '')) r.pay++;
+    const amts = guessAmts(clues, { k: e.k, cat: e.cat, sub: e.sub || '' });
+    if (amts[0]?.amt === e.amt) r.amt++;
+    if (amts.some(x => x.amt === e.amt)) r.chips++;
   }
   return r;
 }

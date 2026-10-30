@@ -71,12 +71,19 @@ Live: https://orbit.jaypengx.com/money/
   hour is (`t`, Taiwan time; only one logged on its own day, not an import),
   weekday or weekend, where (`pl`, "lat,lon" to 3 decimals, only with 更多 ›
   智慧帶入 › 用所在位置 on, `opt.geo`) and how recent (half-life 45 days).
+  Then today's own entries: a thing logged today counts by how often it
+  comes twice in a day (no second lunch), what usually follows the last
+  one logged counts more (`habitsOf`), and entries logged within minutes of
+  each other (an evening catch-up) don't count their hour.
   A blank + picks the kind, category, sub and way to pay; a category tapped
   gets its own likeliest sub and way to pay (until the person picks one; a
   category's own 自動帶入 still wins). The amount is never filled from a
   guess: the likeliest is first and ringed in 常用, a tap fills it. Each new
   entry keeps what was guessed (`g`: "cat|sub|a|via|amt"); 智慧帶入 shows how
-  many of the last 50 were right.
+  many of the last 50 were right, and until there are 10 of those, the
+  guesses replayed on the books (`guessReplay`: each entry guessed again from
+  what was logged before it). On simulated habits (an evening catch-up 3
+  days in 10) the today signals took category+sub from 49% to 61% right.
 - **Proxy** (`https://invoice.orbit/…` through `proxyJson`, Orbit-Core
   `invoice.js`): `win.json` the last draws (財政部's invoice.xml),
   `seller.json?ids=` names behind 統編 (經濟部 GCIS).
