@@ -25,6 +25,15 @@ export function acctTile(a, size = 40) {
   return src ? img(src, size, () => kindTile(a?.kind, size)) : kindTile(a?.kind, size);
 }
 
+// A sub with its own logo instead of its category's tile: TPASS 行政院通勤月票
+// (its wordmark from tpass.tw, on a white plate). `size`: the tile's.
+const SUB_LOGO = { 'transport:tpass': 'tpass' };
+export function whatTile(look, sub, size = 40) {
+  const id = SUB_LOGO[sub];
+  const plain = () => tile(glyph(look.icon), look.color);
+  return id && LOGOS.has(id) ? img(`./img/brand/${id}.png`, size, plain) : plain();
+}
+
 // A way to pay by its name: the wallet's own logo id, '' for a plain card.
 const METHOD_LOGO = { 'Apple Pay': 'applepay', 'Google Pay': 'googlepay', 'Samsung Pay': 'samsungpay', 'LINE Pay': 'linepay', 街口支付: 'jkopay', 全支付: 'pxpay' };
 export const methodLogo = name => {

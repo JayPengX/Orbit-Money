@@ -9,7 +9,7 @@ import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { catName, glyph, lookOf, subsOf, subOf, guessCat, guessSub } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, card } from '../shell.mjs';
 import { entryRow, openEntry, payOptions, catTiles, subChips, subCols } from './entry.mjs';
-import { acctTile, methodTile, payPic } from './pics.mjs';
+import { acctTile, methodTile, payPic, whatTile } from './pics.mjs';
 
 export function renderAccts(box) {
   const b = state.books;
@@ -77,7 +77,7 @@ export function openRepeats() {
               .map(({ r, next }) => {
                 const look = lookOf(r);
                 return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => (s.close(), openRepeat(r)) }, [
-                  tile(glyph(look.icon), look.color),
+                  whatTile(look, r.sub),
                   h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: r.note || (r.k === 'move' ? W('轉帳', 'Transfer') : catName(look, lang)) }), h('small', { text: [everyText(r), next ? W(`下次 ${dayLabel(next, { week: false })}`, `next ${dayLabel(next, { week: false })}`) : ''].filter(Boolean).join(' · ') })]),
                   h('span', { class: `q-ritem-value num mn-amt ${r.k}`, text: r.k === 'in' ? money(r.amt, { sign: true }) : money(r.amt) })
                 ]);

@@ -8,7 +8,7 @@ import { ask } from '#kit/orbit.mjs';
 import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE } from '../lib/books.mjs';
 import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
-import { payPic } from './pics.mjs';
+import { payPic, whatTile } from './pics.mjs';
 
 // ---- A row ----------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ export function entryRow(e, { day = false, inAcct = false, inCat = false, line =
   const cost = line ? line.amt : e.k === 'out' ? Math.max(0, e.amt - got) + fee : e.amt;
   const amt = e.k === 'in' ? money(e.amt, { sign: true }) : e.k === 'adj' ? money(e.amt, { sign: true }) : money(cost);
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openEntry({ entry: e }) }, [
-    tile(glyph(look.icon), look.color),
+    whatTile(look, line?.fee ? '' : fine?.id),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: title }), h('small', {}, [sub, e.inv ? h('i', { class: 'mn-inv-mark', 'aria-label': W('有發票', 'Has invoice'), html: glyph('receipt') }) : null])]),
     h('span', { class: `q-ritem-value num mn-amt ${sign}`, text: amt })
   ]);
@@ -245,7 +245,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   function paintWhat() {
     const look = f.k === 'move' || f.k === 'adj' ? lookOf({ k: f.k }) : catOf(f.cat);
     const fine = f.k === 'out' || f.k === 'in' ? subOf(f.sub) : null;
-    catTile.replaceChildren(tile(glyph(look.icon), look.color));
+    catTile.replaceChildren(whatTile(look, fine?.id, 44));
     catText.textContent = f.k === 'move' ? W('轉帳', 'Transfer') : f.k === 'adj' ? W('調整餘額', 'Balance fix') : catName(fine || look, lang);
   }
   function paintSubs() {

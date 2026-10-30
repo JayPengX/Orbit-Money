@@ -5,7 +5,8 @@
 // than none). Brands whose sites turn this machine away got their App Store app icon by hand
 // (itunes.apple.com/search, country=tw); white plates were cleared to transparent. Apple Pay
 // (Wallet, App Store), Google Pay and Samsung Pay (their wallets, Google Play) are ways to
-// pay, not BRANDS, also added by hand (views/pics.mjs names them).
+// pay, not BRANDS, also added by hand (views/pics.mjs names them). TPASS (a sub, views/pics.mjs
+// SUB_LOGO): tpass.tw's wordmark SVG drawn on a white 128 px plate, by hand.
 // Needs curl and ImageMagick's convert. Run by hand:
 //   node scripts/brand-logos.mjs [id…]
 import { execFileSync } from 'node:child_process';
