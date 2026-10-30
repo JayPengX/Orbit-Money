@@ -13,7 +13,9 @@ Live: https://orbit.jaypengx.com/money/
   day's entries below) · 帳戶 (總資產, accounts by kind, 固定收支) · 統計
   (支出 and 收入 as two views, never netted, Jay 2026-10-27; week / month /
   year / any dates from the period's label; numbers in `lib/stats.mjs`,
-  tested: each category with its subs and their share of the whole, against
+  tested: each category with its subs and their share of the whole (a donut on
+  top, subs in their shades around it, Jay 2026-10-30; a category's sheet and
+  支出組成 have one too; a tap names a slice), against
   the period before, by account and way to pay, fixed against day to day,
   fees and money back, the largest, places paid twice or more, weekdays, the
   month's pace, recent months, income against spending; every row opens its

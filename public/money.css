@@ -257,10 +257,28 @@ h1, h2, h3, p { margin: 0; }
 .mn-period-pick b { overflow: hidden; text-overflow: ellipsis; }
 .mn-period-pick i { display: grid; flex: none; width: 12px; height: 12px; color: var(--q-label-3); transform: rotate(90deg); }
 .mn-period-pick svg { width: 12px; height: 12px; stroke-width: 3; }
-/* One bar across a card: the whole split, each part its category's colour. */
-.mn-stack-row { padding: 14px 12px 6px; }
-.mn-stack { display: flex; gap: 2px; height: 10px; border-radius: 99px; overflow: hidden; background: var(--q-fill-3); }
-.mn-stack > i { display: block; min-width: 3px; }
+/* A donut: the whole split, each part its colour, the middle naming the whole
+   or the part tapped; the others dim while one is picked. */
+.mn-donut { position: relative; flex: none; width: min(var(--d), 40vw); height: min(var(--d), 40vw); }
+.mn-donut-art, .mn-donut-art svg { display: block; width: 100%; height: 100%; }
+.mn-donut-art circle { cursor: pointer; transition: opacity 0.2s; -webkit-tap-highlight-color: transparent; }
+.mn-donut.picked circle:not(.on) { opacity: 0.25; }
+.mn-donut-mid { position: absolute; inset: 20%; display: grid; place-content: center; justify-items: center; gap: 1px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--q-label); text-align: center; -webkit-tap-highlight-color: transparent; }
+.mn-donut-mid small { max-width: 100%; overflow: hidden; color: var(--q-label-2); font: 500 11px/14px var(--q-font); text-overflow: ellipsis; white-space: nowrap; }
+.mn-donut-mid b { font: 600 14px/18px var(--q-font-rounded); white-space: nowrap; letter-spacing: -0.01em; }
+.mn-donut-mid b.long { font-size: 11px; line-height: 15px; }
+.mn-donut-mid span { color: var(--q-label-2); font: 500 11px/14px var(--q-font-rounded); }
+.mn-donut-row { display: flex; align-items: center; gap: 10px; padding: 16px 10px 8px 14px; }
+.mn-donut-row .mn-donut-mid { inset: 16%; }
+.mn-donut-legend { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.mn-donut-legend > button, .mn-donut-rest { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 26px; padding: 0 6px; border: 0; border-radius: 8px; background: none; color: var(--q-label); font: 400 14px/18px var(--q-font); text-align: left; -webkit-tap-highlight-color: transparent; }
+.mn-donut-legend > [aria-pressed='true'] { background: var(--q-fill-3); }
+.mn-donut-legend i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.mn-donut-rest { color: var(--q-label-2); }
+.mn-donut-rest i { background: var(--q-label-3); }
+.mn-donut-legend span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mn-donut-legend b { flex: none; color: var(--q-label-2); font: 500 13px/18px var(--q-font-rounded); }
+.mn-donut-sheet { display: grid; justify-items: center; padding: 4px 0 16px; }
 /* A sub under its category (or a way to pay under its account): in line
    with the name above it, quieter. */
 .tab-panel .q-section > .q-rowcard { min-width: 0; grid-template-columns: minmax(0, 1fr); }
@@ -271,15 +289,18 @@ h1, h2, h3, p { margin: 0; }
 .mn-subrow small { flex: none; width: 30px; font: 500 12px/16px var(--q-font-rounded); text-align: right; }
 .mn-diff.up { color: var(--q-red); }
 .mn-diff.down { color: var(--mn-in); }
-.mn-shape { display: grid; gap: 14px; padding: 16px; border-radius: var(--q-r-card); background: var(--q-surface); }
-.mn-shape .mn-stack > i.fixed, .mn-shape-grid i.fixed { background: var(--q-accent); }
-.mn-shape .mn-stack > i.var, .mn-shape-grid i.var { background: color-mix(in srgb, var(--q-label) 22%, var(--q-surface)); }
-.mn-shape .mn-stack > i.fee, .mn-shape-grid i.fee { background: var(--q-orange); }
-.mn-shape-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
-.mn-shape-grid > div { display: grid; min-width: 0; }
-.mn-shape-grid small { display: flex; align-items: center; gap: 6px; color: var(--q-label-2); font: var(--q-t-footnote); }
+.mn-shape { --mn-fixed: var(--q-accent); --mn-var: color-mix(in srgb, var(--q-label) 22%, var(--q-surface)); --mn-fee: var(--q-orange); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px; padding: 16px; border-radius: var(--q-r-card); background: var(--q-surface); }
+.mn-shape .mn-donut-mid { inset: 16%; }
+.mn-shape .mn-donut-mid b:not(.long) { font-size: 13px; line-height: 17px; }
+.mn-shape-grid i.fixed { background: var(--mn-fixed); }
+.mn-shape-grid i.var { background: var(--mn-var); }
+.mn-shape-grid i.fee { background: var(--mn-fee); }
+.mn-shape-grid { display: grid; flex: 1 1 190px; min-width: 0; gap: 8px; }
+.mn-shape-grid > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 8px; min-width: 0; }
+.mn-shape-grid > div > span { grid-column: 2; text-align: right; }
+.mn-shape-grid small { display: flex; min-width: 0; overflow: hidden; white-space: nowrap; align-items: center; gap: 6px; color: var(--q-label-2); font: var(--q-t-footnote); }
 .mn-shape-grid small i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
-.mn-shape-grid b { font: 600 17px/22px var(--q-font-rounded); white-space: nowrap; }
+.mn-shape-grid b { font: 600 15px/20px var(--q-font-rounded); white-space: nowrap; }
 .mn-shape-grid span { color: var(--q-label-2); font: 500 12px/16px var(--q-font-rounded); }
 .mn-trend.short .mn-bars { height: 72px; }
 .mn-trend.mn-in-sheet { margin-bottom: 12px; background: var(--q-surface); }

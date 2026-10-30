@@ -185,6 +185,62 @@ const subRow = (name, amt, whole, color, onclick) =>
   ]);
 const val = (amt, note) => h('span', { class: 'mn-catval' }, [h('b', { class: 'num', text: money(amt) }), note ? h('small', { class: 'num', text: note }) : null]);
 
+// ---- Donuts --------------------------------------------------------------------------
+
+// A sub's shade of its category's colour: the first the colour itself, each
+// next one lighter (in the dark, nearer the card), so a ring of subs reads as
+// one family and its rows' dots match.
+const tint = (color, i, n) => (i && n > 1 ? `color-mix(in srgb, ${color} ${Math.round(100 - (i / (n - 1)) * 55)}%, var(--q-surface))` : color);
+
+// A donut: rings of parts ({ k, amt, color }; an outer ring's part may carry
+// `of`, the inner part it belongs to), a small gap between parts. A tap on a
+// part (or on `pick(k)` from outside) names it in the middle and dims the
+// rest; a tap again, or on the middle, goes back to the whole. `say(k)` is
+// what the middle says: { name, amt, note } (k null = the whole).
+function donut(rings, say, { size = 140, onpick = null } = {}) {
+  const C = 50;
+  const wrap = h('div', { class: 'mn-donut', style: `--d:${size}px` });
+  const mid = h('button', { class: 'mn-donut-mid', type: 'button' });
+  let picked = null;
+  const svg = [`<svg viewBox="0 0 ${C * 2} ${C * 2}" aria-hidden="true"><g transform="rotate(-90 ${C} ${C})">`];
+  for (const ring of rings) {
+    const whole = ring.parts.reduce((n, x) => n + x.amt, 0);
+    if (!whole) continue;
+    const len = 2 * Math.PI * ring.r;
+    const gap = ring.parts.filter(x => x.amt > 0).length > 1 ? Math.min(1.2, len / 200) : 0;
+    let at = 0;
+    for (const x of ring.parts) {
+      const seg = (x.amt / whole) * len;
+      const draw = Math.max(0.6, seg - gap);
+      if (x.amt > 0) svg.push(`<circle cx="${C}" cy="${C}" r="${ring.r}" fill="none" stroke-width="${ring.w}" data-k="${x.of ?? x.k}" stroke-dasharray="${draw.toFixed(2)} ${(len - draw).toFixed(2)}" stroke-dashoffset="${(-at - (seg > gap ? gap / 2 : 0)).toFixed(2)}" style="stroke:${x.color}"></circle>`);
+      at += seg;
+    }
+  }
+  svg.push('</g></svg>');
+  const art = h('div', { class: 'mn-donut-art', html: svg.join('') });
+  const paint = () => {
+    const t = say(picked);
+    mid.replaceChildren(h('small', { text: t.name }), h('b', { class: `num${t.amt.length > 9 ? ' long' : ''}`, text: t.amt }), t.note ? h('span', { class: 'num', text: t.note }) : '');
+    mid.setAttribute('aria-label', [t.name, t.amt, t.note].filter(Boolean).join(' '));
+    wrap.classList.toggle('picked', picked != null);
+    for (const el of art.querySelectorAll('circle')) el.classList.toggle('on', el.dataset.k === picked);
+  };
+  const pick = k => {
+    picked = k == null || k === picked ? null : String(k);
+    paint();
+    onpick?.(picked);
+  };
+  art.addEventListener('click', e => {
+    const k = e.target.closest?.('circle')?.dataset.k;
+    if (k != null) pick(k);
+  });
+  mid.addEventListener('click', () => pick(null));
+  wrap.append(art, mid);
+  paint();
+  wrap.pick = pick;
+  return wrap;
+}
+
 // ---- Bars ----------------------------------------------------------------------------
 
 // Bars, one series (the app's colour on the bar that's now or picked) or two
@@ -240,15 +296,42 @@ function trend(kind, p, now) {
 // ---- By category ---------------------------------------------------------------------
 
 // Every category, its subs under it, each with its share of the whole (Jay
-// 2026-10-27: "types under categories and their percentage of total"); one
-// bar across the top shows the whole split.
+// 2026-10-27: "types under categories and their percentage of total"). On top
+// a donut (Jay 2026-10-30: the bars only show the trend, the split wants a
+// pie): categories inside, their subs in their shades around them, the
+// biggest named beside it; a tap on a slice or a name says its amount.
 function catSection(kind, p, whole) {
   const cats = byCat(state.books, kind, p.from, p.to, id => subOf(id)?.parent || '');
-  const stack = h(
-    'div',
-    { class: 'mn-stack', role: 'img', 'aria-label': cats.map(c => `${catName(catOf(c.cat), lang)} ${pct(c.amt, whole)}`).join(', ') },
-    cats.map(c => h('i', { style: `flex:${c.amt} 1 0;background:${catOf(c.cat).color}` }))
+  const subs = c => (c.subs.length > 1 ? c.subs : []);
+  const outer = [];
+  for (const c of cats) {
+    const col = catOf(c.cat).color;
+    const list = subs(c);
+    if (list.length) list.forEach((s, i) => outer.push({ k: `${c.cat}/${s.sub}`, of: c.cat, amt: s.amt, color: tint(col, i, list.length) }));
+    else outer.push({ k: c.cat, of: c.cat, amt: c.amt, color: col });
+  }
+  const label = kind === 'in' ? W('收入', 'Income') : W('支出', 'Spending');
+  const ring = donut(
+    [
+      { r: 37, w: 11, parts: cats.map(c => ({ k: c.cat, amt: c.amt, color: catOf(c.cat).color })) },
+      { r: 46.5, w: 5, parts: outer }
+    ],
+    k => {
+      const c = k && cats.find(x => x.cat === k);
+      return c ? { name: catName(catOf(c.cat), lang), amt: money(c.amt), note: pct(c.amt, whole) } : { name: label, amt: money(whole), note: W(`${cats.length} 類`, `${cats.length} ${cats.length === 1 ? 'category' : 'categories'}`) };
+    },
+    { onpick: k => { for (const el of legend.children) el.setAttribute('aria-pressed', String(el.dataset.k === k)); } }
   );
+  // (The five biggest by name; the rest as one line, their slices still in the ring.)
+  const top = cats.length > 6 ? cats.slice(0, 5) : cats;
+  const rest = cats.slice(top.length);
+  const legend = h('div', { class: 'mn-donut-legend' }, [
+    ...top.map(c => {
+      const look = catOf(c.cat);
+      return h('button', { type: 'button', 'data-k': c.cat, 'aria-pressed': 'false', onclick: () => ring.pick(c.cat) }, [h('i', { style: `background:${look.color}` }), h('span', { text: catName(look, lang) }), h('b', { class: 'num', text: pct(c.amt, whole) })]);
+    }),
+    rest.length ? h('div', { class: 'mn-donut-rest' }, [h('i'), h('span', { text: W(`其他 ${rest.length} 類`, `${rest.length} more`) }), h('b', { class: 'num', text: pct(rest.reduce((n, c) => n + c.amt, 0), whole) })]) : null
+  ]);
   const rows = [];
   for (const c of cats) {
     const look = catOf(c.cat);
@@ -260,9 +343,9 @@ function catSection(kind, p, whole) {
       ])
     );
     // (Subs only when they split it: one line the same as its category says nothing.)
-    if (c.subs.length > 1) for (const s of c.subs) rows.push(subRow(s.sub ? catName(subOf(s.sub), lang) : W('未分細項', 'Other'), s.amt, whole, look.color, () => openCat(kind, c.cat, s.sub || '-', p)));
+    subs(c).forEach((s, i, all) => rows.push(subRow(s.sub ? catName(subOf(s.sub), lang) : W('未分細項', 'Other'), s.amt, whole, tint(look.color, i, all.length), () => openCat(kind, c.cat, s.sub || '-', p))));
   }
-  return section(kind === 'in' ? W('收入分類', 'By category') : W('分類', 'By category'), h('div', { class: 'q-rowcard mn-cats-card' }, [h('div', { class: 'mn-stack-row' }, [stack]), ...rows]));
+  return section(kind === 'in' ? W('收入分類', 'By category') : W('分類', 'By category'), h('div', { class: 'q-rowcard mn-cats-card' }, [h('div', { class: 'mn-donut-row' }, [ring, legend]), ...rows]));
 }
 
 // What moved most against the period before (up to five).
@@ -321,11 +404,18 @@ function shapeCard(p) {
     s.fees ? ['fee', W('手續費', 'Fees'), money(s.fees), pct(s.fees, s.total)] : null,
     s.back || s.owed ? ['', W('退回・分攤', 'Money back'), money(s.back), s.owed ? W(`待收 ${money(s.owed)}`, `${money(s.owed)} owed`) : ''] : null
   ].filter(Boolean);
-  const bar = h('div', { class: 'mn-stack' }, [h('i', { class: 'fixed', style: `flex:${s.fixed} 1 0` }), h('i', { class: 'var', style: `flex:${s.variable} 1 0` }), s.fees ? h('i', { class: 'fee', style: `flex:${s.fees} 1 0` }) : null]);
+  // (A small donut: fixed, day to day and fees, each its share; a tap names one.)
+  const names = { fixed: W('固定', 'Fixed'), var: W('變動', 'Day to day'), fee: W('手續費', 'Fees') };
+  const amts = { fixed: s.fixed, var: s.variable, fee: s.fees };
+  const ring = donut(
+    [{ r: 41, w: 10, parts: ['fixed', 'var', 'fee'].map(k => ({ k, amt: amts[k], color: `var(--mn-${k})` })) }],
+    k => (k ? { name: names[k], amt: money(amts[k]), note: pct(amts[k], s.total) } : { name: W('支出', 'Spending'), amt: money(s.total), note: '' }),
+    { size: 112 }
+  );
   return section(
     W('支出組成', 'Spending makeup'),
     h('div', { class: 'mn-shape' }, [
-      bar,
+      ring,
       h(
         'div',
         { class: 'mn-shape-grid' },
@@ -439,6 +529,21 @@ function openCat(kind, cat, sub, p) {
   const rows = h('div', { class: 'q-rowcard' });
   const paint = () => rows.replaceChildren(...list.filter(l => only === null || subKey(l) === only).map(l => entryRow(l.e, { day: true, inCat: true, line: l })));
   const parts = [...by].sort((a, b) => b[1] - a[1]);
+  const color = k => tint(c.color, parts.findIndex(x => x[0] === k), parts.length);
+  // (Its subs as a donut too; a tap on a slice shows only that sub's entries.)
+  const setOnly = k => {
+    only = k;
+    for (const el of split.children) el.setAttribute('aria-pressed', String(only !== null && el.dataset.k === only));
+    paint();
+  };
+  const ring =
+    parts.length > 1
+      ? donut(
+          [{ r: 40, w: 12, parts: parts.map(([k, amt]) => ({ k, amt, color: color(k) })) }],
+          k => (k != null ? { name: k ? catName(subOf(k), lang) : W('未分細項', 'Other'), amt: money(by.get(k) || 0), note: pct(by.get(k) || 0, whole) } : { name: catName(c, lang), amt: money(whole), note: W(`${parts.length} 項`, `${parts.length} kinds`) }),
+          { size: 150, onpick: k => setOnly(k) }
+        )
+      : null;
   const split =
     parts.length > 1
       ? h(
@@ -450,14 +555,11 @@ function openCat(kind, cat, sub, p) {
               {
                 class: 'q-ritem mn-row mn-catrow',
                 type: 'button',
+                'data-k': k,
                 'aria-pressed': String(only === k),
-                onclick: e => {
-                  only = only === k ? null : k;
-                  for (const el of e.currentTarget.parentNode.children) el.setAttribute('aria-pressed', String(el === e.currentTarget && only !== null));
-                  paint();
-                }
+                onclick: () => ring.pick(k)
               },
-              [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: k ? catName(subOf(k), lang) : W('未分細項', 'Other') }), share(amt, whole, c.color)]), val(amt, pct(amt, whole))]
+              [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: k ? catName(subOf(k), lang) : W('未分細項', 'Other') }), share(amt, whole, color(k))]), val(amt, pct(amt, whole))]
             )
           )
         )
@@ -471,8 +573,9 @@ function openCat(kind, cat, sub, p) {
   // (Only when it has a trend to show: two months or more with some.)
   const chart = ms.filter(x => x[kind]).length > 1 ? bars(ms.map(x => ({ key: x.ym, a: x[kind], label: monthTick(x.ym), say: `${monthLabel(x.ym)} · ${money(x[kind])}` })), { now: ym, top: avg ? W(`每月平均 ${money(avg)}`, `${money(avg)} a month on average`) : '', cls: 'short mn-in-sheet' }) : null;
   paint();
+  if (ring && only !== null) ring.pick(only);
   const title = sub && sub !== '-' ? `${catName(c, lang)} › ${catName(subOf(sub), lang)}` : catName(c, lang);
-  sheet({ title, subtitle: `${p.label} · ${money(only === null ? whole : by.get(only) || 0)}`, detent: 'large', body: [chart, split, rows] });
+  sheet({ title, subtitle: `${p.label} · ${money(only === null ? whole : by.get(only) || 0)}`, detent: 'large', body: [chart, ring ? h('div', { class: 'mn-donut-sheet' }, [ring]) : null, split, rows] });
 }
 
 // An account's (or one way to pay's) entries in the period.
