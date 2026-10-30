@@ -26,8 +26,9 @@ export function acctTile(a, size = 40) {
 }
 
 // A sub with its own logo instead of its category's tile: TPASS 行政院通勤月票
-// (its wordmark from tpass.tw, on a white plate). `size`: the tile's.
-const SUB_LOGO = { 'transport:tpass': 'tpass' };
+// (its wordmark from tpass.tw) and YouBike (its wordmark from youbike.com.tw), on a
+// white plate. `size`: the tile's.
+const SUB_LOGO = { 'transport:tpass': 'tpass', 'transport:youbike': 'youbike' };
 export function whatTile(look, sub, size = 40) {
   const id = SUB_LOGO[sub];
   const plain = () => tile(glyph(look.icon), look.color);

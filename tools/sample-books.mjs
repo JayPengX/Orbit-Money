@@ -41,6 +41,7 @@ put(b, 'entries', { id: 'inv-JQ81120554', d: addDays(day, -62), k: 'out', amt: 1
 put(b, 'entries', { id: 'inv-VB30642978', d: addDays(day, -70), k: 'out', amt: 259, cat: 'shop', note: '屈臣氏', a: 'a3', via: '', to: '', inv: { no: 'VB30642978', day: addDays(day, -70), sid: '', seller: '屈臣氏', total: 259, items: [{ name: '洗髮精', qty: 1, price: 259 }] }, t: now }, now);
 // Today: a dinner paid for three on the card (one friend paid in cash, one
 // not yet), LINE Pay with points, an ATM fee, Claude Pro, a refund.
+put(b, 'entries', { id: 'x-bike', d: day, k: 'out', amt: 10, cat: 'transport', sub: 'transport:youbike', note: '', a: 'a1', via: '', to: '', t: now + 6 }, now);
 put(b, 'entries', { id: 'x-dinner', d: day, k: 'out', amt: 1680, cat: 'food', sub: 'food:out', note: '鼎泰豐', a: 'a3', via: '', to: '', t: now + 5 }, now);
 put(b, 'entries', { id: 'x-f1', d: day, k: 'back', why: 'friend', who: '小明', of: 'x-dinner', amt: 560, a: 'cash', cat: 'food', sub: 'food:out', t: now + 5 }, now);
 put(b, 'entries', { id: 'x-f2', d: day, k: 'back', why: 'friend', who: 'Amy', of: 'x-dinner', amt: 560, a: 'cash', wait: 1, cat: 'food', sub: 'food:out', t: now + 5 }, now);
