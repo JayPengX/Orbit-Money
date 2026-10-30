@@ -505,16 +505,40 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-renew .q-btn { flex: none; }
 .mn-owed-total { color: var(--q-label-2); font: 500 15px/20px var(--q-font-rounded); }
 
-/* 統計's 不計入 (Jay 2026-10-30): the period's categories as one scrolling row
-   of chips; one tapped off is grey and crossed, and every figure leaves it out. */
-.mn-skip-box { display: grid; gap: 8px; padding: 14px 0 12px; }
-.mn-skip-hint { padding: 0 16px; color: var(--q-label-2); font: var(--q-t-footnote); }
-.mn-skip { display: flex; gap: 6px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
-.mn-skip::-webkit-scrollbar { display: none; }
-.mn-skip-chip { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border: 0; border-radius: 99px; background: var(--q-fill-2); color: var(--q-label); font: 500 14px/18px var(--q-font); white-space: nowrap; }
-.mn-skip-chip i { width: 8px; height: 8px; border-radius: 50%; }
-.mn-skip-chip.off { color: var(--q-label-3); text-decoration: line-through; }
-.mn-skip-chip.off i { background: var(--q-label-3) !important; }
+/* ---- 統計 (Jay 2026-10-30, one page): the scale on top, 支出/收入 and 篩選
+   in one row, the card with the period's total and the periods as bars to
+   tap, then everything about the period picked. ---- */
+.mn-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: -4px; }
+.mn-filter { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 99px; background: var(--q-fill-2); color: var(--q-label); font: 500 15px/20px var(--q-font); white-space: nowrap; }
+.mn-filter i { display: grid; width: 18px; height: 18px; }
+.mn-filter svg { width: 18px; height: 18px; }
+.mn-filter.on { background: color-mix(in srgb, var(--q-accent) 18%, transparent); color: var(--q-accent); }
+.q-focus.mn-hero { gap: 2px; padding: 14px 16px 10px; }
+.mn-hero .q-focus-value { font-size: clamp(30px, 10vw, 40px); line-height: 46px; }
+.mn-hero .q-focus-sub { font-size: 13px; line-height: 18px; }
+.mn-hero-pick { display: inline-flex; align-items: center; gap: 4px; justify-self: start; padding: 0; border: 0; background: none; }
+.mn-hero-pick i { display: grid; width: 12px; height: 12px; transform: rotate(90deg); }
+.mn-hero-pick svg { width: 12px; height: 12px; stroke-width: 3; }
+.mn-pbars-box { display: grid; gap: 2px; margin: 10px -12px 0; }
+.mn-pbars-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 22px; align-items: center; }
+.mn-pbars-step { display: grid; place-items: center; width: 22px; height: 44px; padding: 0; border: 0; background: none; color: rgba(255, 255, 255, 0.7); }
+.mn-pbars-step svg { width: 13px; height: 13px; stroke-width: 2.6; }
+.mn-pbars-step.back svg { transform: scaleX(-1); }
+.mn-pbars-step:disabled { visibility: hidden; }
+.mn-pbars { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); align-items: end; height: 112px; touch-action: pan-y; }
+.mn-pbar { display: grid; grid-template-rows: 1fr 18px; height: 100%; min-width: 0; padding: 0; border: 0; background: none; -webkit-tap-highlight-color: transparent; }
+.mn-pbar-col { display: flex; align-items: flex-end; justify-content: center; min-height: 0; }
+.mn-pbar-col i { display: block; width: min(20px, 70%); border-radius: 5px 5px 2px 2px; background: rgba(246, 196, 83, 0.32); transition: background 0.15s; }
+.mn-pbar.on .mn-pbar-col i { background: linear-gradient(180deg, #f8cf64, #e6a321); }
+.mn-pbar small { align-self: end; color: rgba(255, 255, 255, 0.55); font: 400 11px/14px var(--q-font-rounded); white-space: nowrap; }
+.mn-pbar.on small { color: #fff; font-weight: 600; }
+.mn-pbar-avg { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed rgba(255, 255, 255, 0.4); pointer-events: none; }
+.mn-pbars-note { padding: 0 22px; color: rgba(255, 255, 255, 0.55); font: 400 11px/14px var(--q-font); }
+.mn-filter-group.off .mn-skip-sub { opacity: 0.4; }
+.mn-filter-all { margin-left: 8px; }
+.mn-filter-group + .mn-filter-group { border-top: 0.5px solid var(--q-sep); }
+.mn-skip-sub { padding-left: 40px; }
+.mn-skip-sub .q-ritem-title { color: var(--q-label-2); }
 /* 記一筆's likeliest amount for now (lib/guess.mjs): ringed, filled only on a tap. */
 .mn-subchip.guess { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--q-accent) 70%, transparent); color: var(--q-label); }
 .mn-guess-sheet .mn-switch-row { margin: 0 0 18px; }
@@ -523,24 +547,3 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-preset-on { display: inline-flex; color: var(--q-accent); }
 .mn-preset-on svg { width: 20px; height: 20px; }
 .mn-presetsheet .mn-hint { margin: 12px 4px 4px; }
-.mn-skip-chip.part { color: var(--q-label-2); }
-.mn-skip-chip.more { color: var(--q-accent); }
-.mn-skip-sub { padding-left: 40px; }
-.mn-skip-sub .q-ritem-title { color: var(--q-label-2); }
-
-/* 統計's kinds (Jay 2026-10-30): chips under 支出/收入; 趨勢 is stacked bars,
-   each month's categories in their colours, and each category's own small bars. */
-.mn-views, .mn-span { margin-top: -4px; }
-.mn-views { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 6px; }
-.mn-views .q-chip { justify-content: center; min-width: 0; padding-inline: 0; }
-.mn-more-row .q-ritem-title { color: var(--q-accent); font-weight: 500; }
-.mn-stack-box { display: grid; gap: 4px; padding: 0 0 12px; }
-.mn-stack-trend { padding-top: 4px; padding-bottom: 0; background: none; }
-.mn-stack .mn-bar-c > .mn-stack-col { display: flex; flex-direction: column; width: 100%; max-width: 26px; margin: 0 auto; overflow: hidden; border-radius: 5px 5px 2px 2px; opacity: 0.85; }
-.mn-stack .mn-bar-c.now > .mn-stack-col, .mn-stack .mn-bar-c.picked > .mn-stack-col { opacity: 1; }
-.mn-stack-col > i { display: block; min-height: 1px; }
-.mn-stack-col > i.rest, .mn-stack-legend i.rest { background: var(--q-label-3); }
-.mn-stack-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 0 16px; }
-.mn-spark { display: flex; flex: none; align-items: flex-end; justify-content: flex-end; gap: 2px; width: clamp(56px, 18vw, 78px); height: 28px; }
-.mn-spark i { flex: 1; min-width: 0; max-width: 12px; border-radius: 2px; background: color-mix(in srgb, var(--c) 45%, var(--q-surface)); }
-.mn-spark i.now { background: var(--c); }

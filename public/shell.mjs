@@ -23,9 +23,6 @@ export const state = {
   range: 'month',
   at: today(),
   custom: null,
-  // 統計's kind of view (總覽 分類 趨勢 帳戶 習慣) and 趨勢 by month or year.
-  view: 'all',
-  span: 'month',
   // 發票: the draws (財政部's numbers) and the names behind 統編, as read.
   draws: null,
   sellers: {}

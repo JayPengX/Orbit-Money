@@ -143,3 +143,11 @@ test('趨勢: month by month and year by year, each with its categories, 不計�
   const y = S.trendOf({ ...books(), skip: new Set(['home']) }, 'out', '2025-01-01', '2026-12-31', 'year');
   assert.deepEqual(y.map(x => [x.key, x.amt]), [['2025', 0], ['2026', 500 + S.total(books(), 'out', ...NOV) - 8000]]);
 });
+
+test('periods: weeks start on Monday, months and years by their key', () => {
+  assert.equal(S.periodKey('week', '2026-11-01'), '2026-10-26');
+  assert.equal(S.periodKey('week', '2026-11-02'), '2026-11-02');
+  assert.deepEqual(S.periodKeys('week', '2026-11-01', '2026-11-10'), ['2026-10-26', '2026-11-02', '2026-11-09']);
+  const w = S.trendOf(books(), 'out', '2026-10-26', '2026-11-08', 'week', l => l.cat === 'food');
+  assert.deepEqual(w.map(x => x.amt), [0, 400]);
+});

@@ -180,18 +180,30 @@ export const firstDay = books => live(books.entries).reduce((m, e) => (e.d && (!
 // A list's total, for a view's own use.
 export const total = (books, kind, from, to) => sum(of(books, kind, from, to));
 
-// 趨勢 (Jay 2026-10-30: "no way to see trend of months, year"): each month
-// (unit 'month', keys 'YYYY-MM') or year ('year', 'YYYY') from `from` to `to`,
-// its total and each category's part: [{ key, amt, cats: Map(cat → amt) }].
-export function trendOf(books, kind, from, to, unit = 'month') {
+// 趨勢 (Jay 2026-10-30: "no way to see trend of months, year"): a scale's
+// periods (unit 'week': keys are the Monday, 'month': 'YYYY-MM', 'year':
+// 'YYYY') and the period a day falls in.
+export function periodKey(unit, d) {
+  if (unit === 'year') return d.slice(0, 4);
+  if (unit === 'month') return d.slice(0, 7);
+  return addDays(d, -((new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7));
+}
+export function periodKeys(unit, from, to) {
   const keys = [];
   if (unit === 'year') for (let y = Number(from.slice(0, 4)); y <= Number(to.slice(0, 4)); y++) keys.push(String(y));
-  else for (let ym = from.slice(0, 7); ym <= to.slice(0, 7); ym = shiftMonth(ym, 1)) keys.push(ym);
-  const list = keys.map(key => ({ key, amt: 0, cats: new Map() }));
+  else if (unit === 'month') for (let ym = from.slice(0, 7); ym <= to.slice(0, 7); ym = shiftMonth(ym, 1)) keys.push(ym);
+  else for (let d = periodKey('week', from); d <= to; d = addDays(d, 7)) keys.push(d);
+  return keys;
+}
+// Each period from `from` to `to`, its total and each category's part:
+// [{ key, amt, cats: Map(cat → amt) }]; `only` keeps the lines it says yes to
+// (a category's own trend).
+export function trendOf(books, kind, from, to, unit = 'month', only = null) {
+  const list = periodKeys(unit, from, to).map(key => ({ key, amt: 0, cats: new Map() }));
   const at = new Map(list.map(x => [x.key, x]));
   for (const l of of(books, kind, from, to)) {
-    const x = at.get(unit === 'year' ? l.d.slice(0, 4) : l.d.slice(0, 7));
-    if (!x) continue;
+    const x = at.get(periodKey(unit, l.d));
+    if (!x || (only && !only(l))) continue;
     x.amt += l.amt;
     x.cats.set(l.cat, (x.cats.get(l.cat) || 0) + l.amt);
   }
