@@ -36,7 +36,14 @@ Live: https://orbit.jaypengx.com/money/
   `r-<id>-<day>`). Every total goes through `lines` (one function: a spend
   less what came back, its fee, an income). `upgradeBooks` / `upgradeCats`
   bring older books up on open (退款 income → money back for its likeliest
-  spend; 訂閱/遊戲 from 娛樂 to 數位). 到期提醒 (`renew`, lib/renew.mjs): any pass, subscription,
+  spend; 訂閱/遊戲 from 娛樂 to 數位). **Category sets** (Jay 2026-10-30, too
+  many 類別; `lib/cats.mjs PRESETS`): 學生 (9), 上班族 (13), 家庭 (13), 全部,
+  picked once before the first 記一筆 and at the top of 更多 › 分類
+  (`books.opt.preset`, `opt.picked`). A set only changes what the picker
+  shows (nothing logged moves; a hidden one still names its history); the
+  person's own hidden ones in `cats` are 「我的」, kept while a set is in use.
+  Hiding, showing, adding, merging or deleting under a set first writes the
+  set down as theirs (`ownPreset`). 到期提醒 (`renew`, lib/renew.mjs): any pass, subscription,
   membership or card fee, each with its start, how long it lasts, whether it
   renews itself, the category whose spend restarts it, and when to be told;
   `upgradeRenew` turns the old TPASS setting into the first item. Due ones show

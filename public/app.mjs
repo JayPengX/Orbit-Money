@@ -14,7 +14,7 @@ import { passSync } from '#kit/pass-sync.mjs';
 import { orbitSession, tabBar, topActions, installGate, watchUpdates, keepOffline, storedAccount, cachedPayload, schedulePush, setNotifyOn, enablePush } from '#kit/orbit.mjs';
 import { decodeBooks, encodeBooks, mergeBooks, runRepeats, upgradeBooks, put } from './lib/books.mjs';
 import { state, hooks, lang, W, today, dayLabel } from './shell.mjs';
-import { useCats, upgradeCats } from './lib/cats.mjs';
+import { useBooksCats, upgradeCats } from './lib/cats.mjs';
 import { reminders, remindTimes, upgradeRenew } from './lib/renew.mjs';
 import { renderCal } from './views/calendar.mjs';
 import { renderAccts } from './views/accounts.mjs';
@@ -22,6 +22,7 @@ import { renderStats } from './views/stats.mjs';
 import { loadDraws } from './views/invoices.mjs';
 import { renderMore } from './views/more.mjs';
 import { openEntry } from './views/entry.mjs';
+import { openPresets } from './views/cat-edit.mjs';
 
 document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
 const $ = id => document.getElementById(id);
@@ -127,7 +128,7 @@ function render({ ifChanged = false } = {}) {
   if (!box) return;
   if (ifChanged && box.dataset.drawn === String(stamp)) return;
   box.dataset.drawn = String(stamp);
-  useCats(state.books.cats);
+  useBooksCats(state.books);
   VIEWS[state.tab](box);
   if (state.tab !== TABS[0]) box.prepend(kitUI.navTitle(TITLES[state.tab]));
 }
@@ -137,7 +138,13 @@ const tabNav = tabBar({
   onSelect: tab => showTab(tab),
   hash: id => `#${id}`,
   // 記一筆: the app's one main thing, its own button beside the tabs, on every tab.
-  action: { icon: kitUI.icons.plus, label: W('記一筆', 'Add an entry'), onTap: () => (useCats(state.books.cats), openEntry({ day: state.tab === 'cal' ? state.day : today() })) }
+  action: { icon: kitUI.icons.plus, label: W('記一筆', 'Add an entry'), onTap: () => {
+    useBooksCats(state.books);
+    const add = () => openEntry({ day: state.tab === 'cal' ? state.day : today() });
+    // (Once: a set of categories for the kind of person first, Jay 2026-10-30.)
+    if (state.books.opt?.picked) add();
+    else openPresets({ first: true, done: add });
+  } }
 });
 function showTab(tab) {
   state.tab = tab;

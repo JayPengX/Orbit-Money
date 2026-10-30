@@ -125,3 +125,59 @@ test('digital things land in 數位: Claude, Cloudflare, Steam', () => {
   assert.equal(C.guessCat('威秀影城'), 'fun');
 });
 
+
+test('presets: a slimmer set for a kind of person, nothing logged moves, a change becomes the person’s own', () => {
+  const b = sample();
+  C.saveCat(b, { id: 'pet', hidden: true }, T);
+  assert.equal(C.presetOf(b), 'mine');
+  C.usePreset(b, 'student');
+  assert.equal(C.presetOf(b), 'student');
+  const out = C.catList('out').map(c => c.id);
+  assert.ok(out.includes('learn') && out.includes('transport') && !out.includes('home') && !out.includes('kids'));
+  assert.ok(out.length < C.OUT.length / 2);
+  assert.ok(!C.subsOf('transport').some(s => s.id === 'transport:taxi'));
+  assert.deepEqual(C.catList('in').map(c => c.id).slice(0, 2), ['allowance', 'redenv']);
+  // A hidden one still names its history, and the person's own record is untouched.
+  assert.equal(C.catOf('home').id, 'home');
+  assert.equal(b.cats.pet.hidden, true);
+  assert.equal(b.cats.home, undefined);
+  assert.equal(b.entries.e1.cat, 'transport');
+  // A new entry's default skips what the set hides; a guess too.
+  assert.equal(C.shownCat('in', 'salary'), 'allowance');
+  assert.equal(C.guessCat('全聯福利中心'), '');
+  // Back to 「我的」: their own set, exactly.
+  C.usePreset(b, 'mine');
+  assert.equal(C.presetOf(b), 'mine');
+  assert.ok(C.catList('out').some(c => c.id === 'home') && !C.catList('out').some(c => c.id === 'pet'));
+  // A change under a preset writes the preset down as theirs first.
+  C.usePreset(b, 'worker');
+  assert.ok(C.ownPreset(b, T + 1));
+  C.saveCat(b, { id: 'learn', hidden: false }, T + 1);
+  C.useBooksCats(b);
+  assert.equal(C.presetOf(b), 'mine');
+  const mine = C.catList('out').map(c => c.id);
+  assert.ok(mine.includes('learn') && mine.includes('bills') && !mine.includes('insure') && !mine.includes('kids') && !mine.includes('pet'));
+  assert.equal(C.ownPreset(b, T + 2), false);
+  C.useCats({});
+});
+
+test('presets: new books show everything until one is picked', () => {
+  const b = B.emptyBooks();
+  assert.equal(C.presetOf(b), 'all');
+  C.usePreset(b, 'family');
+  assert.ok(C.catList('out').some(c => c.id === 'kids'));
+  assert.equal(C.presetCats(b, 'all', 'out').length, C.OUT.length);
+  assert.ok(C.catList('out').length < C.OUT.length);
+  C.useCats({});
+});
+
+test('presets: the student set keeps 零用錢 first, also once it is the person’s own', () => {
+  const b = B.emptyBooks();
+  C.usePreset(b, 'student');
+  assert.equal(C.catList('in')[0].id, 'allowance');
+  C.ownPreset(b, T);
+  C.useBooksCats(b);
+  assert.equal(C.catList('in')[0].id, 'allowance');
+  assert.equal(C.catList('out').length, Object.keys(C.PRESETS[0].out).length);
+  C.useCats({});
+});

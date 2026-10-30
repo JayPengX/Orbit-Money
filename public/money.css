@@ -509,3 +509,7 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-subchip.guess { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--q-accent) 70%, transparent); color: var(--q-label); }
 .mn-guess-sheet .mn-switch-row { margin: 0 0 18px; }
 .mn-guess-sheet .q-rowcard { margin: 0 0 16px; }
+/* 分類組合: the set in use lit, a check at its end. */
+.mn-preset-on { display: inline-flex; color: var(--q-accent); }
+.mn-preset-on svg { width: 20px; height: 20px; }
+.mn-presetsheet .mn-hint { margin: 12px 4px 4px; }

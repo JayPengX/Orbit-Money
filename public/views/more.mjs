@@ -5,7 +5,7 @@
 // once one is, it lives in 統計), the accounts put away (when there are any), the books as a file.
 import { h, toast, sheet, toggle } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
-import { catList, catName, subOf, catOf, glyph } from '../lib/cats.mjs';
+import { catList, catName, subOf, catOf, glyph, presetOf } from '../lib/cats.mjs';
 import { reminders } from '../lib/renew.mjs';
 import { guessScore } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
@@ -13,7 +13,7 @@ import { state, W, today, acctName, card, allAccounts, saved } from '../shell.mj
 import { scanInvoice, invoiceState, wonCard, openInvoices, openBarcode } from './invoices.mjs';
 import { importCarrier } from './carrier-import.mjs';
 import { readPicture } from './read.mjs';
-import { openCats } from './cat-edit.mjs';
+import { openCats, presetName } from './cat-edit.mjs';
 import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
 import { openBudgets } from './stats.mjs';
 
@@ -45,7 +45,7 @@ export function renderMore(box) {
     h('div', { class: 'q-rowcard' }, [
       tool(W('發票對獎', 'Invoices'), inv.count ? W(`${inv.count} 張`, `${inv.count}`) : W('自動對獎', 'Auto-checked'), () => openInvoices()),
       tool(W('手機條碼', 'Barcode'), carrier || W('未設定', 'Not set'), () => openBarcode()),
-      tool(W('分類', 'Categories'), W(`${cats} 個`, `${cats}`), () => openCats()),
+      tool(W('分類', 'Categories'), `${presetName(presetOf(state.books))} · ${W(`${cats} 個`, `${cats}`)}`, () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
       tool(W('智慧帶入', 'Smart fill'), score.of >= 5 ? W(`分類猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
       // (TPASS, subscriptions, memberships: the soonest one.)

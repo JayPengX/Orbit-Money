@@ -2,18 +2,57 @@
 // with its subs; a category opens to its name, look and subs. Anything can be
 // renamed, moved up or down, hidden, or merged into another (its history goes
 // with it, and a merge can be undone); one never used can be deleted. The
-// built-ins are only ever hidden, never lost.
+// built-ins are only ever hidden, never lost. On top, the set in use: a
+// preset for a kind of person, or the person's own (any change to what shows
+// makes it theirs).
 import { h, icons, tile, sheet, segmented, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { catList, catOf, subsOf, subOf, catName, glyph, usesOf, saveCat, addCat, moveCat, mergeCat, removeCat, isBuiltIn, catUndo, useCats, CAT_ICONS, CAT_COLORS } from '../lib/cats.mjs';
+import { catList, catOf, subsOf, subOf, catName, glyph, usesOf, saveCat, addCat, moveCat, mergeCat, removeCat, isBuiltIn, catUndo, useBooksCats, PRESETS, presetOf, presetCats, hasOwn, usePreset, ownPreset, CAT_ICONS, CAT_COLORS } from '../lib/cats.mjs';
 import { state, W, lang, saved, money, acct, card } from '../shell.mjs';
 import { payOptions } from './entry.mjs';
 
-const changed = () => (useCats(state.books.cats), saved());
+const changed = () => (useBooksCats(state.books), saved());
+// Before a change to what shows: a preset in use becomes the person's own.
+const own = () => ownPreset(state.books) && toast(W('已存成「我的」分類', 'Saved as your own set'));
+export const presetName = id => (id === 'mine' ? W('我的', 'My own') : W(PRESETS.find(p => p.id === id).zh, PRESETS.find(p => p.id === id).en));
+
+// The sets to pick from: each preset with what it shows, and 「我的」 once the
+// person has changed anything. `first`: asked once, before the first 記一筆.
+export function openPresets({ first = false, done = () => {} } = {}) {
+  const b = state.books;
+  const cur = presetOf(b);
+  const ids = [...PRESETS.map(p => p.id), ...(hasOwn(b) ? ['mine'] : [])];
+  const row = id => {
+    const out = presetCats(b, id, 'out');
+    const p = PRESETS.find(x => x.id === id);
+    const names = out.slice(0, 3).map(c => catName(c, lang)).join(W('、', ', '));
+    return h('button', { class: 'q-ritem mn-row mn-preset', type: 'button', role: 'radio', 'aria-checked': String(id === cur), onclick: () => {
+      tick();
+      usePreset(b, id);
+      changed();
+      s.close();
+      done(id);
+    } }, [
+      tile(glyph(p?.icon || 'pencil'), id === cur ? 'var(--q-accent)' : '#8e8e93'),
+      h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: presetName(id) }), h('small', { text: W(`${out.length} 類 · ${names}⋯`, `${out.length} · ${names}…`) })]),
+      id === cur ? h('span', { class: 'mn-preset-on', html: icons.check }) : null
+    ]);
+  };
+  const s = sheet({
+    title: first ? W('選一組分類', 'Pick a set of categories') : W('分類組合', 'Category sets'),
+    cls: 'mn-presetsheet',
+    onClose: () => first && !b.opt?.picked && ((b.opt = { ...b.opt, picked: 1 }), saved()),
+    body: [
+      h('div', { class: 'q-rowcard', role: 'radiogroup' }, ids.map(row)),
+      h('p', { class: 'mn-hint', text: W('記過的帳都會留著。之後在 更多 › 分類 可以換，自己改過就變成「我的」。', 'Nothing logged changes. Switch any time in More › Categories; once you change it, it’s your own set.') })
+    ]
+  });
+  return s;
+}
 
 // The subs in a line that never runs off: past three, the first two and the count.
 const subLine = c => {
-  const n = c.subs.map(x => catName(x, lang));
+  const n = c.subs.filter(x => !x.hidden).map(x => catName(x, lang));
   if (!n.length) return W('沒有細項', 'No subs');
   return n.length > 3 ? W(`${n.slice(0, 2).join('、')} 等 ${n.length} 項`, `${n.slice(0, 2).join(', ')} +${n.length - 2}`) : n.join(W('、', ', '));
 };
@@ -29,7 +68,7 @@ export function openCats(kind = 'out') {
   const title = s.el.querySelector('.q-sheet-head h2');
 
   function paint() {
-    useCats(b.cats);
+    useBooksCats(b);
     return open ? paintOne(open) : paintList();
   }
 
@@ -50,12 +89,14 @@ export function openCats(kind = 'out') {
         h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(c, lang) }), h('small', { text: c.hidden ? W('已隱藏', 'Hidden') : subLine(c) })])
       ])
     );
-    box.replaceChildren(kinds, h('div', { class: 'q-rowcard' }, rows), h('p', { class: 'mn-hint', text: W('細項讓統計分得更細，例如 交通 › TPASS、餐飲 › 午餐。', 'Subs split the stats finer, like Transport › TPASS or Food › Lunch.') }));
+    const set = h('div', { class: 'q-rowcard' }, [h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openPresets({ done: () => paint() }) }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('組合', 'Set') })]), h('span', { class: 'q-ritem-value', text: presetName(presetOf(b)) })])]);
+    box.replaceChildren(set, kinds, h('div', { class: 'q-rowcard' }, rows), h('p', { class: 'mn-hint', text: W('細項讓統計分得更細，例如 交通 › TPASS、餐飲 › 午餐。', 'Subs split the stats finer, like Transport › TPASS or Food › Lunch.') }));
     foot.replaceChildren(h('button', { class: 'q-btn primary block', type: 'button', onclick: () => newCat() }, [h('span', { html: icons.plus }), W('新增分類', 'New category')]));
   }
   async function newCat() {
     const name = await nameAsk(W('新分類', 'New category'), '');
     if (!name) return;
+    own();
     const c = addCat(b, { k, zh: name, icon: 'grid', color: CAT_COLORS[catList(k, { all: true }).length % CAT_COLORS.length] });
     changed();
     open = c.id;
@@ -94,7 +135,7 @@ export function openCats(kind = 'out') {
       ...[
       back,
       head,
-      c.hidden ? h('div', { class: 'mn-closed-note' }, [h('span', { text: W('已隱藏：記帳時不會出現，紀錄還在', 'Hidden: off the picker, history kept') }), h('button', { class: 'q-btn tinted small', type: 'button', text: W('顯示', 'Show'), onclick: () => (saveCat(b, { id, hidden: false }), changed(), paint()) })]) : null,
+      c.hidden ? h('div', { class: 'mn-closed-note' }, [h('span', { text: W('已隱藏：記帳時不會出現，紀錄還在', 'Hidden: off the picker, history kept') }), h('button', { class: 'q-btn tinted small', type: 'button', text: W('顯示', 'Show'), onclick: () => (own(), saveCat(b, { id, hidden: false }), changed(), paint()) })]) : null,
       looks,
       h('div', { class: 'q-rowcard' }, [h('button', { class: 'q-ritem chevron mn-row mn-defrow', type: 'button', onclick: () => openDefaults(c, paint) }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('自動帶入', 'Fill in') }), h('small', { text: defText(c) || W('付款方式、金額', 'Way to pay, amount') })])])]),
       h('section', { class: 'q-section' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: W('細項', 'Subs') })]), subs.length ? h('div', { class: 'q-rowcard' }, subRows) : h('p', { class: 'mn-hint', text: W('還沒有細項。', 'No subs yet.') })])
@@ -102,7 +143,7 @@ export function openCats(kind = 'out') {
     );
     foot.replaceChildren(h('button', { class: 'q-btn tinted block', type: 'button', onclick: async () => {
       const name = await nameAsk(W('新細項', 'New sub'), '');
-      if (name) (addCat(b, { k: c.k, parent: id, zh: name }), changed(), paint());
+      if (name) (own(), addCat(b, { k: c.k, parent: id, zh: name }), changed(), paint());
     } }, [h('span', { html: icons.plus }), W('新增細項', 'New sub')]));
   }
 
@@ -120,9 +161,10 @@ export function openCats(kind = 'out') {
       sub ? { label: W('自動帶入⋯', 'Fill in…'), onClick: () => openDefaults(c, paint) } : null,
       at > 0 ? { label: W('往前移', 'Move up'), onClick: () => (moveCat(b, c.id, -1), changed(), paint()) } : null,
       at < sibs.length - 1 ? { label: W('往後移', 'Move down'), onClick: () => (moveCat(b, c.id, 1), changed(), paint()) } : null,
-      { label: c.hidden ? W('顯示', 'Show') : W('隱藏', 'Hide'), onClick: () => (saveCat(b, { id: c.id, hidden: !c.hidden }), changed(), paint()) },
+      { label: c.hidden ? W('顯示', 'Show') : W('隱藏', 'Hide'), onClick: () => (own(), saveCat(b, { id: c.id, hidden: !c.hidden }), changed(), paint()) },
       { label: W('合併到⋯', 'Merge into…'), onClick: () => mergeMenu(anchor, c, uses) },
       !uses && !isBuiltIn(c.id) ? { label: W('刪除', 'Delete'), danger: true, onClick: () => {
+        own();
         const undo = catUndo(b);
         removeCat(b, c.id);
         if (open === c.id) open = '';
@@ -142,6 +184,7 @@ export function openCats(kind = 'out') {
     const to = catName(into, lang);
     const ok = await ask({ title: W(`把 ${name} 合併到 ${to}？`, `Merge ${name} into ${to}?`), body: uses ? W(`${uses} 筆紀錄會改成 ${to}，${name} 不再出現。`, `${uses} entries become ${to}; ${name} goes away.`) : W(`${name} 不再出現。`, `${name} goes away.`), ok: W('合併', 'Merge'), cancel: W('取消', 'Cancel'), icon: 'swap' });
     if (!ok) return;
+    own();
     const undo = catUndo(b);
     mergeCat(b, c.id, into.id);
     if (open === c.id) open = into.parent || into.id;

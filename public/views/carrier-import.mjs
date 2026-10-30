@@ -7,7 +7,7 @@
 import { h, icons, sheet, toast, menu } from '#kit/ui.mjs';
 import { live, put, autoReload, matchInvoices } from '../lib/books.mjs';
 import { parseCarrierCsv, csvText } from '../lib/invoice.mjs';
-import { guessCat, guessSub, glyph } from '../lib/cats.mjs';
+import { guessCat, guessSub, glyph, shownCat } from '../lib/cats.mjs';
 import { state, W, money, dayLabel, saved } from '../shell.mjs';
 import { payOptions, lastPay } from './entry.mjs';
 import { shortName } from './invoices.mjs';
@@ -69,7 +69,7 @@ function sortOut(list) {
 function addInvoices(list, pay) {
   const b = state.books;
   const now = Date.now();
-  const fallback = b.opt?.lastCat?.out || 'other';
+  const fallback = shownCat('out', b.opt?.lastCat?.out);
   for (const [n, i] of list.entries()) {
     const seller = shortName(i.seller);
     const words = `${i.seller} ${i.items.map(x => x.name).join(' ')}`;

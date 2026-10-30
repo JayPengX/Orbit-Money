@@ -83,14 +83,88 @@ export const ADJ = { id: 'adj', zh: '調整餘額', en: 'Balance fix', icon: 'pe
 // color, order, hidden } }): a built-in's id renames, reorders, hides or
 // moves it; a new id adds one (a sub when it has a parent). app.mjs hands
 // them in before anything is drawn.
+// Under a preset (books.opt.preset) its own set shows instead of the
+// person's hidden ones; their names, looks and subs stand either way.
 let table = BUILT;
-export function useCats(cats) {
+export function useCats(cats, preset = '') {
   table = new Map(BUILT);
   for (const r of Object.values(cats || {})) {
     if (!r || r.del) continue;
     const base = BUILT.get(r.id);
     table.set(r.id, { ...(base || { icon: 'grid', color: '#8e8e93' }), ...r, zh: r.zh || base?.zh || '', en: r.zh || base?.en || '' });
   }
+  const p = PRESETS.find(x => x.id === preset);
+  // (In the preset's own order, the rest after, unless the person set one.)
+  const rank = p && p.id !== 'all' ? [...Object.keys(p.out), ...p.in] : [];
+  if (p) [...table].forEach(([id, c], i) => table.set(id, { ...c, hidden: !inPreset(p, c), order: c.order ?? (p.id === 'all' ? undefined : rank.includes(id) ? rank.indexOf(id) : 100 + i) }));
+}
+export const useBooksCats = books => useCats(books.cats, books.opt?.preset);
+
+// ---- Presets ----------------------------------------------------------------------
+// (Jay 2026-10-30: too many categories; a set for each kind of person, and
+// what the person changes becomes their own.) A top id with the sub keys
+// it keeps (all of them when none are named); `all` shows everything. A
+// switch only changes what the picker shows: nothing logged moves, and the
+// person's own set (their hidden ones, books.cats) waits under 「我的」.
+export const PRESETS = [
+  {
+    id: 'student', zh: '學生', en: 'Student', icon: 'school',
+    out: { food: ['breakfast', 'lunch', 'dinner', 'snack', 'out'], drink: [], transport: ['tpass', 'mrt', 'bus', 'youbike', 'tra', 'thsr', 'coach'], learn: [], shop: ['clothes', 'tech', 'online'], fun: [], digital: [], social: ['gift', 'treat'], other: [] },
+    in: ['allowance', 'redenv', 'side', 'prize', 'cashback', 'topup', 'otherin']
+  },
+  {
+    id: 'worker', zh: '上班族', en: 'Office worker', icon: 'work',
+    out: { food: [], drink: [], transport: [], shop: [], daily: [], home: ['rent', 'fee', 'fix'], bills: [], phone: [], fun: [], digital: [], health: [], social: [], other: [] },
+    in: ['salary', 'bonus', 'invest', 'side', 'redenv', 'cashback', 'prize', 'topup', 'otherin']
+  },
+  {
+    id: 'family', zh: '家庭', en: 'Family', icon: 'home',
+    out: { food: ['breakfast', 'lunch', 'dinner', 'snack', 'out'], daily: [], home: [], bills: [], phone: [], transport: ['mrt', 'bus', 'thsr', 'tra', 'taxi'], car: [], kids: [], learn: [], health: [], insure: [], social: [], other: [] },
+    in: ['salary', 'bonus', 'invest', 'side', 'redenv', 'cashback', 'topup', 'otherin']
+  },
+  { id: 'all', zh: '全部', en: 'Everything', icon: 'grid' }
+];
+function inPreset(p, c) {
+  if (p.id === 'all') return true;
+  if (c.k === 'in') return !c.parent && p.in.includes(c.id);
+  if (!c.parent) return Boolean(p.out[c.id]);
+  const keep = p.out[c.parent];
+  return Boolean(keep) && (!keep.length || keep.includes(c.id.slice(c.parent.length + 1)));
+}
+// Which set is in use: a preset's id, 'mine' (the person's own changes), or
+// 'all' when nothing was ever changed.
+export const presetOf = books => (PRESETS.some(p => p.id === books.opt?.preset) ? books.opt.preset : hasOwn(books) ? 'mine' : 'all');
+// Whether the person's own set differs from showing everything (one hidden, or one of their own).
+export const hasOwn = books => Object.values(books.cats || {}).some(r => r && !r.del && (r.hidden || !BUILT.has(r.id)));
+// Use a preset, or 'mine' to go back to the person's own.
+export function usePreset(books, id) {
+  books.opt = { ...books.opt, preset: id === 'mine' ? '' : id, picked: 1 };
+  useBooksCats(books);
+}
+// Before the person changes what shows (hides, adds, merges): what the preset
+// shows becomes theirs, written down, and 「我的」 is in use from then on.
+export function ownPreset(books, now = Date.now()) {
+  if (!PRESETS.some(p => p.id === books.opt?.preset)) return false;
+  useBooksCats(books);
+  for (const c of table.values()) {
+    const m = mineOf(books, c.id);
+    if (Boolean(m.hidden) !== c.hidden || (c.order != null && m.order !== c.order)) saveCat(books, { id: c.id, hidden: c.hidden, ...(c.order != null ? { order: c.order } : {}) }, now);
+  }
+  usePreset(books, 'mine');
+  return true;
+}
+// What a set would show (the person's own names), the table left as it was.
+export function presetCats(books, id, kind) {
+  useCats(books.cats, id === 'mine' ? '' : id);
+  const list = catList(kind);
+  useBooksCats(books);
+  return list;
+}
+// A picked or guessed category if it shows, else the kind's first that does
+// (one the preset hides isn't offered for a new entry).
+export function shownCat(kind, id) {
+  const list = catsFor(kind);
+  return list.find(c => c.id === id)?.id || list[0]?.id || (kind === 'in' ? 'otherin' : 'other');
 }
 const ordered = list => list.map((c, i) => ({ c, i })).sort((x, y) => (x.c.order ?? x.i) - (y.c.order ?? y.i)).map(x => x.c);
 // A kind's categories (hidden ones too with `all`), each with its subs.
@@ -127,13 +201,13 @@ const mineOf = (books, id) => (books.cats?.[id] && !books.cats[id].del ? books.c
 export const saveCat = (books, rec, now = Date.now()) => put(books, 'cats', { ...mineOf(books, rec.id), ...rec }, now);
 // A new one (a sub under `parent`), last in its list.
 export function addCat(books, { k, parent = '', zh, icon = 'grid', color = '#8e8e93' }, now = Date.now()) {
-  useCats(books.cats);
+  useBooksCats(books);
   const sibs = parent ? subsOf(parent, { all: true }) : catList(k, { all: true });
   return saveCat(books, { id: `c-${newId(now)}`, k, parent, zh, icon, color, order: sibs.length }, now);
 }
 // One place up (-1) or down (+1) among its own: every sibling's order written, so they stay put.
 export function moveCat(books, id, dir, now = Date.now()) {
-  useCats(books.cats);
+  useBooksCats(books);
   const c = table.get(id);
   if (!c) return false;
   const sibs = c.parent ? subsOf(c.parent, { all: true }) : catList(c.k, { all: true });
@@ -148,7 +222,7 @@ export function moveCat(books, id, dir, now = Date.now()) {
 // budget goes; then it's gone (a built-in hidden). A sub into its own parent
 // is the sub let go (its entries just the category).
 export function mergeCat(books, from, into, now = Date.now()) {
-  useCats(books.cats);
+  useBooksCats(books);
   const a = table.get(from);
   const b = table.get(into);
   if (!a || !b || from === into) return false;
@@ -188,7 +262,7 @@ export function removeCat(books, id, now = Date.now()) {
   if (usesOf(books, id)) return false;
   if (isBuiltIn(id)) saveCat(books, { id, hidden: true }, now);
   else {
-    useCats(books.cats);
+    useBooksCats(books);
     for (const s of subsOf(id, { all: true })) removeCat(books, s.id, now);
     drop(books, 'cats', id, now);
   }
@@ -220,7 +294,7 @@ const GUESS = [
 ];
 export function guessCat(text) {
   const s = String(text || '');
-  for (const [id, re] of GUESS) if (re.test(s)) return id;
+  for (const [id, re] of GUESS) if (re.test(s) && !table.get(id)?.hidden) return id;
   return '';
 }
 // The finer kind too, where the words say it ('' when not, or when the person hid it).
@@ -294,6 +368,6 @@ export function upgradeCats(books, now = Date.now()) {
   }
   if (books.cats?.refund && !books.cats.refund.del) drop(books, 'cats', 'refund', now), n++;
   if (split) (books.opt ||= {}).dig2 = 1, n++;
-  if (n) useCats(books.cats);
+  if (n) useBooksCats(books);
   return n;
 }

@@ -6,7 +6,7 @@
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
 import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE } from '../lib/books.mjs';
-import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
+import { catsFor, shownCat, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 import { payPic, whatTile } from './pics.mjs';
 import { cluesFor, guessWhat, guessSubIn, guessPay, guessAmts, guessStamp, cellOf } from '../lib/guess.mjs';
@@ -88,7 +88,10 @@ export function lastPay() {
 // to swipe hid half of them and cut their names), the picked one lit: the
 // entry sheet's and a repeat's, one look.
 export function catTiles(kind, cur, onPick) {
-  return catsFor(kind).map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
+  // (An older entry's category the set doesn't show stays in view while it's picked.)
+  const list = catsFor(kind);
+  if (cur && !list.some(c => c.id === cur) && catOf(cur).id === cur && catOf(cur).k === kind) list.push(catOf(cur));
+  return list.map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
 }
 
 // A category's subs as chips under the tiles: one lit, tapped again to let go
@@ -142,7 +145,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   // A kind's likeliest category: the guess's, else the last one used, else the first.
   const catFor = k => {
     const g = guessWhat(clues, { k });
-    return (g && shown(k, g.cat) && g.cat) || (shown(k, opt.lastCat?.[k]) && opt.lastCat[k]) || (k === 'in' ? 'salary' : 'food');
+    return (g && shown(k, g.cat) && g.cat) || (shown(k, opt.lastCat?.[k]) && opt.lastCat[k]) || shownCat(k);
   };
   // The sub: what the note or the store says, else what the category usually
   // has at this hour here, else (餐飲 with no history) the meal by the hour.
