@@ -77,7 +77,27 @@ h1, h2, h3, p { margin: 0; }
 .mn-day.later b { color: var(--q-label-3); }
 .mn-day.today b { color: var(--q-accent); font-weight: 600; }
 .mn-day.on b { background: var(--q-accent); color: #fff; font-weight: 600; }
-.mn-day-sec { display: grid; gap: 8px; margin-top: 8px; }
+/* The month's figures on one short card (Jay 2026-10-30): spent left,
+   income and what's left right, the budget's bar and line across under. */
+.q-focus.mn-sum { grid-template-columns: minmax(max-content, 1fr) minmax(0, max-content); align-items: end; column-gap: 16px; row-gap: 4px; padding: 14px 16px; }
+.mn-sum-main { display: grid; gap: 2px; min-width: 0; }
+.mn-sum .q-focus-value { font-size: clamp(26px, 8.6vw, 34px); line-height: 40px; }
+.q-focus .mn-sum-figs { display: grid; gap: 4px; min-width: 0; margin: 0; padding: 0 0 4px 14px; border-top: 0; border-left: 0.5px solid rgba(255, 255, 255, 0.14); }
+.mn-sum-figs > div { display: grid; gap: 0; justify-items: end; text-align: right; }
+.mn-sum-figs small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 16px; }
+.mn-sum-figs b { font-size: clamp(14px, 3.9vw, 15px); line-height: 20px; }
+.mn-sum .q-focus-bar, .mn-sum .q-focus-sub { grid-column: 1 / -1; }
+.mn-sum .q-focus-bar { margin-top: 8px; }
+.mn-sum .q-focus-sub { font-size: 13px; line-height: 18px; }
+/* Folded, the calendar is one week; the handle under it opens the month. */
+.mn-cal-card { position: relative; padding-bottom: 0; }
+.mn-cal-steps { align-items: center; }
+.mn-today { margin-right: 4px; }
+.mn-day.other b { color: var(--q-label-3); }
+.mn-fold { display: grid; place-items: center; width: 100%; height: 28px; border: 0; background: none; color: var(--q-label-3); }
+.mn-fold svg { width: 14px; height: 14px; stroke-width: 2.6; transform: rotate(90deg); transition: transform 0.2s; }
+.mn-fold.open svg { transform: rotate(-90deg); }
+.mn-day-sec { display: grid; gap: 8px; margin-top: 4px; }
 .mn-dayhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 4px; }
 .mn-dayhead-t { min-width: 0; }
 .mn-dayhead h2 { font: 600 20px/25px var(--q-font); white-space: nowrap; }
@@ -476,3 +496,12 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-renews { margin-top: var(--q-s-4); }
 .mn-renew .q-btn { flex: none; }
 .mn-owed-total { color: var(--q-label-2); font: 500 15px/20px var(--q-font-rounded); }
+
+/* 統計's 不計入 (Jay 2026-10-30): the period's categories as one scrolling row
+   of chips; one tapped off is grey and crossed, and every figure leaves it out. */
+.mn-skip { display: flex; gap: 6px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); padding: 0 max(16px, env(safe-area-inset-left)); overflow-x: auto; scrollbar-width: none; }
+.mn-skip::-webkit-scrollbar { display: none; }
+.mn-skip-chip { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border: 0; border-radius: 99px; background: var(--q-surface); color: var(--q-label); font: 500 14px/18px var(--q-font); white-space: nowrap; }
+.mn-skip-chip i { width: 8px; height: 8px; border-radius: 50%; }
+.mn-skip-chip.off { color: var(--q-label-3); text-decoration: line-through; }
+.mn-skip-chip.off i { background: var(--q-label-3) !important; }

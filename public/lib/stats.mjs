@@ -86,7 +86,7 @@ export function shape(books, from, to) {
   let back = 0;
   let owed = 0;
   for (const e of live(books.entries))
-    if (e.k === 'back' && e.d >= from && e.d <= to) {
+    if (e.k === 'back' && e.d >= from && e.d <= to && !books.skip?.has(e.cat || books.entries[e.of]?.cat || 'other')) {
       if (e.wait) owed += Number(e.amt) || 0;
       else back += Number(e.amt) || 0;
     }

@@ -1,15 +1,16 @@
-// 月曆, the home: the month's spending (and its budget) on top,
-// the month with each day's spending under its date, the days over the
-// budget's daily share in the accent,
+// 月曆, the home: the month's spending (and its budget) on a short card,
+// the picked day's week (or, opened, the month) with each day's spending
+// under its date, the days over the budget's daily share in the accent,
 // (holidays and typhoon days off in red, as a Taiwan calendar has them),
 // and the picked day's entries under it. A swipe across the month goes to
-// the next or the last.
+// the next or the last; the picked day's entries sit right under it.
 import { h, icons, menu, tile } from '#kit/ui.mjs';
 import { notifyOn } from '#kit/orbit.mjs';
 import { dayOffAt, myPlace } from '#kit/dayoff.mjs';
 import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState, lines } from '../lib/books.mjs';
 import { reminders } from '../lib/renew.mjs';
 import { openReminder, renewNow, reminderTile, leftText, dueText } from './renew.mjs';
+import { addDays } from '#kit/format.mjs';
 import { state, hooks, W, en, lang, money, short, monthLabel, dayLabel, today } from '../shell.mjs';
 import { entryRow, openEntry } from './entry.mjs';
 
@@ -38,18 +39,22 @@ export function renderCal(box) {
   const now = today();
   const budget = budgetState(b, ym, now).find(x => !x.cat);
   const place = myPlace('work');
+  const open = calOpen();
 
-  // The focal point, on its card: the month's spending, a thin bar
-  // for the budget with what's left under it, then income and what's left
-  // over as two quiet figures (記一筆 is the round button beside the tabs).
-  const hero = h('section', { class: 'q-focus mn-focus' }, [
-    h('span', { class: 'q-focus-label', text: W(`${monthLabel(ym, { year: false })}支出`, `Spent in ${monthLabel(ym, { year: false })}`) }),
-    h('b', { class: 'q-focus-value q-fit', text: money(t.out) }),
+  // The month's figures, on one short card (Jay 2026-10-30: the big card
+  // and the whole month pushed the day's entries off the screen): spent
+  // as the focal number, income and what's left beside it, the budget's
+  // thin bar and one line under them.
+  const hero = h('section', { class: 'q-focus mn-focus mn-sum' }, [
+    h('div', { class: 'mn-sum-main' }, [
+      h('span', { class: 'q-focus-label', text: W(`${monthLabel(ym, { year: false })}支出`, `Spent in ${monthLabel(ym, { year: false })}`) }),
+      h('b', { class: 'q-focus-value q-fit', text: money(t.out) })
+    ]),
+    h('div', { class: 'q-focus-figs mn-sum-figs' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }), t.net > 0 ? 'in' : '')]),
     budget ? h('div', { class: `q-focus-bar${budget.left < 0 ? ' over' : ''}`, role: 'progressbar', 'aria-valuenow': String(Math.round(budget.share * 100)) }, [h('i', { style: `width:${Math.min(100, budget.share * 100)}%` })]) : null,
     budget
       ? h('span', { class: 'q-focus-sub', text: budget.left >= 0 ? (budget.perDay && now.startsWith(ym) ? W(`預算還剩 ${money(budget.left)}，每天 ${money(budget.perDay)}`, `${money(budget.left)} left, ${money(budget.perDay)} a day`) : W(`預算還剩 ${money(budget.left)}`, `${money(budget.left)} left`)) : W(`超出預算 ${money(-budget.left)}`, `${money(-budget.left)} over budget`) })
-      : null,
-    h('div', { class: 'q-focus-figs' }, [fig(W('收入', 'Income'), money(t.in)), fig(W('結餘', 'Left'), money(t.net, { sign: true }), t.net > 0 ? 'in' : '')])
+      : null
   ]);
 
   // The month's few big days show their amount in the accent: over twice
@@ -59,34 +64,44 @@ export function renderCal(box) {
   const big = Object.entries(days).filter(([, v]) => v.out > 2 * share).sort((x, y) => y[1].out - x[1].out).slice(0, 5);
   const loud = new Set(big.map(([d]) => d));
 
-  // The month: each day's spending under its date.
+  // Folded (the default), the calendar is the picked day's week; opened,
+  // the whole month. A week can reach into the month next to it.
   const n = monthDays(ym);
-  const offset = new Date(`${ym}-01T12:00:00Z`).getUTCDay();
-  const cells = [];
-  for (let d = 1; d <= n; d++) {
-    const day = `${ym}-${String(d).padStart(2, '0')}`;
-    const v = days[day];
+  const first = addDays(state.day, -new Date(`${state.day}T12:00:00Z`).getUTCDay());
+  const shown = open ? Array.from({ length: n }, (_, i) => `${ym}-${String(i + 1).padStart(2, '0')}`) : Array.from({ length: 7 }, (_, i) => addDays(first, i));
+  const near = {};
+  for (const m of new Set(shown.map(d => d.slice(0, 7)))) if (m !== ym) Object.assign(near, monthByDay(b, m));
+  const cells = shown.map((day, i) => {
+    const v = days[day] || near[day];
     const off = dayOffAt(day, place);
-    const cls = ['mn-day', off && 'off', day === now && 'today', day === state.day && 'on', day > now && 'later', loud.has(day) && 'loud'].filter(Boolean).join(' ');
+    const cls = ['mn-day', off && 'off', day === now && 'today', day === state.day && 'on', day > now && 'later', loud.has(day) && 'loud', !day.startsWith(ym) && 'other'].filter(Boolean).join(' ');
     const btn = h('button', { class: cls, type: 'button', 'aria-label': `${dayLabel(day)}${v?.out ? ` ${money(v.out)}` : ''}`, 'aria-pressed': String(day === state.day), 'data-day': day, onclick: () => pickDay(day) }, [
-      h('b', { text: String(d) }),
+      h('b', { text: String(Number(day.slice(8))) }),
       v?.out ? h('small', { class: 'num out', text: short(v.out) }) : v?.in ? h('small', { class: 'num in', text: `+${short(v.in)}` }) : h('small', { text: '' })
     ]);
-    if (d === 1) btn.style.gridColumnStart = String(offset + 1);
-    cells.push(btn);
-  }
-  const step = (dir, label) => h('button', { class: 'mn-step', type: 'button', 'aria-label': label, html: icons.chevron, onclick: () => goMonth(dir) });
+    if (open && i === 0) btn.style.gridColumnStart = String(new Date(`${ym}-01T12:00:00Z`).getUTCDay() + 1);
+    return btn;
+  });
+  const go = dir => (open ? goMonth(dir) : goWeek(dir));
+  const step = (dir, label) => h('button', { class: 'mn-step', type: 'button', 'aria-label': label, html: icons.chevron, onclick: () => go(dir) });
   const calHead = h('div', { class: 'mn-cal-head' }, [
     h('button', { class: 'mn-month', type: 'button', onclick: e => pickMonth(e.currentTarget) }, [monthLabel(ym), h('i', { html: icons.chevron })]),
-    h('span', { class: 'mn-cal-steps' }, [step(-1, W('上個月', 'Previous month')), step(1, W('下個月', 'Next month'))])
+    h('span', { class: 'mn-cal-steps' }, [
+      state.day !== now ? h('button', { class: 'q-btn tinted small mn-today', type: 'button', text: W('今天', 'Today'), onclick: () => goMonth(0, now.slice(0, 7)) }) : null,
+      step(-1, open ? W('上個月', 'Previous month') : W('上一週', 'Previous week')),
+      step(1, open ? W('下個月', 'Next month') : W('下一週', 'Next week'))
+    ])
   ]);
   const grid = h('div', { class: 'mn-cal' }, [...WEEK.map((w, i) => h('span', { class: `mn-w${i === 0 || i === 6 ? ' off' : ''}`, text: w })), ...cells]);
-  swipe(grid);
+  swipe(grid, go);
+  const fold = h('button', { class: `mn-fold${open ? ' open' : ''}`, type: 'button', 'aria-expanded': String(open), 'aria-label': open ? W('收起月曆', 'Show one week') : W('展開月曆', 'Show the month'), html: icons.chevron, onclick: () => (setCalOpen(!open), render()) });
 
-  // A day picked: its square and the list under the month, the rest left as it is.
+  // A day picked: its square and the list under it, the rest left as it is
+  // (one in the month next door shows that month).
   let daySec = daySection(b, place);
   const pickDay = day => {
     state.day = day;
+    if (!day.startsWith(ym)) return ((state.month = day.slice(0, 7)), render());
     for (const c of grid.querySelectorAll('.mn-day')) {
       const on = c.dataset.day === day;
       c.classList.toggle('on', on);
@@ -97,7 +112,28 @@ export function renderCal(box) {
     daySec = next;
   };
 
-  box.replaceChildren(...[hero, renewals(b, now)].filter(Boolean), h('div', { class: 'mn-cal-card' }, [calHead, grid]), daySec);
+  // The day's entries come straight after the calendar, so today's log is
+  // on the screen when it opens; what's due soon follows.
+  box.replaceChildren(hero, h('div', { class: `mn-cal-card${open ? '' : ' week'}` }, [calHead, grid, fold]), daySec, ...[renewals(b, now)].filter(Boolean));
+}
+
+// The calendar opened or folded, kept on this phone.
+function calOpen() {
+  try {
+    return localStorage.getItem('money:cal-open') === '1';
+  } catch {
+    return false;
+  }
+}
+function setCalOpen(on) {
+  try {
+    localStorage.setItem('money:cal-open', on ? '1' : '0');
+  } catch {}
+}
+function goWeek(n) {
+  state.day = addDays(state.day, 7 * n);
+  state.month = state.day.slice(0, 7);
+  render();
 }
 
 // 到期提醒 (Jay 2026-10-27): what runs out or renews within a week (or ran
@@ -143,8 +179,8 @@ function daySection(b, place) {
 
 const fig = (label, value, cls = '') => h('div', null, [h('small', { text: label }), h('b', { class: `num ${cls}`.trim(), text: value })]);
 
-// A finger across the month: the next month (left) or the last (right).
-function swipe(el) {
+// A finger across the calendar: the next week or month (left) or the last (right).
+function swipe(el, go) {
   let x0 = null;
   let y0 = 0;
   el.addEventListener('touchstart', e => ((x0 = e.touches[0].clientX), (y0 = e.touches[0].clientY)), { passive: true });
@@ -153,6 +189,6 @@ function swipe(el) {
     const dx = e.changedTouches[0].clientX - x0;
     const dy = e.changedTouches[0].clientY - y0;
     x0 = null;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) goMonth(dx < 0 ? 1 : -1);
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
   });
 }

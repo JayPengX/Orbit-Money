@@ -49,8 +49,14 @@ export function periodOf(range, at, custom = state.custom) {
   return { from: `${ym}-01`, to: `${ym}-${String(monthDays(ym)).padStart(2, '0')}`, label: monthLabel(ym), step: n => `${shiftMonth(ym, n)}-01`, unit: 'day', prevName: W('上月', 'Last month') };
 }
 
+// 不計入 (Jay 2026-10-30: "toggle certain things off and build the chart and
+// number without them"): the categories tapped off, for this visit only.
+// Every figure on the page is counted from B(), the books without them.
+const skip = new Set();
+const B = () => (skip.size ? { ...state.books, skip } : state.books);
+
 export function renderStats(box) {
-  const b = state.books;
+  const b = B();
   const now = today();
   const kind = state.kind === 'in' ? 'in' : 'out';
   const p = periodOf(state.range, state.at);
@@ -75,20 +81,22 @@ export function renderStats(box) {
 
   const amt = total(b, kind, p.from, p.to);
   const before = total(b, kind, prev.from, prev.to);
-  const parts = [seg, nav, hero(kind, p, prev, amt, before, now)];
+  const parts = [seg, nav, skipRow(kind, p, redraw), hero(kind, p, prev, amt, before, now)];
   if (!amt) {
     parts.push(empty({ icon: 'chart', title: kind === 'in' ? W('這段時間沒有收入', 'No income in this period') : W('這段時間沒有支出', 'No spending in this period') }));
     if (kind === 'out' && state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
     return box.replaceChildren(...parts.filter(Boolean));
   }
-  parts.push(trend(kind, p, now));
+  // (The split first, the days after it on a short chart: Jay 2026-10-30, the
+  // big chart of mostly empty days pushed the donut off the screen.)
   if (kind === 'out') {
+    parts.push(catSection(kind, p, amt), trend(kind, p, now));
     if (state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
-    parts.push(catSection(kind, p, amt), changeSection(kind, p, prev), payCard(kind, p, amt), shapeCard(p), bigCard(kind, p), placeCard(kind, p));
+    parts.push(changeSection(kind, p, prev), payCard(kind, p, amt), shapeCard(p), bigCard(kind, p), placeCard(kind, p));
     if (daysIn(p.from, p.to, now) >= 14) parts.push(weekCard(p, now));
     if (state.range === 'month') parts.push(monthsCard(p, now));
   } else {
-    parts.push(catSection(kind, p, amt), payCard(kind, p, amt), inOutCard(p, now), bigCard(kind, p));
+    parts.push(catSection(kind, p, amt), trend(kind, p, now), payCard(kind, p, amt), inOutCard(p, now), bigCard(kind, p));
   }
   box.replaceChildren(...parts.filter(Boolean));
 }
@@ -141,7 +149,7 @@ function openCustom(redraw) {
 // period before, and (a month that's running) where it's heading. 收入: the
 // share kept, beside it, never in place of the spending.
 function hero(kind, p, prev, amt, before, now) {
-  const b = state.books;
+  const b = B();
   const gone = daysIn(p.from, p.to, now);
   const diff = before ? (amt - before) / before : null;
   // (The period before is the first figure under it, so the change needs no words.)
@@ -162,11 +170,32 @@ function hero(kind, p, prev, amt, before, now) {
     if (k != null) figs.push(fig(k >= 0 ? W('存下', 'Kept') : W('花超過收入', 'Spent beyond it'), k >= 0 ? `${Math.round(k * 100)}%` : money(out - amt), k >= 0 ? 'in' : ''));
   }
   sub = sub.filter(Boolean);
-  return h('section', { class: 'q-focus mn-focus' }, [
-    h('span', { class: 'q-focus-label', text: kind === 'in' ? W('收入', 'Income') : W('支出', 'Spent') }),
-    h('b', { class: 'q-focus-value q-fit', text: money(amt) }),
-    sub.length ? h('span', { class: 'q-focus-sub', text: sub.join(' · ') }) : null,
-    h('div', { class: 'q-focus-figs' }, figs)
+  // (One short card, as on 月曆: the total left, the figures beside it.)
+  const name = kind === 'in' ? W('收入', 'Income') : W('支出', 'Spent');
+  const off = skip.size ? byCat(state.books, kind, p.from, p.to).filter(c => skip.has(c.cat)).length : 0;
+  return h('section', { class: 'q-focus mn-focus mn-sum' }, [
+    h('div', { class: 'mn-sum-main' }, [
+      h('span', { class: 'q-focus-label', text: off ? W(`${name}（不含 ${off} 類）`, `${name}, ${off} left out`) : name }),
+      h('b', { class: 'q-focus-value q-fit', text: money(amt) })
+    ]),
+    figs.length ? h('div', { class: 'q-focus-figs mn-sum-figs' }, figs) : null,
+    sub.length ? h('span', { class: 'q-focus-sub', text: sub.join(' · ') }) : null
+  ]);
+}
+// The period's categories as chips: a tap leaves one out of every figure
+// (crossed and grey), a tap again counts it back; 全部計入 counts them all.
+function skipRow(kind, p, redraw) {
+  const cats = byCat(state.books, kind, p.from, p.to);
+  if (cats.length < 2 && !skip.size) return null;
+  const chip = (label, on, onclick, color = '') =>
+    h('button', { class: `mn-skip-chip${on ? '' : ' off'}`, type: 'button', 'aria-pressed': String(on), onclick }, [color ? h('i', { style: `background:${color}` }) : null, label]);
+  const mine = cats.filter(c => skip.has(c.cat)).length;
+  return h('div', { class: 'mn-skip', role: 'group', 'aria-label': W('計入的分類', 'Categories counted') }, [
+    mine ? chip(W('全部計入', 'Count all'), true, () => (skip.clear(), redraw())) : null,
+    ...cats.map(c => {
+      const look = catOf(c.cat);
+      return chip(catName(look, lang), !skip.has(c.cat), () => (skip.has(c.cat) ? skip.delete(c.cat) : skip.add(c.cat), redraw()), look.color);
+    })
   ]);
 }
 const fig = (label, value, cls = '') => h('div', null, [h('small', { text: label }), h('b', { class: `num ${cls}`.trim(), text: value })]);
@@ -285,11 +314,11 @@ function trend(kind, p, now) {
   const keys = byMonth ? monthKeys(p.from, p.to) : [];
   if (!byMonth) for (let d = p.from; d <= p.to; d = addDays(d, 1)) keys.push(d);
   const sum = Object.fromEntries(keys.map(k => [k, 0]));
-  for (const l of lines(state.books, p.from, p.to)) if (l.k === kind) sum[byMonth ? l.d.slice(0, 7) : l.d] += l.amt;
+  for (const l of lines(B(), p.from, p.to)) if (l.k === kind) sum[byMonth ? l.d.slice(0, 7) : l.d] += l.amt;
   const top = Math.max(0, ...Object.values(sum));
   return bars(
     keys.map(k => ({ key: k, a: sum[k], label: byMonth ? monthTick(k) : String(Number(k.slice(8))), say: `${byMonth ? monthLabel(k, { year: false }) : dayLabel(k)} · ${money(sum[k])}` })),
-    { now: byMonth ? now.slice(0, 7) : now, top: top ? W(`${byMonth ? '單月' : '單日'}最高 ${money(top)} · 點長條看金額`, `Top ${money(top)} · tap a bar`) : '' }
+    { cls: 'short', now: byMonth ? now.slice(0, 7) : now, top: top ? W(`${byMonth ? '單月' : '單日'}最高 ${money(top)} · 點長條看金額`, `Top ${money(top)} · tap a bar`) : '' }
   );
 }
 
@@ -301,7 +330,7 @@ function trend(kind, p, now) {
 // pie): categories inside, their subs in their shades around them, the
 // biggest named beside it; a tap on a slice or a name says its amount.
 function catSection(kind, p, whole) {
-  const cats = byCat(state.books, kind, p.from, p.to, id => subOf(id)?.parent || '');
+  const cats = byCat(B(), kind, p.from, p.to, id => subOf(id)?.parent || '');
   const subs = c => (c.subs.length > 1 ? c.subs : []);
   const outer = [];
   for (const c of cats) {
@@ -350,8 +379,8 @@ function catSection(kind, p, whole) {
 
 // What moved most against the period before (up to five).
 function changeSection(kind, p, prev) {
-  const list = changes(state.books, kind, p, prev).slice(0, 5);
-  if (!list.length || !total(state.books, kind, prev.from, prev.to)) return null;
+  const list = changes(B(), kind, p, prev).slice(0, 5);
+  if (!list.length || !total(B(), kind, prev.from, prev.to)) return null;
   return section(
     W(`比${p.prevName}`, `Against ${p.prevName.toLowerCase()}`),
     h(
@@ -375,7 +404,7 @@ function changeSection(kind, p, prev) {
 
 // Each account, each way to pay on it under it when there's more than one.
 function payCard(kind, p, whole) {
-  const list = byAccount(state.books, kind, p.from, p.to);
+  const list = byAccount(B(), kind, p.from, p.to);
   if (!list.length) return null;
   const rows = [];
   for (const x of list) {
@@ -396,7 +425,7 @@ function payCard(kind, p, whole) {
 
 // Fixed (固定收支) against the rest, the fees, and what came back.
 function shapeCard(p) {
-  const s = shape(state.books, p.from, p.to);
+  const s = shape(B(), p.from, p.to);
   if (!s.fixed && !s.fees && !s.back && !s.owed) return null;
   const cells = [
     ['fixed', W('固定', 'Fixed'), money(s.fixed), pct(s.fixed, s.total)],
@@ -427,14 +456,14 @@ function shapeCard(p) {
 
 // The largest single ones.
 function bigCard(kind, p) {
-  const list = largest(state.books, kind, p.from, p.to);
+  const list = largest(B(), kind, p.from, p.to);
   if (list.length < 2) return null;
   return section(kind === 'in' ? W('最大筆收入', 'Largest') : W('最大筆支出', 'Largest spends'), h('div', { class: 'q-rowcard' }, list.map(l => entryRow(l.e, { line: l, inCat: true }))));
 }
 
 // The places paid most (a store seen twice or more).
 function placeCard(kind, p) {
-  const list = places(state.books, kind, p.from, p.to);
+  const list = places(B(), kind, p.from, p.to);
   if (!list.length) return null;
   return section(
     W('常去的店', 'Places'),
@@ -442,7 +471,7 @@ function placeCard(kind, p) {
       'div',
       { class: 'q-rowcard' },
       list.map(x => {
-        const e = state.books.entries[x.ids[0]];
+        const e = B().entries[x.ids[0]];
         const look = catOf(e?.cat);
         return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openPlace(kind, x.name, p) }, [
           tile(glyph(look.icon), look.color),
@@ -456,7 +485,7 @@ function placeCard(kind, p) {
 
 // Which weekdays cost most (the average of each over the days of it gone).
 function weekCard(p, now) {
-  const list = weekdays(state.books, p.from, p.to, now);
+  const list = weekdays(B(), p.from, p.to, now);
   const names = en ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['一', '二', '三', '四', '五', '六', '日'];
   const topAt = list.reduce((m, x) => (x.avg > list[m].avg ? x.wd : m), 0);
   if (!list[topAt].avg) return null;
@@ -472,8 +501,8 @@ function weekCard(p, now) {
 // The last six months' spending, this one lit, with their average.
 function monthsCard(p, now) {
   const ym = p.to.slice(0, 7) > now.slice(0, 7) ? now.slice(0, 7) : p.to.slice(0, 7);
-  const start = firstDay(state.books).slice(0, 7);
-  const list = months(state.books, ym, 6).filter(x => !start || x.ym >= start);
+  const start = firstDay(B()).slice(0, 7);
+  const list = months(B(), ym, 6).filter(x => !start || x.ym >= start);
   if (list.length < 2) return null;
   const done = list.filter(x => x.ym < now.slice(0, 7));
   const avg = done.length ? Math.round(done.reduce((n, x) => n + x.out, 0) / done.length) : 0;
@@ -489,8 +518,8 @@ function monthsCard(p, now) {
 // Income against spending, month by month (the last six), and the share kept.
 function inOutCard(p, now) {
   const ym = p.to.slice(0, 7) > now.slice(0, 7) ? now.slice(0, 7) : p.to.slice(0, 7);
-  const start = firstDay(state.books).slice(0, 7);
-  const list = months(state.books, ym, 6).filter(x => !start || x.ym >= start);
+  const start = firstDay(B()).slice(0, 7);
+  const list = months(B(), ym, 6).filter(x => !start || x.ym >= start);
   if (!list.length) return null;
   const inc = list.reduce((n, x) => n + x.in, 0);
   const out = list.reduce((n, x) => n + x.out, 0);
@@ -520,7 +549,7 @@ const newest = (a, b) => b.d.localeCompare(a.d) || (b.e.t || 0) - (a.e.t || 0);
 function openCat(kind, cat, sub, p) {
   const c = catOf(cat);
   const subKey = l => (subOf(l.sub)?.parent === cat ? l.sub : '');
-  const mine = lines(state.books, p.from, p.to).filter(l => l.k === kind && l.cat === cat);
+  const mine = lines(B(), p.from, p.to).filter(l => l.k === kind && l.cat === cat);
   const list = mine.sort(newest);
   const whole = mine.reduce((n, l) => n + l.amt, 0);
   const by = new Map();
@@ -566,8 +595,8 @@ function openCat(kind, cat, sub, p) {
       : null;
   // (Its months: the period's last month and the eleven before, from when the books start.)
   const ym = p.to.slice(0, 7) > today().slice(0, 7) ? today().slice(0, 7) : p.to.slice(0, 7);
-  const start = firstDay(state.books).slice(0, 7);
-  const ms = months(state.books, ym, 12, { cat, sub: sub && sub !== '-' ? sub : '', kind }).filter(x => !start || x.ym >= start);
+  const start = firstDay(B()).slice(0, 7);
+  const ms = months(B(), ym, 12, { cat, sub: sub && sub !== '-' ? sub : '', kind }).filter(x => !start || x.ym >= start);
   const done = ms.filter(x => x.ym < today().slice(0, 7));
   const avg = done.length ? Math.round(done.reduce((n, x) => n + x[kind], 0) / done.length) : 0;
   // (Only when it has a trend to show: two months or more with some.)
@@ -580,10 +609,10 @@ function openCat(kind, cat, sub, p) {
 
 // An account's (or one way to pay's) entries in the period.
 function openPay(kind, a, via, p) {
-  const list = lines(state.books, p.from, p.to)
+  const list = lines(B(), p.from, p.to)
     .filter(l => l.k === kind && (l.e.a === a || (l.e.also || []).some(x => x.a === a)) && (via == null || (l.e.a === a && (l.e.via || '') === via)))
     .sort(newest);
-  const sum = byAccount(state.books, kind, p.from, p.to).find(x => x.a === a);
+  const sum = byAccount(B(), kind, p.from, p.to).find(x => x.a === a);
   const amt = via == null ? sum?.amt || 0 : sum?.ways.find(w => w.via === via)?.amt || 0;
   const name = via ? card(via)?.name || '' : a ? acctName(a) : W('沒有帳戶', 'No account');
   sheet({ title: name, subtitle: `${p.label} · ${money(amt)}`, detent: 'large', body: [h('div', { class: 'q-rowcard' }, list.map(l => entryRow(l.e, { day: true, inAcct: true, line: l })))] });
@@ -591,7 +620,7 @@ function openPay(kind, a, via, p) {
 
 // A place's entries in the period.
 function openPlace(kind, name, p) {
-  const list = lines(state.books, p.from, p.to)
+  const list = lines(B(), p.from, p.to)
     .filter(l => l.k === kind && !l.fee && sameplace(placeOf(l.e), name))
     .sort(newest);
   sheet({ title: name, subtitle: `${p.label} · ${money(list.reduce((n, l) => n + l.amt, 0))}`, detent: 'large', body: [h('div', { class: 'q-rowcard' }, list.map(l => entryRow(l.e, { day: true, line: l })))] });

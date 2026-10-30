@@ -57,6 +57,19 @@ test('the shape: fixed (a repeat), day to day, fees, money back', () => {
   assert.equal(s.fixed + s.variable + s.fees, s.total);
 });
 
+test('不計入: categories left out are left out of every figure, money back with them', () => {
+  const b = { ...books(), skip: new Set(['home', 'food']) };
+  assert.equal(S.total(b, 'out', ...NOV), 1290 + 155 + 100 + 5);
+  assert.deepEqual(S.byCat(b, 'out', ...NOV, parent).map(c => c.cat), ['digital', 'tax']);
+  const s = S.shape(b, ...NOV);
+  assert.equal(s.fixed, 0);
+  assert.equal(s.back, 0);
+  assert.equal(S.byAccount(b, 'out', ...NOV).reduce((n, x) => n + x.amt, 0), S.total(b, 'out', ...NOV));
+  // (Income keeps its own; the books themselves are untouched.)
+  assert.equal(S.total(b, 'in', ...NOV), 30000);
+  assert.equal(S.total(books(), 'out', ...NOV), 8000 + 400 + 1290 + 155 + 100 + 5);
+});
+
 test('changes against the period before, largest first, new ones too', () => {
   const ch = S.changes(books(), 'out', { from: NOV[0], to: NOV[1] }, { from: '2026-10-01', to: '2026-10-31' });
   assert.equal(ch[0].cat, 'home');

@@ -8,10 +8,15 @@ Live: https://orbit.jaypengx.com/money/
 
 ## How it works
 
-- **Tabs:** 月曆 (the month's spent / income / left and the total budget;
-  each day's spending in its square, days off from `#kit/dayoff.mjs`; a
+- **Tabs:** 月曆 (one short card: the month's spent / income / left and the
+  total budget; the picked day's week, opened to the whole month by the handle
+  under it and kept so on the phone (Jay 2026-10-30: today's entries must show
+  on open); each day's spending in its square, days off from `#kit/dayoff.mjs`; a
   day's entries below) · 帳戶 (總資產, accounts by kind, 固定收支) · 統計
-  (支出 and 收入 as two views, never netted, Jay 2026-10-27; week / month /
+  (支出 and 收入 as two views, never netted, Jay 2026-10-27; a row of the
+  period's categories, any tapped off and every figure counted again without
+  them (books `skip` in `lines`, Jay 2026-10-30); the split first, the days'
+  chart short under it; week / month /
   year / any dates from the period's label; numbers in `lib/stats.mjs`,
   tested: each category with its subs and their share of the whole (a donut on
   top, subs in their shades around it, Jay 2026-10-30; a category's sheet and
