@@ -505,3 +505,7 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-skip-chip i { width: 8px; height: 8px; border-radius: 50%; }
 .mn-skip-chip.off { color: var(--q-label-3); text-decoration: line-through; }
 .mn-skip-chip.off i { background: var(--q-label-3) !important; }
+/* 記一筆's likeliest amount for now (lib/guess.mjs): ringed, filled only on a tap. */
+.mn-subchip.guess { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--q-accent) 70%, transparent); color: var(--q-label); }
+.mn-guess-sheet .mn-switch-row { margin: 0 0 18px; }
+.mn-guess-sheet .q-rowcard { margin: 0 0 16px; }

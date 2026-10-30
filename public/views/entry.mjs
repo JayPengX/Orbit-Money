@@ -9,6 +9,7 @@ import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, 
 import { catsFor, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 import { payPic, whatTile } from './pics.mjs';
+import { cluesFor, guessWhat, guessSubIn, guessPay, guessAmts, guessStamp, cellOf } from '../lib/guess.mjs';
 
 // ---- A row ----------------------------------------------------------------------
 
@@ -101,16 +102,26 @@ export function subChips(cat, cur, onPick) {
 // ---- The sheet ----------------------------------------------------------------------
 
 // openEntry({ entry }) to change one; { day, kind, inv, amt, note, cat } to add one.
-export function openEntry({ entry = null, day = today(), kind = 'out', inv = null, amt = 0, note = '', from = '', to = '', cat = '', sub = '' } = {}) {
+export function openEntry({ entry = null, day = today(), kind = '', inv = null, amt = 0, note = '', from = '', to = '', cat = '', sub = '' } = {}) {
   const b = state.books;
   const was = entry ? b.entries[entry.id] : null;
   const opt = b.opt || {};
+  // What a new one probably is (lib/guess.mjs, Jay 2026-10-30: "a guess of
+  // everything"): the person's own entries most like now, by the hour (a new
+  // one for today), the kind of day, and where they are (when allowed, 更多 ›
+  // 智慧帶入). Kind, category, sub and way to pay are picked; the amount only
+  // offered, first among 常用 (a tap fills it).
+  const fresh = !was && day === today();
+  const ctx = { day: was?.d || day, at: fresh ? Date.now() : null, pl: '' };
+  let clues = cluesFor(b, ctx);
+  // (Blank: the + alone, nothing handed in, so all of it is the guess's.)
+  const blank = !was && !cat && !amt && !inv && !note && !from;
   const pay0 = was ? { a: was.a, via: was.via || '' } : from && acct(from) ? { a: from, via: '' } : lastPay() || { a: 'cash', via: '' };
   const f = {
-    k: was?.k === 'adj' ? 'adj' : was?.k || kind,
+    k: was?.k === 'adj' ? 'adj' : was?.k || kind || 'out',
     // (The amount as typed: digits, '' for none.)
     amt: String(was ? Math.abs(was.amt) : amt || ''),
-    cat: was?.cat || cat || opt.lastCat?.[was?.k || kind] || (kind === 'in' ? 'salary' : 'food'),
+    cat: was?.cat || cat || '',
     sub: '',
     a: pay0.a,
     via: pay0.via,
@@ -127,15 +138,33 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     friends: (was ? backsFor(b, was.id) : []).filter(x => x.why === 'friend').map(x => ({ id: x.id, who: x.who || '', amt: String(x.amt), a: x.a || 'cash', wait: Boolean(x.wait), d: x.d, was: x }))
   };
   const refunds = was ? backsFor(b, was.id).filter(x => x.why !== 'friend') : [];
-  // The sub: the entry's own, or what the note or the store or the hour says.
-  const fresh = !was && day === today();
-  const guess = () => guessSub(f.cat, `${note} ${inv?.seller || ''} ${(inv?.items || []).map(i => i.name).join(' ')}`, fresh ? new Date() : null);
-  f.sub = was ? was.sub || '' : sub && subOf(sub)?.parent === f.cat ? sub : guess();
-  if (f.k === 'move' && !f.to) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
+  const shown = (k, id) => catsFor(k).some(c => c.id === id);
+  // A kind's likeliest category: the guess's, else the last one used, else the first.
+  const catFor = k => {
+    const g = guessWhat(clues, { k });
+    return (g && shown(k, g.cat) && g.cat) || (shown(k, opt.lastCat?.[k]) && opt.lastCat[k]) || (k === 'in' ? 'salary' : 'food');
+  };
+  // The sub: what the note or the store says, else what the category usually
+  // has at this hour here, else (餐飲 with no history) the meal by the hour.
+  const words = `${note} ${inv?.seller || ''} ${(inv?.items || []).map(i => i.name).join(' ')}`;
+  const guess = () => {
+    const said = guessSub(f.cat, words);
+    if (said) return said;
+    const usual = guessSubIn(clues, f.k, f.cat);
+    if (usual !== null) return subsOf(f.cat).some(x => x.id === usual) ? usual : '';
+    return guessSub(f.cat, '', fresh ? new Date() : null);
+  };
+  // The way to pay: the one most used for it at times like this, until the person picks one.
+  const usable = p => p && acct(p.a) && !acct(p.a).closed && (!p.via || (card(p.via) && !card(p.via).closed));
+  let payPicked = Boolean(was || from);
+  function guessPayFor() {
+    if (payPicked || (f.k !== 'out' && f.k !== 'in')) return;
+    const p = guessPay(clues, { k: f.k, cat: f.cat, sub: f.sub }).find(usable);
+    if (p) (f.a = p.a), (f.via = p.via);
+  }
 
   // A category's own way to pay and amount (set in 分類), filled in when it's
   // picked; anything typed or chosen after stays.
-  const usable = p => p && acct(p.a) && !acct(p.a).closed && (!p.via || (card(p.via) && !card(p.via).closed));
   function applyDefaults({ pay = true } = {}) {
     if (f.k !== 'out' && f.k !== 'in') return;
     const d = defaultsOf(f.cat, f.sub);
@@ -145,7 +174,24 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     f.amt = v ? String(v) : f.auto ? '' : f.amt;
     f.auto = Boolean(v);
   }
-  if (!was && !amt) applyDefaults({ pay: !from });
+  // Everything guessed at once (on opening, and again once where is known,
+  // while nothing's been touched). `stamp`: what was guessed, kept on the entry (`g`).
+  let touched = false;
+  let stamp = '';
+  function guessAll() {
+    if (blank) {
+      const g = guessWhat(clues);
+      f.k = kind || (g && shown(g.k, g.cat) ? g.k : 'out');
+    }
+    if (!was && !cat) f.cat = catFor(f.k);
+    if (!was) f.sub = sub && subOf(sub)?.parent === f.cat ? sub : guess();
+    if (!was) guessPayFor();
+    if (!was && !amt) applyDefaults({ pay: !from });
+    if (blank) stamp = guessStamp({ cat: f.cat, sub: f.sub, a: f.a, via: f.via, amt: f.auto ? Number(f.amt) : guessAmts(clues, f)[0]?.amt });
+  }
+  if (was) f.sub = was.sub || '';
+  guessAll();
+  if (f.k === 'move' && !f.to) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
 
   // The amount: tapped, the iPhone's number keys (Jay 2026-10-27: he taps
   // the number, as anyone would; no keypad of our own, RULEBOOK §2). The
@@ -157,6 +203,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
   amountIn.addEventListener('input', () => {
     f.amt = amountIn.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
     f.auto = false;
+    touched = true;
     paintAmount();
   });
   amountIn.addEventListener('keydown', e => e.key === 'Enter' && amountIn.blur());
@@ -199,7 +246,8 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       label: W('種類', 'Kind'),
       onChange: k => {
         f.k = k;
-        if (k !== 'move') (f.cat = opt.lastCat?.[k] || (k === 'in' ? 'salary' : 'food')), (f.sub = guess()), applyDefaults();
+        touched = true;
+        if (k !== 'move') (f.cat = catFor(k)), (f.sub = guess()), guessPayFor(), applyDefaults();
         if (k === 'move') {
           f.via = '';
           if (!f.to || f.to === f.a) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
@@ -219,21 +267,22 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     paintUnits();
   }
   // Under the subs, one row of quick amounts: a category priced by the unit
-  // (NT$5 × 1, 2, 3…), else the amounts it's usually been (常用), each a tap.
+  // (NT$5 × 1, 2, 3…), else the amounts it's usually been (常用), likeliest
+  // for now first (lib/guess.mjs; the first lit as the guess), each a tap.
   let usualKey = '';
   let usual = null;
   function paintUnits() {
     const on = f.k === 'out' || f.k === 'in';
     const unit = on ? defaultsOf(f.cat, f.sub).unit : 0;
     const key = `${f.k}|${f.cat}|${f.sub}`;
-    if (on && !unit && key !== usualKey) (usualKey = key), (usual = usualFor(b, { k: f.k, cat: f.cat, sub: f.sub }, today()));
-    const amts = !on || unit ? [] : usual?.amts || [];
+    if (on && !unit && key !== usualKey) (usualKey = key), (usual = guessAmts(clues, f));
+    const amts = !on || unit ? [] : usual || [];
     unitRow.hidden = !unit && !amts.length;
     if (unitRow.hidden) return;
     const sum = Number(f.amt) || 0;
-    const chip = (text, v) => h('button', { class: 'mn-subchip num', type: 'button', 'aria-pressed': String(sum === v), text, onclick: () => (tick(), (f.amt = String(v)), (f.auto = false), paintAmount()) });
+    const chip = (text, v, cls = '') => h('button', { class: `mn-subchip num${cls}`, type: 'button', 'aria-pressed': String(sum === v), text, onclick: () => (tick(), (f.amt = String(v)), (f.auto = false), (touched = true), paintAmount()) });
     unitRow.classList.toggle('usual', !unit);
-    unitRow.replaceChildren(...(unit ? [h('span', { class: 'mn-units-l num', text: `${money(unit)} ×` }), ...[1, 2, 3, 4, 6, 8].map(n => chip(String(n), unit * n))] : [h('span', { class: 'mn-units-l', text: W('常用 NT$', 'Usual NT$') }), ...amts.map(x => chip(plain(x.amt), x.amt))]));
+    unitRow.replaceChildren(...(unit ? [h('span', { class: 'mn-units-l num', text: `${money(unit)} ×` }), ...[1, 2, 3, 4, 6, 8].map(n => chip(String(n), unit * n))] : [h('span', { class: 'mn-units-l', text: W('常用 NT$', 'Usual NT$') }), ...amts.map((x, i) => chip(plain(x.amt), x.amt, i || sum ? '' : ' guess'))]));
   }
   // A category picked: its tile and the ticks, the grid not drawn again.
   function paintCat() {
@@ -249,7 +298,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     catText.textContent = f.k === 'move' ? W('轉帳', 'Transfer') : f.k === 'adj' ? W('調整餘額', 'Balance fix') : catName(fine || look, lang);
   }
   function paintSubs() {
-    const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((f.sub = id), applyDefaults(), paintAmount(), paintPay(), paintSubs(), paintWhat()));
+    const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((touched = true), (f.sub = id), guessPayFor(), applyDefaults(), paintAmount(), paintPay(), paintSubs(), paintWhat()));
     subs.hidden = !list.length;
     subs.style.setProperty('--n', subCols(list.length));
     subs.replaceChildren(...list);
@@ -267,7 +316,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     paintExtras();
     if (!cats.hidden && catsKind !== f.k) {
       catsKind = f.k;
-      cats.replaceChildren(...catTiles(f.k, f.cat, id => (id !== f.cat && ((f.cat = id), (f.sub = guess()), applyDefaults(), paintAmount(), paintPay()), paintCat())));
+      cats.replaceChildren(...catTiles(f.k, f.cat, id => ((touched = true), id !== f.cat && ((f.cat = id), (f.sub = guess()), guessPayFor(), applyDefaults(), paintAmount(), paintPay()), paintCat())));
       paintSubs();
     } else if (!cats.hidden) paintCat();
     else paintSubs();
@@ -289,7 +338,7 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     menu(anchor, payOptions({ moving: true, keep: [f.a, f.to] }).map(o => ({ label: o.label, lead: payPic(o.a, '', 28), icon: o.a === f[field] ? '✓' : '', onClick: () => ((f[field] = o.a), paint()) })));
   }
   function pickPay(anchor) {
-    menu(anchor, payOptions({ keep: [f.a, f.via] }).map(o => ({ label: o.label, lead: payPic(o.a, o.via, 28), icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((f.a = o.a), (f.via = o.via), paint()) })));
+    menu(anchor, payOptions({ keep: [f.a, f.via] }).map(o => ({ label: o.label, lead: payPic(o.a, o.via, 28), icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((payPicked = touched = true), (f.a = o.a), (f.via = o.via), paint()) })));
   }
 
   // ---- The rows under the pills ----
@@ -368,6 +417,9 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
       also: alsoAmt && f.also.a ? [{ a: f.also.a, via: f.also.via || '', amt: alsoAmt }] : null,
       t: was?.t || now
     };
+    // (A new one: where it was logged, when allowed, and what was guessed for it.)
+    if (!was && ctx.pl) rec.pl = ctx.pl;
+    if (!was && stamp) rec.g = stamp;
     if (!rec.fee) delete rec.fee;
     if (!rec.also) delete rec.also;
     const kept = put(b, 'entries', rec, now);
@@ -437,6 +489,20 @@ export function openEntry({ entry = null, day = today(), kind = 'out', inv = nul
     foot: h('div', { class: 'q-sheet-foot' }, [save])
   });
   paint();
+  // Where the phone is (更多 › 智慧帶入 on): the guesses again with it, unless something's been picked by then.
+  if (fresh && opt.geo && navigator.geolocation)
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        ctx.pl = cellOf(p.coords.latitude, p.coords.longitude);
+        if (!ctx.pl || !s.el.isConnected) return;
+        clues = cluesFor(b, ctx);
+        usualKey = '';
+        if (!touched) guessAll(), (catsKind = ''), paint();
+        else paintUnits();
+      },
+      () => {},
+      { maximumAge: 300_000, timeout: 8000 }
+    );
   return s;
 }
 
