@@ -22,7 +22,7 @@ Your own books for real money: what you spend each day, what each account holds,
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/money-4.webp" width="30%" alt="Stats and budgets">
+  <img src="docs/screenshots/money-4.webp" width="30%" alt="Where the money went">
   <img src="docs/screenshots/money-5.webp" width="30%" alt="Every item on the receipt">
   <img src="docs/screenshots/money-6.webp" width="30%" alt="Invoices checked for prizes">
 </p>
@@ -31,11 +31,12 @@ Your own books for real money: what you spend each day, what each account holds,
 
 ## Features
 
-- **月曆 Calendar:** the month's spent, income and what's left against the budget; each day's spending in its square, days off marked; a day's entries below.
-- **帳戶 Accounts:** cash, banks, 電子票證, 電子支付 and credit cards, each with its own logo; debit cards on a bank; total assets; fixed income and expenses.
-- **統計 Stats:** week, month or year against the last, by category, with budgets.
+- **月曆 Calendar:** opens on today: the month's spent, income and what's left against the budget, the week around today, and today's entries right below; the whole month a tap away.
+- **帳戶 Accounts:** cash, banks, 電子票證, 電子支付 and credit cards, each with its own logo; every card shows its network (Visa, Mastercard, JCB, American Express, UnionPay, Diners Club); TPASS and YouBike with their own logos; total assets; fixed income and expenses.
+- **統計 Stats:** week, month or year against the last; a donut of the categories with their sub-categories around them; tap a category or a sub-category to leave it out of the count; budgets.
 - **發票 Invoices:** the 手機條碼 as a barcode for the till, scanning both QR codes of a paper invoice, importing the e-invoice carrier list (載具) that the 電子發票平台 exports, and checking every invoice against the draw.
-- **Entries:** spending, income, moves between your own accounts, balance fixes, categories with sub-categories, and repeats added on their day.
+- **記一筆 Entries:** guesses the kind, category, sub-category and way to pay from your own entries most like now (the hour, the weekday, today's), with the usual amounts one tap away; spending, income, moves between your own accounts, balance fixes and repeats added on their day.
+- **Category sets:** 學生, 上班族 or 家庭, a short list picked before the first entry, or all of them; changeable in 更多 › 分類.
 - **Syncs** between devices through the Orbit Pass, record by record.
 
 ## Tech stack
