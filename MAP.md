@@ -37,7 +37,7 @@ Live: https://orbit.jaypengx.com/money/
   less what came back, its fee, an income). `upgradeBooks` / `upgradeCats`
   bring older books up on open (退款 income → money back for its likeliest
   spend; 訂閱/遊戲 from 娛樂 to 數位). **Category sets** (Jay 2026-10-30, too
-  many 類別; `lib/cats.mjs PRESETS`): 學生 (9), 上班族 (13), 家庭 (13), 全部,
+  many 類別; `lib/cats.mjs PRESETS`): 學生 (11), 上班族 (13), 家庭 (13), 全部,
   picked once before the first 記一筆 and at the top of 更多 › 分類
   (`books.opt.preset`, `opt.picked`). A set only changes what the picker
   shows (nothing logged moves; a hidden one still names its history); the

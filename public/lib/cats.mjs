@@ -38,7 +38,7 @@ export const OUT = [
   // (The family's Orbit Transit: TPASS and every way it rides.)
   { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['mrt', '捷運', 'MRT'], ['bus', '公車', 'Bus'], ['youbike', 'YouBike', 'YouBike'], ['thsr', '高鐵', 'High-speed rail'], ['tra', '台鐵', 'Railway'], ['coach', '客運', 'Coach'], ['taxi', '計程車', 'Taxi']]) },
   { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55', subs: S('shop', [['clothes', '服飾', 'Clothes'], ['tech', '3C', 'Tech'], ['online', '網購', 'Online'], ['beauty', '美妝', 'Beauty']]) },
-  { id: 'daily', zh: '日用品', en: 'Household', icon: 'basket', color: '#00c3d0', subs: S('daily', [['grocery', '超市', 'Groceries'], ['supplies', '生活用品', 'Supplies']]) },
+  { id: 'daily', zh: '日用品', en: 'Household', icon: 'basket', color: '#00c3d0', subs: S('daily', [['grocery', '超市', 'Groceries'], ['supplies', '生活用品', 'Supplies'], ['stationery', '文具', 'Stationery']]) },
   { id: 'home', zh: '居住', en: 'Housing', icon: 'home', color: '#6155f5', subs: S('home', [['rent', '房租', 'Rent'], ['fee', '管理費', 'Building fee'], ['loan', '房貸', 'Mortgage'], ['fix', '修繕', 'Repairs']]) },
   { id: 'bills', zh: '水電瓦斯', en: 'Utilities', icon: 'bolt', color: '#e3a008', subs: S('bills', [['power', '電費', 'Power'], ['water', '水費', 'Water'], ['gas', '瓦斯', 'Gas']]) },
   { id: 'phone', zh: '通訊', en: 'Phone', icon: 'phone', color: '#34c759', subs: S('phone', [['mobile', '手機', 'Mobile'], ['net', '網路', 'Internet']]) },
@@ -109,7 +109,7 @@ export const useBooksCats = books => useCats(books.cats, books.opt?.preset);
 export const PRESETS = [
   {
     id: 'student', zh: '學生', en: 'Student', icon: 'school',
-    out: { food: ['breakfast', 'lunch', 'dinner', 'snack', 'out'], drink: [], transport: ['tpass', 'mrt', 'bus', 'youbike', 'tra', 'thsr', 'coach'], learn: [], shop: ['clothes', 'tech', 'online'], fun: [], digital: [], social: ['gift', 'treat'], other: [] },
+    out: { food: ['breakfast', 'lunch', 'dinner', 'snack', 'out'], drink: [], transport: ['tpass', 'mrt', 'bus', 'youbike', 'tra', 'thsr', 'coach'], learn: [], daily: ['supplies', 'stationery'], shop: ['clothes', 'tech', 'online'], health: [], fun: [], digital: [], social: ['gift', 'treat'], other: [] },
     in: ['allowance', 'redenv', 'side', 'prize', 'cashback', 'topup', 'otherin']
   },
   {
@@ -283,7 +283,8 @@ const GUESS = [
   ['health', /藥局|藥房|醫院|診所|牙醫|醫療|大樹藥|丁丁藥/i],
   ['phone', /中華電信|台灣大哥大|遠傳|台灣之星|亞太電信|電信/i],
   ['bills', /台灣電力|台電|自來水|瓦斯|天然氣/i],
-  ['learn', /書店|誠品|博客來|金石堂|補習|文具/i],
+  ['daily', /文具|文化用品/],
+  ['learn', /書店|誠品|博客來|金石堂|補習/i],
   ['digital', /cloudflare|anthropic|claude|openai|chatgpt|gemini|github|google one|icloud|netflix|spotify|youtube premium|disney\+|kkbox|app store|apple\.com\/bill|google play|steam|playstation|nintendo|xbox|epic games|網域|tdx/i],
   ['fun', /影城|威秀|秀泰|電影|ktv|錢櫃|好樂迪|遊樂/i],
   ['home', /房租|租金|管理費|房貸/],
@@ -310,6 +311,7 @@ const SUB_GUESS = [
   ['transport:taxi', /uber|計程車|大車隊|55688|yoxi/i],
   ['car:fuel', /加油|中油|台塑石化/],
   ['car:park', /停車/],
+  ['daily:stationery', /文具|文化用品/],
   ['daily:grocery', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市/i],
   ['digital:ai', /anthropic|claude|openai|chatgpt|gemini|perplexity|midjourney/i],
   ['digital:cloud', /cloudflare|github|aws|google cloud|vercel|godaddy|namecheap|gandi|網域|tdx|icloud|google one|dropbox|onedrive/i],

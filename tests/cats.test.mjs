@@ -133,8 +133,9 @@ test('presets: a slimmer set for a kind of person, nothing logged moves, a chang
   C.usePreset(b, 'student');
   assert.equal(C.presetOf(b), 'student');
   const out = C.catList('out').map(c => c.id);
-  assert.ok(out.includes('learn') && out.includes('transport') && !out.includes('home') && !out.includes('kids'));
-  assert.ok(out.length < C.OUT.length / 2);
+  assert.ok(out.includes('learn') && out.includes('transport') && out.includes('daily') && out.includes('health') && !out.includes('home') && !out.includes('kids'));
+  assert.ok(C.subsOf('daily').some(s => s.zh === '文具'));
+  assert.equal(out.length, 11);
   assert.ok(!C.subsOf('transport').some(s => s.id === 'transport:taxi'));
   assert.deepEqual(C.catList('in').map(c => c.id).slice(0, 2), ['allowance', 'redenv']);
   // A hidden one still names its history, and the person's own record is untouched.
@@ -144,7 +145,9 @@ test('presets: a slimmer set for a kind of person, nothing logged moves, a chang
   assert.equal(b.entries.e1.cat, 'transport');
   // A new entry's default skips what the set hides; a guess too.
   assert.equal(C.shownCat('in', 'salary'), 'allowance');
-  assert.equal(C.guessCat('全聯福利中心'), '');
+  assert.equal(C.guessCat('全聯福利中心'), 'daily');
+  assert.equal(C.guessSub('daily', '小明文具店'), 'daily:stationery');
+  assert.equal(C.guessCat('台塑石化 加油站'), '');
   // Back to 「我的」: their own set, exactly.
   C.usePreset(b, 'mine');
   assert.equal(C.presetOf(b), 'mine');
