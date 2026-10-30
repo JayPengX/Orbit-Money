@@ -79,9 +79,9 @@ h1, h2, h3, p { margin: 0; }
 .mn-day.on b { background: var(--q-accent); color: #fff; font-weight: 600; }
 /* The month's figures on one short card (Jay 2026-10-30): spent left,
    income and what's left right, the budget's bar and line across under. */
-.q-focus.mn-sum { grid-template-columns: minmax(max-content, 1fr) minmax(0, max-content); align-items: end; column-gap: 16px; row-gap: 4px; padding: 14px 16px; }
+.q-focus.mn-sum { grid-template-columns: minmax(max-content, 1fr) minmax(0, max-content); align-items: end; column-gap: 12px; row-gap: 4px; padding: 14px 16px; }
 .mn-sum-main { display: grid; gap: 2px; min-width: 0; }
-.mn-sum .q-focus-value { font-size: clamp(26px, 8.6vw, 34px); line-height: 40px; }
+.mn-sum .q-focus-value { font-size: clamp(24px, 8vw, 34px); line-height: 40px; }
 .q-focus .mn-sum-figs { display: grid; gap: 4px; min-width: 0; margin: 0; padding: 0 0 4px 14px; border-top: 0; border-left: 0.5px solid rgba(255, 255, 255, 0.14); }
 .mn-sum-figs > div { display: grid; gap: 0; justify-items: end; text-align: right; }
 .mn-sum-figs small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 16px; }
@@ -527,3 +527,20 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-skip-chip.more { color: var(--q-accent); }
 .mn-skip-sub { padding-left: 40px; }
 .mn-skip-sub .q-ritem-title { color: var(--q-label-2); }
+
+/* 統計's kinds (Jay 2026-10-30): chips under 支出/收入; 趨勢 is stacked bars,
+   each month's categories in their colours, and each category's own small bars. */
+.mn-views, .mn-span { margin-top: -4px; }
+.mn-views { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 6px; }
+.mn-views .q-chip { justify-content: center; min-width: 0; padding-inline: 0; }
+.mn-more-row .q-ritem-title { color: var(--q-accent); font-weight: 500; }
+.mn-stack-box { display: grid; gap: 4px; padding: 0 0 12px; }
+.mn-stack-trend { padding-top: 4px; padding-bottom: 0; background: none; }
+.mn-stack .mn-bar-c > .mn-stack-col { display: flex; flex-direction: column; width: 100%; max-width: 26px; margin: 0 auto; overflow: hidden; border-radius: 5px 5px 2px 2px; opacity: 0.85; }
+.mn-stack .mn-bar-c.now > .mn-stack-col, .mn-stack .mn-bar-c.picked > .mn-stack-col { opacity: 1; }
+.mn-stack-col > i { display: block; min-height: 1px; }
+.mn-stack-col > i.rest, .mn-stack-legend i.rest { background: var(--q-label-3); }
+.mn-stack-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 0 16px; }
+.mn-spark { display: flex; flex: none; align-items: flex-end; justify-content: flex-end; gap: 2px; width: clamp(56px, 18vw, 78px); height: 28px; }
+.mn-spark i { flex: 1; min-width: 0; max-width: 12px; border-radius: 2px; background: color-mix(in srgb, var(--c) 45%, var(--q-surface)); }
+.mn-spark i.now { background: var(--c); }

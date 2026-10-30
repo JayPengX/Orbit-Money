@@ -13,7 +13,10 @@ Live: https://orbit.jaypengx.com/money/
   under it and kept so on the phone (Jay 2026-10-30: today's entries must show
   on open); each day's spending in its square, days off from `#kit/dayoff.mjs`; a
   day's entries below) · 帳戶 (總資產, accounts by kind, 固定收支) · 統計
-  (支出 and 收入 as two views, never netted, Jay 2026-10-27; on the 分類 card a
+  (支出 and 收入 as two views, never netted, Jay 2026-10-27; under them the
+  kinds as chips, Jay 2026-10-30: 總覽, 分類, 趨勢 (month by month for a year
+  or year by year, categories stacked in each bar, each category's own small
+  bars; `trendOf`), 帳戶, 習慣 (largest, places, weekdays, makeup); on the 分類 card a
   row of the period's categories and 細項… (every sub with a switch); any turned
   off and every figure is counted again without it (books `skip` in `lines`,
   Jay 2026-10-30); the split first, the days'

@@ -179,3 +179,21 @@ export const firstDay = books => live(books.entries).reduce((m, e) => (e.d && (!
 
 // A list's total, for a view's own use.
 export const total = (books, kind, from, to) => sum(of(books, kind, from, to));
+
+// 趨勢 (Jay 2026-10-30: "no way to see trend of months, year"): each month
+// (unit 'month', keys 'YYYY-MM') or year ('year', 'YYYY') from `from` to `to`,
+// its total and each category's part: [{ key, amt, cats: Map(cat → amt) }].
+export function trendOf(books, kind, from, to, unit = 'month') {
+  const keys = [];
+  if (unit === 'year') for (let y = Number(from.slice(0, 4)); y <= Number(to.slice(0, 4)); y++) keys.push(String(y));
+  else for (let ym = from.slice(0, 7); ym <= to.slice(0, 7); ym = shiftMonth(ym, 1)) keys.push(ym);
+  const list = keys.map(key => ({ key, amt: 0, cats: new Map() }));
+  const at = new Map(list.map(x => [x.key, x]));
+  for (const l of of(books, kind, from, to)) {
+    const x = at.get(unit === 'year' ? l.d.slice(0, 4) : l.d.slice(0, 7));
+    if (!x) continue;
+    x.amt += l.amt;
+    x.cats.set(l.cat, (x.cats.get(l.cat) || 0) + l.amt);
+  }
+  return list;
+}

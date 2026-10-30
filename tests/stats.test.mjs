@@ -133,3 +133,13 @@ test('數位: 訂閱 is 影音串流 now, storage moved to 雲端・網域, unso
   assert.equal(C.upgradeCats(b, T + 3), 0);
   assert.equal(b.entries.i.sub, 'digital:subs');
 });
+
+test('趨勢: month by month and year by year, each with its categories, 不計入 too', () => {
+  const m = S.trendOf(books(), 'out', '2026-10-01', '2026-11-30');
+  assert.deepEqual(m.map(x => x.key), ['2026-10', '2026-11']);
+  assert.equal(m[0].amt, 500);
+  assert.equal(m[1].amt, S.total(books(), 'out', ...NOV));
+  assert.equal(m[1].cats.get('home'), 8000);
+  const y = S.trendOf({ ...books(), skip: new Set(['home']) }, 'out', '2025-01-01', '2026-12-31', 'year');
+  assert.deepEqual(y.map(x => [x.key, x.amt]), [['2025', 0], ['2026', 500 + S.total(books(), 'out', ...NOV) - 8000]]);
+});
