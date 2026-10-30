@@ -1,0 +1,5 @@
+The card network marks here (Visa, Mastercard, JCB, American Express,
+UnionPay, Diners Club, Discover) are the "flat" set of payment-icons 1.2.1
+(https://github.com/muffinresearch/payment-icons), MPL-2.0. The marks are
+their owners' trademarks. unionpay.svg: its white plate taken out (no white
+plates in dark mode).

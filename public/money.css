@@ -185,9 +185,9 @@ h1, h2, h3, p { margin: 0; }
 .mn-refund-amt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .mn-refund-amt .mn-subchip { min-height: 44px; padding: 0 14px; line-height: 44px; }
 .mn-pill { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--q-r-cell); background: var(--q-surface); color: var(--q-label); font: 500 15px/20px var(--q-font); text-align: left; }
-.mn-pill > span:first-child:not(.mn-pill-t, .mn-logo, .q-tile) { display: grid; flex: none; width: 18px; height: 18px; color: var(--q-label-2); }
+.mn-pill > span:first-child:not(.mn-pill-t, .mn-logo, .mn-net, .mn-has-net, .q-tile) { display: grid; flex: none; width: 18px; height: 18px; color: var(--q-label-2); }
 .mn-pill svg { width: 18px; height: 18px; }
-.mn-pill > :is(.mn-logo, .q-tile) { flex: none; margin-left: -4px; }
+.mn-pill > :is(.mn-logo, .mn-net, .mn-has-net, .q-tile) { flex: none; margin-left: -4px; }
 .mn-pill > .q-tile { width: 24px; height: 24px; border-radius: 7px; }
 .mn-pill > .q-tile svg { width: 14px; height: 14px; }
 .mn-pill-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -219,6 +219,14 @@ h1, h2, h3, p { margin: 0; }
 /* ---- 帳戶 ---- */
 .mn-logo { flex: none; display: block; width: var(--s, 40px); height: var(--s, 40px); overflow: hidden; border-radius: calc(var(--s, 40px) * 0.3); box-shadow: inset 0 0 0 0.5px var(--q-sep); }
 .mn-logo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* A card network's mark (Visa, Mastercard…): the card on a square, or in the corner of a bank's logo. */
+.mn-net { flex: none; display: grid; place-items: center; width: var(--s, 40px); height: var(--s, 40px); border-radius: calc(var(--s, 40px) * 0.3); background: var(--q-fill); }
+.mn-net img { display: block; width: 86%; height: auto; aspect-ratio: 750 / 471; }
+.mn-has-net { position: relative; flex: none; display: block; width: var(--s, 40px); height: var(--s, 40px); }
+.mn-net-badge { position: absolute; right: -4px; bottom: -3px; width: calc(var(--s, 40px) * 0.56); height: auto; aspect-ratio: 750 / 471; border-radius: 3px; box-shadow: 0 0 0 1.5px var(--q-surface); }
+.mn-nets .mn-net-card { display: block; width: 44px; height: auto; aspect-ratio: 750 / 471; margin: 3px 0 2px; }
+.mn-nets .mn-net-none { display: grid; place-items: center; border-radius: 4px; background: var(--q-fill); color: var(--q-label-2); }
+.mn-nets .mn-net-none svg { width: 18px; height: 18px; }
 .mn-add { gap: 6px; margin-top: 4px; }
 .mn-add svg { width: 18px; height: 18px; }
 .mn-acct-hero { display: grid; justify-items: center; gap: 4px; padding: 8px 16px 4px; }

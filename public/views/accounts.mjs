@@ -6,10 +6,11 @@ import { h, icons, tile, sheet, toggle, toast, empty, segmented, menu } from '#k
 import { ask } from '#kit/orbit.mjs';
 import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, acctTotals, owed, touches, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf, historyOf, hasHistory, closeAccount, closeCard, moveAccount, moveCard, snapshot, restore, accountParts } from '../lib/books.mjs';
 import { brandsFor, brandOf } from '../lib/brands.mjs';
+import { NETWORKS, networkLogo } from '../lib/networks.mjs';
 import { catName, glyph, lookOf, subsOf, subOf, guessCat, guessSub } from '../lib/cats.mjs';
 import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, card } from '../shell.mjs';
 import { entryRow, openEntry, payOptions, catTiles, subChips, subCols } from './entry.mjs';
-import { acctTile, methodTile, payPic, whatTile } from './pics.mjs';
+import { acctTile, methodTile, cardTile, payPic, whatTile } from './pics.mjs';
 
 export function renderAccts(box) {
   const b = state.books;
@@ -190,7 +191,7 @@ function cardsSection(a, host) {
       [
         a.kind === 'bank' ? h('div', { class: 'q-ritem' }, [tile(glyph('exchange'), '#8e8e93'), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('轉帳／提款', 'Transfer or ATM') })])]) : null,
         ...cards.map(c =>
-          h('button', { class: 'q-ritem chevron', type: 'button', onclick: () => editCard(a, c, host()) }, [methodTile(c.name), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: `${c.name}${c.last4 ? ` •${c.last4}` : ''}` }), h('small', { text: methodNote(a) })])])
+          h('button', { class: 'q-ritem chevron', type: 'button', onclick: () => editCard(a, c, host()) }, [cardTile(c), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: `${c.name}${c.last4 ? ` •${c.last4}` : ''}` }), h('small', { text: methodNote(a) })])])
         ),
         ...allAccounts()
           .filter(x => x.kind === 'credit' && x.pay === a.id)
@@ -206,6 +207,11 @@ function cardsSection(a, host) {
 function editCard(a, c, host) {
   const name = h('input', { class: 'q-field', type: 'text', maxlength: '20', placeholder: W('名稱', 'Name'), value: c?.name || methodsFor(a)[0] });
   const last4 = h('input', { class: 'q-field', type: 'text', inputmode: 'numeric', maxlength: '4', placeholder: W('可不填', 'Optional'), value: c?.last4 || '' });
+  // (Its network: a new one under a credit card starts on the card's.)
+  let net = c ? c.net || '' : a.kind === 'credit' ? a.net || '' : '';
+  const nets = h('div');
+  const paintNets = () => nets.replaceChildren(netGrid(net, id => ((net = id), paintNets())));
+  paintNets();
   // (Each with its own logo, two across so a name never squeezes: Jay 2026-10-27.)
   const chips = h('div', { class: 'mn-methods', role: 'radiogroup', 'aria-label': W('種類', 'Kind') });
   const paintChips = () => chips.replaceChildren(...methodsFor(a).map(m => h('button', { class: 'mn-method', type: 'button', role: 'radio', 'aria-checked': String(name.value.trim() === m), onclick: () => ((name.value = m), paintChips()) }, [methodTile(m, 28), h('span', { text: m })])));
@@ -216,7 +222,7 @@ function editCard(a, c, host) {
     title: c ? c.name : W('新增付款方式', 'Add a way to pay'),
     lead: h('button', { class: 'q-close mn-back', type: 'button', 'aria-label': W('返回', 'Back'), html: icons.chevron, onclick: back }),
     cls: 'mn-acct-edit',
-    body: [h('div', { class: 'mn-form' }, [chips, field(W('名稱', 'Name'), name), field(W('卡號末四碼', 'Last 4 digits'), last4)])],
+    body: [h('div', { class: 'mn-form' }, [chips, field(W('名稱', 'Name'), name), group(W('卡別', 'Card network'), nets), field(W('卡號末四碼', 'Last 4 digits'), last4)])],
     foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [
       c ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('移除', 'Remove'), onclick: () => removeCard(a, c, host) }) : null,
       h('button', {
@@ -224,7 +230,7 @@ function editCard(a, c, host) {
         type: 'button',
         text: W('儲存', 'Save'),
         onclick: () => {
-          put(state.books, 'cards', { ...(c || {}), acct: a.id, name: name.value.trim() || methodsFor(a)[0], last4: last4.value.replace(/\D/g, '').slice(0, 4) });
+          put(state.books, 'cards', { ...(c || {}), acct: a.id, name: name.value.trim() || methodsFor(a)[0], net, last4: last4.value.replace(/\D/g, '').slice(0, 4) });
           saved();
           back();
         }
@@ -352,7 +358,7 @@ const payBill = (a, bill) => openEntry({ kind: 'move', amt: bill?.left || 0, not
 
 export function openAccountEdit(a, host = null) {
   const isNew = !a;
-  const f = { kind: a?.kind || 'bank', brand: a?.brand || '', name: a?.name || '', open: '', inTotal: a ? Boolean(a.inTotal) : true, pay: a?.pay || '', close: a?.close || '', due: a?.due || '', reload: { on: false, from: '', amt: '', below: '', ...(a?.reload || {}) } };
+  const f = { kind: a?.kind || 'bank', brand: a?.brand || '', net: a?.net || '', name: a?.name || '', open: '', inTotal: a ? Boolean(a.inTotal) : true, pay: a?.pay || '', close: a?.close || '', due: a?.due || '', reload: { on: false, from: '', amt: '', below: '', ...(a?.reload || {}) } };
   const body = h('div', { class: 'mn-form' });
   // 自動加值 (a stored-value card's own; some have it, some don't): NT$500 under NT$100 is the usual rule, filled in to change.
   const rl = f.reload;
@@ -400,6 +406,8 @@ export function openAccountEdit(a, host = null) {
     body.replaceChildren(
       ...[
         kindPick ? field(W('種類', 'Kind'), kindPick) : null,
+        // (A credit card's network before its bank: two short rows, never under the long bank grid.)
+        f.kind === 'credit' ? group(W('卡別', 'Card network'), netGrid(f.net, id => ((f.net = id), paint()))) : null,
         brandGrid ? field(f.kind === 'ticket' ? W('哪一張', 'Which card') : f.kind === 'wallet' ? W('哪一個', 'Which one') : W('銀行', 'Bank'), brandGrid) : null,
         field(W('名稱', 'Name'), nameIn),
         isNew ? field(f.kind === 'credit' ? W('目前欠款', 'Owed now') : W('目前餘額', 'Balance now'), openIn) : null,
@@ -416,7 +424,7 @@ export function openAccountEdit(a, host = null) {
   const save = () => {
     const name = f.name.trim() || (f.brand ? (en ? brandOf(f.brand).en : brandOf(f.brand).zh) : kindName(f.kind));
     const day = v => Math.min(31, Math.max(0, Math.floor(Number(v) || 0))) || '';
-    const rec = { ...(a || {}), kind: f.kind, brand: f.brand, name, inTotal: f.inTotal, pay: f.kind === 'credit' ? f.pay : '', close: f.kind === 'credit' ? day(f.close) : '', due: f.kind === 'credit' ? day(f.due) : '' };
+    const rec = { ...(a || {}), kind: f.kind, brand: f.brand, net: f.kind === 'credit' ? f.net : '', name, inTotal: f.inTotal, pay: f.kind === 'credit' ? f.pay : '', close: f.kind === 'credit' ? day(f.close) : '', due: f.kind === 'credit' ? day(f.due) : '' };
     const whole = v => Math.max(0, Math.round(Number(String(v).replace(/[^\d]/g, '')) || 0));
     if (f.kind === 'ticket' || f.kind === 'wallet') {
       rec.reload = rl.on ? { on: true, from: acct(rl.from) ? rl.from : '', amt: whole(rl.amt) || 500, below: whole(rl.below) } : a?.reload ? { ...a.reload, on: false } : undefined;
@@ -444,6 +452,22 @@ export function openAccountEdit(a, host = null) {
   };
   const s = host ? swapPage(host, page) : sheet(page);
 }
+// The card networks, each its mark and name, and 不指定 (none) to close the
+// two rows; a tap on the one picked leaves it unpicked too.
+const netGrid = (cur, onPick) =>
+  h(
+    'div',
+    { class: 'mn-brands mn-nets', role: 'radiogroup', 'aria-label': W('卡別', 'Card network') },
+    [...NETWORKS, null].map(n => {
+      const id = n?.id || '';
+      return h('button', { class: 'mn-brand', type: 'button', role: 'radio', 'aria-checked': String(id === cur), 'aria-pressed': String(id === cur), onclick: () => onPick(id === cur ? '' : id) }, [
+        n ? h('img', { class: 'mn-net-card', src: networkLogo(id), alt: '', decoding: 'async' }) : h('span', { class: 'mn-net-card mn-net-none', html: glyph('card') }),
+        h('span', { text: n ? (en ? n.en : n.zh) : W('不指定', 'None') })
+      ]);
+    })
+  );
+// (A div, not a label: a tap on the words mustn't pick the first button.)
+const group = (label, control) => h('div', { class: 'mn-field' }, [h('span', { class: 'mn-field-l', text: label }), control]);
 const field = (label, control) => h('label', { class: 'mn-field' }, [h('span', { class: 'mn-field-l', text: label }), control]);
 
 // ---- A repeat ---------------------------------------------------------------------

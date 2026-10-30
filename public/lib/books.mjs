@@ -11,14 +11,16 @@
 //            wallet (電子支付: 悠遊付, LINE Pay…); other, from before, shows as wallet.
 //            open: the balance when it was added (a credit card's: what it owed, negative).
 //            inTotal: counted in the 總資產. brand: a logo key (brands.mjs).
+//            net: a credit card's network (visa, mastercard…: lib/networks.mjs), '' none.
 //            reload: a stored-value card's 自動加值 { on, from, amt, below } (autoReload;
 //            from '': nobody in the books pays, the balance just goes up).
 //            A credit card's pay: the account its bill is paid from; close / due: its
 //            statement and payment days of the month. closed: when it was put
 //            away (封存): out of every picker, its entries and balance kept.
-//   cards    { id: { id, acct, name, last4, closed? } } ways to pay under an account (a
+//   cards    { id: { id, acct, name, last4, net?, closed? } } ways to pay under an account (a
 //            debit card, Apple Pay or LINE Pay on a card…): they spend
-//            straight from their bank account.
+//            straight from their bank account. net: its network; none, a card
+//            under a credit card is on the card's (netOfCard).
 //   entries  { id: { id, d, k, amt, cat, sub, note, a, via, to, inv, rec, fee, also } }
 //            sub: the finer kind under cat ('' none; lib/cats.mjs).
 //            d: the day, 'YYYY-MM-DD'. k: out | in | move | adj (a balance set by

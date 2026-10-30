@@ -11,11 +11,13 @@ const acct = (id, name, kind, open, more = {}) => put(b, 'accts', { id, name, ki
 acct('cash', '現金', 'cash', 9000);
 acct('a1', '玉山 薪轉', 'bank', 86000, { brand: 'esun' });
 acct('a2', '悠遊卡', 'ticket', 350, { brand: 'easycard', reload: { on: true, from: 'a1', amt: 500, below: 100 } });
-acct('a3', '國泰 CUBE 卡', 'credit', 0, { brand: 'cathay', pay: 'a1', close: 5, due: 20 });
+acct('a3', '國泰 CUBE 卡', 'credit', 0, { brand: 'cathay', net: 'visa', pay: 'a1', close: 5, due: 20 });
 acct('a4', '台新 Richart', 'bank', 120000, { brand: 'taishin', inTotal: false });
 acct('a5', 'LINE Pay', 'wallet', 2000, { brand: 'linepay' });
 acct('a6', 'LINE Points', 'wallet', 320, { brand: 'linepoints' });
-put(b, 'cards', { id: 'c1', acct: 'a1', name: '玉山 Debit', last4: '4821' }, now);
+put(b, 'cards', { id: 'c1', acct: 'a1', name: '玉山 Debit', last4: '4821', net: 'mastercard' }, now);
+put(b, 'cards', { id: 'c2', acct: 'a3', name: 'Apple Pay' }, now);
+acct('a7', 'JCB 卡', 'credit', 0, { net: 'jcb', pay: 'a1' });
 const spend = [['food', 120, '', 'food:breakfast'], ['drink', 65, '路易莎', 'drink:coffee'], ['transport', 30, '', 'transport:mrt'], ['food', 180, '', 'food:lunch'], ['daily', 420, '全聯', 'daily:grocery'], ['shop', 990, 'Uniqlo', 'shop:clothes'], ['fun', 320, '威秀', 'fun:movie']];
 let n = 0;
 for (let i = 0; i < 26; i++) {

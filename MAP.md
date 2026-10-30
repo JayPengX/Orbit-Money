@@ -83,3 +83,10 @@ Live: https://orbit.jaypengx.com/money/
 - **Logos** (`img/brand/`, `lib/logos.mjs`): each bank's or wallet's own
   icon (`scripts/brand-logos.mjs`, a few from its App Store app); one with
   none uses its kind's icon.
+- **Card networks** (`img/network/*.svg`, `lib/networks.mjs`, Jay
+  2026-10-30): a credit card and any card under an account can be on Visa,
+  Mastercard, JCB, American Express, UnionPay, Diners Club or Discover
+  (`net`, picked as 卡別). A card under a credit card is on the card's unless
+  set. Shown in the corner of the bank's or wallet's logo (36 px and up), or
+  alone where the card has no other picture (`views/pics.mjs`). Marks from
+  payment-icons (MPL-2.0, `img/network/LICENSE.txt`).
