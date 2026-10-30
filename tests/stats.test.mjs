@@ -70,6 +70,15 @@ test('不計入: categories left out are left out of every figure, money back wi
   assert.equal(S.total(books(), 'out', ...NOV), 8000 + 400 + 1290 + 155 + 100 + 5);
 });
 
+test('不計入 down to a sub: one sub, or the entries with none, and shares count the rest', () => {
+  const b = { ...books(), skip: new Set(['digital:games', 'digital/-']) };
+  const dig = S.byCat(b, 'out', ...NOV, parent).find(c => c.cat === 'digital');
+  assert.deepEqual(dig.subs, [{ sub: 'digital:cloud', amt: 155 }]);
+  assert.equal(S.total(b, 'out', ...NOV), 8000 + 400 + 155 + 5);
+  // (A friend's share goes with its lunch when lunch is off.)
+  assert.equal(S.shape({ ...books(), skip: new Set(['food:lunch']) }, ...NOV).back, 0);
+});
+
 test('changes against the period before, largest first, new ones too', () => {
   const ch = S.changes(books(), 'out', { from: NOV[0], to: NOV[1] }, { from: '2026-10-01', to: '2026-10-31' });
   assert.equal(ch[0].cat, 'home');

@@ -259,7 +259,8 @@ export const netOf = (e, back) => Math.max(0, (Number(e.amt) || 0) - (back.get(e
 export function lines(books, from = '', to = '') {
   const back = backs(books);
   const inRange = d => (!from || d >= from) && (!to || d <= to);
-  // (books.skip, a Set of category ids, leaves those out: 統計's 不計入,
+  // (books.skip, a Set of category and sub ids (`<cat>/-` for one's entries
+  // with no sub), leaves those out: 統計's 不計入,
   // Jay 2026-10-30, so every figure there is counted again without them.)
   const skip = books.skip;
   const out = [];
@@ -274,7 +275,7 @@ export function lines(books, from = '', to = '') {
     const fee = feeOf(e);
     if (fee) out.push({ e, d: e.d, k: 'out', cat: FEE.cat, sub: FEE.sub, amt: fee, fee: true });
   }
-  return skip?.size ? out.filter(l => !skip.has(l.cat)) : out;
+  return skip?.size ? out.filter(l => !skip.has(l.cat) && !skip.has(l.sub || `${l.cat}/-`)) : out;
 }
 
 // The entries of a day, a month, or a range of days, newest made first.

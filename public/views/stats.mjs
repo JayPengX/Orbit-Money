@@ -8,7 +8,7 @@
 // kept, by day, by category, the accounts it came into, income against
 // spending month by month, the largest. A period is a week, a month, a year
 // or any dates; every row opens its entries.
-import { h, icons, tile, pickSeg, sheet, toast, menu, empty } from '#kit/ui.mjs';
+import { h, icons, tile, pickSeg, sheet, toast, menu, empty, toggle } from '#kit/ui.mjs';
 import { addDays } from '#kit/format.mjs';
 import { lines, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
 import { catList, catOf, catName, subOf, glyph } from '../lib/cats.mjs';
@@ -81,8 +81,10 @@ export function renderStats(box) {
 
   const amt = total(b, kind, p.from, p.to);
   const before = total(b, kind, prev.from, prev.to);
-  const parts = [seg, nav, skipRow(kind, p, redraw), hero(kind, p, prev, amt, before, now)];
+  const parts = [seg, nav, hero(kind, p, prev, amt, before, now)];
   if (!amt) {
+    // (Everything left out: the chips stay, so a tap counts them back.)
+    if (skip.size) parts.push(h('div', { class: 'q-rowcard' }, [skipRow(kind, p, redraw)]));
     parts.push(empty({ icon: 'chart', title: kind === 'in' ? W('這段時間沒有收入', 'No income in this period') : W('這段時間沒有支出', 'No spending in this period') }));
     if (kind === 'out' && state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
     return box.replaceChildren(...parts.filter(Boolean));
@@ -90,13 +92,13 @@ export function renderStats(box) {
   // (The split first, the days after it on a short chart: Jay 2026-10-30, the
   // big chart of mostly empty days pushed the donut off the screen.)
   if (kind === 'out') {
-    parts.push(catSection(kind, p, amt), trend(kind, p, now));
+    parts.push(catSection(kind, p, amt, redraw), trend(kind, p, now));
     if (state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
     parts.push(changeSection(kind, p, prev), payCard(kind, p, amt), shapeCard(p), bigCard(kind, p), placeCard(kind, p));
     if (daysIn(p.from, p.to, now) >= 14) parts.push(weekCard(p, now));
     if (state.range === 'month') parts.push(monthsCard(p, now));
   } else {
-    parts.push(catSection(kind, p, amt), trend(kind, p, now), payCard(kind, p, amt), inOutCard(p, now), bigCard(kind, p));
+    parts.push(catSection(kind, p, amt, redraw), trend(kind, p, now), payCard(kind, p, amt), inOutCard(p, now), bigCard(kind, p));
   }
   box.replaceChildren(...parts.filter(Boolean));
 }
@@ -172,10 +174,10 @@ function hero(kind, p, prev, amt, before, now) {
   sub = sub.filter(Boolean);
   // (One short card, as on 月曆: the total left, the figures beside it.)
   const name = kind === 'in' ? W('收入', 'Income') : W('支出', 'Spent');
-  const off = skip.size ? byCat(state.books, kind, p.from, p.to).filter(c => skip.has(c.cat)).length : 0;
+  const off = skip.size ? byCat(state.books, kind, p.from, p.to, id => subOf(id)?.parent || '').reduce((n, c) => n + (skip.has(c.cat) ? 1 : c.subs.filter(x => skip.has(offKey({ cat: c.cat, sub: x.sub }))).length), 0) : 0;
   return h('section', { class: 'q-focus mn-focus mn-sum' }, [
     h('div', { class: 'mn-sum-main' }, [
-      h('span', { class: 'q-focus-label', text: off ? W(`${name}（不含 ${off} 類）`, `${name}, ${off} left out`) : name }),
+      h('span', { class: 'q-focus-label', text: off ? W(`${name}（不含 ${off} 項）`, `${name}, ${off} left out`) : name }),
       h('b', { class: 'q-focus-value q-fit', text: money(amt) })
     ]),
     figs.length ? h('div', { class: 'q-focus-figs mn-sum-figs' }, figs) : null,
@@ -184,19 +186,47 @@ function hero(kind, p, prev, amt, before, now) {
 }
 // The period's categories as chips: a tap leaves one out of every figure
 // (crossed and grey), a tap again counts it back; 全部計入 counts them all.
+// 細項… opens every category with its subs, each with a switch (Jay
+// 2026-10-30: "it also should work down to sub type"). A sub is left out by
+// its id, a category's entries with none by `<cat>/-`.
+const offKey = s => s.sub || `${s.cat}/-`;
 function skipRow(kind, p, redraw) {
-  const cats = byCat(state.books, kind, p.from, p.to);
+  const cats = byCat(state.books, kind, p.from, p.to, id => subOf(id)?.parent || '');
   if (cats.length < 2 && !skip.size) return null;
-  const chip = (label, on, onclick, color = '') =>
-    h('button', { class: `mn-skip-chip${on ? '' : ' off'}`, type: 'button', 'aria-pressed': String(on), onclick }, [color ? h('i', { style: `background:${color}` }) : null, label]);
-  const mine = cats.filter(c => skip.has(c.cat)).length;
-  return h('div', { class: 'mn-skip', role: 'group', 'aria-label': W('計入的分類', 'Categories counted') }, [
-    mine ? chip(W('全部計入', 'Count all'), true, () => (skip.clear(), redraw())) : null,
-    ...cats.map(c => {
-      const look = catOf(c.cat);
-      return chip(catName(look, lang), !skip.has(c.cat), () => (skip.has(c.cat) ? skip.delete(c.cat) : skip.add(c.cat), redraw()), look.color);
-    })
+  // (On the 分類 card, over its donut, Jay 2026-10-30: the toggles belong to the chart.)
+  const chip = (label, cls, onclick, color = '') =>
+    h('button', { class: `mn-skip-chip ${cls}`.trim(), type: 'button', 'aria-pressed': String(cls !== 'off'), onclick }, [color ? h('i', { style: `background:${color}` }) : null, label]);
+  const subsOff = c => c.subs.filter(x => skip.has(offKey({ cat: c.cat, sub: x.sub }))).length;
+  const off = cats.filter(c => skip.has(c.cat)).length;
+  const part = cats.filter(c => !skip.has(c.cat) && subsOff(c)).length;
+  const hint = off || part
+    ? W(`已關掉${off ? ` ${off} 類` : ''}${off && part ? '、' : ''}${part ? ` ${cats.reduce((n, c) => n + (skip.has(c.cat) ? 0 : subsOff(c)), 0)} 個細項` : ''}，只算其餘的`, 'Some are off: the chart, totals and shares count only the rest')
+    : W('點分類關掉它，圖和百分比只算其餘的', 'Tap a category to turn it off; the chart and shares count the rest');
+  const hasSubs = cats.some(c => c.subs.length > 1);
+  return h('div', { class: 'mn-skip-box' }, [
+    h('small', { class: 'mn-skip-hint', text: hint }),
+    h('div', { class: 'mn-skip', role: 'group', 'aria-label': W('計入的分類', 'Categories counted') }, [
+      off || part ? chip(W('全部計入', 'Count all'), 'all', () => (skip.clear(), redraw())) : null,
+      hasSubs ? chip(W('細項…', 'Subs…'), 'more', () => openSkip(cats, redraw)) : null,
+      ...cats.map(c => {
+        const look = catOf(c.cat);
+        const n = subsOff(c);
+        return chip(n && !skip.has(c.cat) ? `${catName(look, lang)} −${n}` : catName(look, lang), skip.has(c.cat) ? 'off' : n ? 'part' : '', () => (skip.has(c.cat) ? skip.delete(c.cat) : skip.add(c.cat), redraw()), look.color);
+      })
+    ])
   ]);
+}
+// Every category and its subs, each with a switch; the page behind recounts at once.
+function openSkip(cats, redraw) {
+  const row = (name, key, icon, sub = false) =>
+    h('div', { class: `q-ritem mn-row${sub ? ' mn-skip-sub' : ''}` }, [icon, h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: name })]), toggle({ checked: !skip.has(key), label: name, onChange: on => (on ? skip.delete(key) : skip.add(key), redraw()) })]);
+  const rows = [];
+  for (const c of cats) {
+    const look = catOf(c.cat);
+    rows.push(row(catName(look, lang), c.cat, tile(glyph(look.icon), look.color)));
+    if (c.subs.length > 1) c.subs.forEach((x, i, all) => rows.push(row(x.sub ? catName(subOf(x.sub), lang) : W('未分細項', 'Other'), offKey({ cat: c.cat, sub: x.sub }), h('i', { class: 'mn-subdot', style: `background:${tint(look.color, i, all.length)}` }), true)));
+  }
+  sheet({ title: W('計入哪些', 'What to count'), subtitle: W('關掉的都不算', 'What is off is left out of every figure'), detent: 'large', body: [h('div', { class: 'q-rowcard' }, rows)] });
 }
 const fig = (label, value, cls = '') => h('div', null, [h('small', { text: label }), h('b', { class: `num ${cls}`.trim(), text: value })]);
 const head = (title, note = '') => h('div', { class: 'q-section-head' }, [h('h2', { text: title }), note ? h('span', { class: 'mn-sec-note', text: note }) : null]);
@@ -329,7 +359,7 @@ function trend(kind, p, now) {
 // a donut (Jay 2026-10-30: the bars only show the trend, the split wants a
 // pie): categories inside, their subs in their shades around them, the
 // biggest named beside it; a tap on a slice or a name says its amount.
-function catSection(kind, p, whole) {
+function catSection(kind, p, whole, redraw) {
   const cats = byCat(B(), kind, p.from, p.to, id => subOf(id)?.parent || '');
   const subs = c => (c.subs.length > 1 ? c.subs : []);
   const outer = [];
@@ -374,7 +404,7 @@ function catSection(kind, p, whole) {
     // (Subs only when they split it: one line the same as its category says nothing.)
     subs(c).forEach((s, i, all) => rows.push(subRow(s.sub ? catName(subOf(s.sub), lang) : W('未分細項', 'Other'), s.amt, whole, tint(look.color, i, all.length), () => openCat(kind, c.cat, s.sub || '-', p))));
   }
-  return section(kind === 'in' ? W('收入分類', 'By category') : W('分類', 'By category'), h('div', { class: 'q-rowcard mn-cats-card' }, [h('div', { class: 'mn-donut-row' }, [ring, legend]), ...rows]));
+  return section(kind === 'in' ? W('收入分類', 'By category') : W('分類', 'By category'), h('div', { class: 'q-rowcard mn-cats-card' }, [skipRow(kind, p, redraw), h('div', { class: 'mn-donut-row' }, [ring, legend]), ...rows]));
 }
 
 // What moved most against the period before (up to five).

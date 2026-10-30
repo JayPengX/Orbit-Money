@@ -499,9 +499,11 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 
 /* 統計's 不計入 (Jay 2026-10-30): the period's categories as one scrolling row
    of chips; one tapped off is grey and crossed, and every figure leaves it out. */
-.mn-skip { display: flex; gap: 6px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left))); padding: 0 max(16px, env(safe-area-inset-left)); overflow-x: auto; scrollbar-width: none; }
+.mn-skip-box { display: grid; gap: 8px; padding: 14px 0 12px; }
+.mn-skip-hint { padding: 0 16px; color: var(--q-label-2); font: var(--q-t-footnote); }
+.mn-skip { display: flex; gap: 6px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
 .mn-skip::-webkit-scrollbar { display: none; }
-.mn-skip-chip { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border: 0; border-radius: 99px; background: var(--q-surface); color: var(--q-label); font: 500 14px/18px var(--q-font); white-space: nowrap; }
+.mn-skip-chip { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border: 0; border-radius: 99px; background: var(--q-fill-2); color: var(--q-label); font: 500 14px/18px var(--q-font); white-space: nowrap; }
 .mn-skip-chip i { width: 8px; height: 8px; border-radius: 50%; }
 .mn-skip-chip.off { color: var(--q-label-3); text-decoration: line-through; }
 .mn-skip-chip.off i { background: var(--q-label-3) !important; }
@@ -513,3 +515,7 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-preset-on { display: inline-flex; color: var(--q-accent); }
 .mn-preset-on svg { width: 20px; height: 20px; }
 .mn-presetsheet .mn-hint { margin: 12px 4px 4px; }
+.mn-skip-chip.part { color: var(--q-label-2); }
+.mn-skip-chip.more { color: var(--q-accent); }
+.mn-skip-sub { padding-left: 40px; }
+.mn-skip-sub .q-ritem-title { color: var(--q-label-2); }

@@ -71,6 +71,8 @@ export function changes(books, kind, p, prev) {
 }
 
 // A repeat's own entries (固定收支, ids r-<repeat>-<day>) against the rest.
+// (統計's 不計入: an entry whose category or sub is left out; see books.mjs lines.)
+const skipped = (books, e) => Boolean(books.skip?.size) && (books.skip.has(e.cat || 'other') || books.skip.has(e.sub || `${e.cat || 'other'}/-`));
 export const isFixed = e => /^r-/.test(e?.id || '');
 // The spending's shape: fixed and the rest, the fees, and what came back
 // (退款 and friends' shares handed over, on their own days).
@@ -86,7 +88,7 @@ export function shape(books, from, to) {
   let back = 0;
   let owed = 0;
   for (const e of live(books.entries))
-    if (e.k === 'back' && e.d >= from && e.d <= to && !books.skip?.has(e.cat || books.entries[e.of]?.cat || 'other')) {
+    if (e.k === 'back' && e.d >= from && e.d <= to && !skipped(books, e.cat ? e : books.entries[e.of] || e)) {
       if (e.wait) owed += Number(e.amt) || 0;
       else back += Number(e.amt) || 0;
     }
