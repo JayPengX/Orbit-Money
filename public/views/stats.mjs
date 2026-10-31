@@ -103,7 +103,7 @@ export function renderStats(box) {
     flow(st, parts, { first: 3 });
   };
   if (!amt) {
-    parts.push(empty({ icon: 'chart', title: kind === 'in' ? W('這段時間沒有收入', 'No income in this period') : W('這段時間沒有支出', 'No spending in this period'), body: skip.size ? W('有些分類被篩掉了', 'Some categories are filtered out') : '' }));
+    parts.push(empty({ icon: 'chart', title: kind === 'in' ? W('這段時間沒有收入', 'No income') : W('這段時間沒有支出', 'Nothing spent'), body: skip.size ? W('有些分類被篩掉了', 'Some categories are filtered out') : '' }));
     if (kind === 'out' && state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
     return done();
   }
