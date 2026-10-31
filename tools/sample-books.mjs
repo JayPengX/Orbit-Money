@@ -68,5 +68,4 @@ put(b, 'entries', { id: 'x-nf', d: addDays(day, -12), k: 'out', amt: 390, cat: '
 put(b, 'entries', { id: 'x-div', d: addDays(day, -8), k: 'in', amt: 1860, cat: 'invest', sub: 'invest:dividend', note: '0050 股利', a: 'a4', via: '', to: '', t: now }, now);
 // The EasyCard tops itself up from the bank, as the app does when a spend sets it off.
 for (const e of live(b.entries).filter(e => e.a === 'a2').sort((x, y) => x.d.localeCompare(y.d) || x.t - y.t)) autoReload(b, e, now);
-b.carrier = { code: '/ABC1234', u: now };
 process.stdout.write(await encodeBooks(b));

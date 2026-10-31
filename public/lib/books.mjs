@@ -27,7 +27,8 @@
 //            hand) | back (money back for a spend: a 退款, or a friend's share).
 //            amt: whole NT$, > 0 (adj: the change, either sign). a: the account it's
 //            paid from or into; via: the card used (a debit card's id); to: a move's
-//            other account. inv: the 發票 it came from ({ no, sid, seller, items }).
+//            other account. inv: the receipt it came from, read from a picture
+//            (拍照記帳; older ones from a 發票): { seller, items: [{ name, qty, price }], no?, day?, total? }.
 //            auto: 'reload' a card's 自動加值, for: the spend that set it off.
 //            rec: the repeat that made it.
 //            fee: a 手續費 on a spend or a move (ATM, 境外交易), paid from `a` too,
@@ -44,7 +45,6 @@
 //   cats     { id: { id, k, parent, zh, icon, color, order, hidden, into } } the
 //            person's own categories and changes to the built-in ones (lib/cats.mjs).
 //   renew    { id: { id, name, start, n, unit, roll, cat, sub, on, at } } 到期提醒 (lib/renew.mjs).
-//   carrier  { code, u } the 手機條碼 (載具).
 
 import { addDays } from '#kit/format.mjs';
 
@@ -57,7 +57,7 @@ export const KEEP_GONE_MS = 120 * 86_400_000;
 export const ACCOUNT_KINDS = ['cash', 'bank', 'credit', 'ticket', 'wallet'];
 export const groupOf = kind => (ACCOUNT_KINDS.includes(kind) ? kind : 'wallet');
 
-export const emptyBooks = () => ({ accts: {}, cards: {}, entries: {}, budgets: {}, recur: {}, cats: {}, renew: {}, carrier: null, st: 0, opt: {} });
+export const emptyBooks = () => ({ accts: {}, cards: {}, entries: {}, budgets: {}, recur: {}, cats: {}, renew: {}, st: 0, opt: {} });
 
 let seq = 0;
 export const newId = (now = Date.now()) => `${now.toString(36)}${(seq++ % 1296).toString(36).padStart(2, '0')}${Math.random().toString(36).slice(2, 6)}`;
@@ -502,18 +502,16 @@ export function mergeBooks(mine, theirs, now = Date.now()) {
   const newer = (theirs.st || 0) > (mine?.st || 0) ? theirs : mine || theirs;
   out.st = newer.st || 0;
   out.opt = { ...(newer.opt || {}) };
-  out.carrier = !mine?.carrier ? theirs.carrier || null : !theirs.carrier ? mine.carrier : (theirs.carrier.u || 0) > (mine.carrier.u || 0) ? theirs.carrier : mine.carrier;
   return out;
 }
 
 // The books as JSON for saving, and back (a copy that isn't the books is null:
 // never saved over).
-export const packBooks = books => ({ v: 1, ...Object.fromEntries(COLLECTIONS.map(c => [c, books[c] || {}])), carrier: books.carrier || null, st: books.st || 0, opt: books.opt || {} });
+export const packBooks = books => ({ v: 1, ...Object.fromEntries(COLLECTIONS.map(c => [c, books[c] || {}])), st: books.st || 0, opt: books.opt || {} });
 export function unpackBooks(x) {
   if (!x || x.v !== 1 || typeof x.accts !== 'object' || typeof x.entries !== 'object') return null;
   const b = emptyBooks();
   for (const c of COLLECTIONS) b[c] = x[c] && typeof x[c] === 'object' ? x[c] : {};
-  b.carrier = x.carrier || null;
   b.st = Number(x.st) || 0;
   b.opt = x.opt && typeof x.opt === 'object' ? x.opt : {};
   return b;
@@ -542,31 +540,44 @@ export async function decodeBooks(payload) {
   }
 }
 
-// ---- A 載具's invoices against what was logged by hand ----------------------------
-// A purchase typed in that day has no invoice number, so a 載具 file or the
-// monthly mail would add it again. Each invoice is matched first to an
-// unclaimed spending entry of the same amount on its day (else the day after,
-// else the day before: logged late or early); a match just gets the invoice
-// (for 對獎 and the items), and only the rest are offered as new.
-// → { attach: [[entryId, invoice]], fresh: [invoice] }, invoices already in left out.
-export function matchInvoices(books, list) {
-  const all = live(books.entries);
-  const have = new Set(all.map(e => e.inv?.no).filter(Boolean));
-  const free = all.filter(e => e.k === 'out' && !e.inv?.no);
-  const used = new Set();
-  const attach = [];
-  const fresh = [];
-  for (const i of list) {
-    if (i.void || (i.no && (have.has(i.no) || books.entries[`inv-${i.no}`]))) continue;
-    const amt = Math.round(i.total);
-    const on = day => free.find(e => !used.has(e.id) && e.d === day && e.amt === amt);
-    const e = on(i.day) || on(addDays(i.day, 1)) || on(addDays(i.day, -1));
-    if (e && i.no) {
-      used.add(e.id);
-      attach.push([e.id, i]);
-    } else if (!e) fresh.push(i);
+// ---- The same payment logged twice ----------------------------------------------
+// A picture read (拍照記帳) of something already logged by hand (Jay
+// 2026-10-31: a NT$68 全家 typed in, then its receipt): the entry it most
+// likely is. The same kind and amount, on its day or a day either side (logged
+// late or early); its own day first, then one whose note or store names the
+// picture's store, then the latest. One already carrying a receipt is it only
+// when the store is the same and no two 發票號碼 differ; one with the same
+// 發票號碼 always is. `skip`: entries already taken by an earlier picture.
+// buy: { k, day, total, store, no } → the entry, or null.
+const words = s => String(s || '').toLowerCase().replace(/[\s·・,，.。-]+/g, '');
+export function sameAs(books, buy, { skip = new Set() } = {}) {
+  const k = buy.k || 'out';
+  const amt = Math.round(Number(buy.total) || 0);
+  if (!(amt > 0) || !buy.day) return null;
+  const all = live(books.entries).filter(e => e.k === k && !skip.has(e.id));
+  if (buy.no) {
+    const same = all.find(e => e.inv?.no === buy.no);
+    if (same) return same;
   }
-  return { attach, fresh };
+  const near = new Set([buy.day, addDays(buy.day, -1), addDays(buy.day, 1)]);
+  const store = words(buy.store);
+  const named = e => Boolean(store) && [e.note, e.inv?.seller].some(x => {
+    const w = words(x);
+    return w && (w.includes(store) || store.includes(w));
+  });
+  const free = e => !e.inv || (named(e) && !(e.inv.no && buy.no)) || (!e.inv.no && !e.inv.seller && !(e.inv.items || []).length);
+  const score = e => (e.d === buy.day ? 4 : 0) + (named(e) ? 2 : 0);
+  return all.filter(e => e.amt === amt && near.has(e.d) && free(e)).sort((x, y) => score(y) - score(x) || (y.t || 0) - (x.t || 0))[0] || null;
+}
+// Several read at once (a screenshot of a list): each its own match, none taken twice.
+// → [{ buy, e }] (e null when it's new).
+export function matchBuys(books, list) {
+  const skip = new Set();
+  return list.map(buy => {
+    const e = sameAs(books, buy, { skip });
+    if (e) skip.add(e.id);
+    return { buy, e };
+  });
 }
 
 // ---- Money back --------------------------------------------------------------------

@@ -2,8 +2,8 @@
 // on a month, the day's entries), 帳戶 (cash, banks, 悠遊卡, e-wallets and
 // credit cards, with the cards on them; what's counted in the 總資產),
 // 統計 (where it went: by category, by day, against the budgets)
-// and 更多 (purchases brought in without typing, 對獎, the 手機條碼, the
-// categories, the repeats, the accounts put away, the books as a file).
+// and 更多 (拍照記帳: any receipt or screenshot into an entry; the categories,
+// the repeats, the accounts put away, the books as a file).
 //
 // This file starts the app, saves and opens tabs; the screens are views/*.mjs,
 // the books lib/*.mjs. Nothing here is Orbit's money: the books are the app's
@@ -19,7 +19,6 @@ import { reminders, remindTimes, upgradeRenew } from './lib/renew.mjs';
 import { renderCal } from './views/calendar.mjs';
 import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
-import { loadDraws } from './views/invoices.mjs';
 import { renderMore } from './views/more.mjs';
 import { openEntry } from './views/entry.mjs';
 import { openPresets } from './views/cat-edit.mjs';
@@ -150,7 +149,6 @@ function showTab(tab) {
   state.tab = tab;
   tabNav.select(tab);
   render({ ifChanged: true });
-  if (tab === 'more') loadDraws().then(() => state.tab === 'more' && render());
 }
 const quietRefresh = () => {
   if (document.querySelector('dialog.q-sheet[open]') || document.activeElement?.tagName === 'INPUT') return;

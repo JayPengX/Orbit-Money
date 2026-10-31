@@ -316,14 +316,39 @@ test('older books brought up: a 自動加值 already under 其他 moves to its o
   assert.equal(B.upgradeBooks(b, T + 2), 0);
 });
 
-test('a 載具 invoice matches what was logged by hand (same amount, its day or next to it); only the rest are new', () => {
+test('a picture of something logged by hand is that entry (same kind and amount, within a day), never added twice', () => {
   const b = B.emptyBooks();
-  B.put(b, 'entries', { id: 'e1', d: '2026-11-03', k: 'out', amt: 85, cat: 'food', a: 'cash' }, 1);
-  B.put(b, 'entries', { id: 'e2', d: '2026-11-04', k: 'out', amt: 240, cat: 'move', a: 'cash' }, 1);
-  B.put(b, 'entries', { id: 'e3', d: '2026-11-03', k: 'out', amt: 85, cat: 'food', a: 'cash', inv: { no: 'AA00000009' } }, 1);
-  const inv = (no, day, total) => ({ no, day, total, items: [], seller: '' });
-  const { attach, fresh } = B.matchInvoices(b, [inv('AA00000001', '2026-11-03', 85), inv('AA00000002', '2026-11-03', 240), inv('AA00000003', '2026-11-03', 85), inv('AA00000009', '2026-11-03', 85)]);
-  assert.deepEqual(attach.map(([id, i]) => [id, i.no]), [['e1', 'AA00000001'], ['e2', 'AA00000002']]);
-  // A second 85 that day has no hand entry left: new. One already in: left out.
-  assert.deepEqual(fresh.map(i => i.no), ['AA00000003']);
+  // (Jay 2026-10-31: a NT$68 全家 typed in, then its receipt read.)
+  B.put(b, 'entries', { id: 'fm', d: '2026-10-30', k: 'out', amt: 68, cat: 'food', note: '', a: 'cash', t: 1 }, 1);
+  B.put(b, 'entries', { id: 'e2', d: '2026-11-04', k: 'out', amt: 240, cat: 'move', a: 'cash', t: 2 }, 1);
+  B.put(b, 'entries', { id: 'e3', d: '2026-11-03', k: 'out', amt: 85, cat: 'food', a: 'cash', inv: { no: 'AA00000009', seller: '全家', items: [] }, t: 3 }, 1);
+  B.put(b, 'entries', { id: 'pay', d: '2026-11-05', k: 'in', amt: 85, cat: 'salary', a: 'cash', t: 4 }, 1);
+  const buy = (o) => ({ k: 'out', store: '', no: '', ...o });
+  assert.equal(B.sameAs(b, buy({ day: '2026-10-30', total: 68, store: '全家便利商店' }))?.id, 'fm');
+  // (A day late or early still is; two days isn't.)
+  assert.equal(B.sameAs(b, buy({ day: '2026-10-31', total: 68 }))?.id, 'fm');
+  assert.equal(B.sameAs(b, buy({ day: '2026-11-01', total: 68 })), null);
+  // (Another amount, another kind: not it.)
+  assert.equal(B.sameAs(b, buy({ day: '2026-10-30', total: 69 })), null);
+  assert.equal(B.sameAs(b, buy({ day: '2026-11-05', total: 85 })), null);
+  // (Already carrying another invoice: not it; the same invoice: always it.)
+  assert.equal(B.sameAs(b, buy({ day: '2026-11-03', total: 85, no: 'AA00000001' })), null);
+  assert.equal(B.sameAs(b, buy({ day: '2026-11-03', total: 85, no: 'AA00000009' }))?.id, 'e3');
+  // (The same receipt read again, no number: the store says it's the one.)
+  assert.equal(B.sameAs(b, buy({ day: '2026-11-03', total: 85, store: '全家' }))?.id, 'e3');
+  assert.equal(B.sameAs(b, buy({ day: '2026-11-03', total: 85, store: '星巴克' })), null);
+  // A list: each match taken once; a second 68 that day is new.
+  const m = B.matchBuys(b, [buy({ day: '2026-10-30', total: 68 }), buy({ day: '2026-10-30', total: 68 }), buy({ day: '2026-11-04', total: 240 })]);
+  assert.deepEqual(m.map(x => x.e?.id || null), ['fm', null, 'e2']);
+});
+
+test('the same amount twice near the day: its own day first, then the store named', () => {
+  const b = B.emptyBooks();
+  B.put(b, 'entries', { id: 'a', d: '2026-10-29', k: 'out', amt: 50, note: '7-11', a: 'cash', t: 1 }, 1);
+  B.put(b, 'entries', { id: 'b', d: '2026-10-30', k: 'out', amt: 50, note: '', a: 'cash', t: 2 }, 1);
+  B.put(b, 'entries', { id: 'c', d: '2026-10-31', k: 'out', amt: 50, note: '全家', a: 'cash', t: 3 }, 1);
+  assert.equal(B.sameAs(b, { k: 'out', day: '2026-10-30', total: 50, store: '全家' })?.id, 'b');
+  B.drop(b, 'entries', 'b', 5);
+  assert.equal(B.sameAs(b, { k: 'out', day: '2026-10-30', total: 50, store: '全家' })?.id, 'c');
+  assert.equal(B.sameAs(b, { k: 'out', day: '2026-10-30', total: 50, store: '7-ELEVEN 7-11' })?.id, 'a');
 });

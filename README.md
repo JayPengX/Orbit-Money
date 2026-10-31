@@ -13,7 +13,7 @@
   <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-ES_modules-F7DF1E?logo=javascript&logoColor=000"> <img alt="PWA" src="https://img.shields.io/badge/PWA-works_offline-5A0FC8?logo=pwa&logoColor=fff"> <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=fff"> <img alt="GitHub" src="https://img.shields.io/badge/GitHub-Pages-24292F?logo=github&logoColor=fff"> <img alt="Tests" src="https://img.shields.io/badge/Tests-node_--test-339933?logo=nodedotjs&logoColor=fff">
 </p>
 
-Your own books for real money: what you spend each day, what each account holds, and whether an invoice won. Part of **Orbit**, a family of phone apps for life in Taiwan that share one sign-in, the Orbit Pass. See them all at [orbit.jaypengx.com](https://orbit.jaypengx.com/pass/).
+Your own books for real money: what you spend each day, what each account holds, and any receipt logged from a photo. Part of **Orbit**, a family of phone apps for life in Taiwan that share one sign-in, the Orbit Pass. See them all at [orbit.jaypengx.com](https://orbit.jaypengx.com/pass/).
 
 <p align="center">
   <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month on a calendar">
@@ -34,7 +34,7 @@ Your own books for real money: what you spend each day, what each account holds,
 - **月曆 Calendar:** opens on today: the month's spent, income and what's left against the budget, the week around today, and today's entries right below; the whole month a tap away.
 - **帳戶 Accounts:** cash, banks, 電子票證, 電子支付 and credit cards, each with its own logo; every card shows its network (Visa, Mastercard, JCB, American Express, UnionPay, Diners Club); TPASS and YouBike with their own logos; total assets; fixed income and expenses.
 - **統計 Stats:** one page, top to bottom. Pick week, month, year or your own dates; the card shows the total against the period before, the daily average and where the month is heading, over gold bars of the periods before (tap one to jump to it). Under it, a donut of the categories with their sub-categories around them (tap one to leave it out of the count), and budgets.
-- **發票 Invoices:** the 手機條碼 as a barcode for the till, scanning both QR codes of a paper invoice, importing the e-invoice carrier list (載具) that the 電子發票平台 exports, and checking every invoice against the draw.
+- **拍照記帳 From a photo:** any receipt, invoice, bill, app screenshot, transfer notice or price tag; AI reads the amount, day, store, items, category and way to pay into an entry to check before saving, and offers to merge it with one you already logged.
 - **記一筆 Entries:** guesses the kind, category, sub-category and way to pay from your own entries most like now (the hour, the weekday, today's), with the usual amounts one tap away; spending, income, moves between your own accounts, balance fixes and repeats added on their day.
 - **Category sets:** 學生, 上班族 or 家庭, a short list picked before the first entry, or all of them; changeable in 更多 › 分類.
 - **Syncs** between devices through the Orbit Pass, record by record.
@@ -44,16 +44,15 @@ Your own books for real money: what you spend each day, what each account holds,
 | Layer | What |
 | --- | --- |
 | App | Plain JavaScript (ES modules), HTML and CSS; no framework, no build step, no runtime dependencies |
-| Platform | Installable web app with a service worker; the camera reads QR codes with BarcodeDetector, else jsQR |
-| Shared | Look, Orbit Pass and the carrier CSV reader from the kit in [Orbit-Core](https://github.com/JayPengX/Orbit-Core) |
-| Data | Invoice draws (財政部) and store names (經濟部 GCIS) through the Orbit proxy on Cloudflare Workers |
+| Platform | Installable web app with a service worker; pictures read by Gemini through the Orbit proxy, only on a tap |
+| Shared | Look and the Orbit Pass from the kit in [Orbit-Core](https://github.com/JayPengX/Orbit-Core) |
 | Storage | The books on the Orbit Pass (`m1:` + gzip, up to 1 MB) |
-| Tests | `node --test` on the books and invoices |
+| Tests | `node --test` on the books, categories, guesses and stats |
 
 ## How it works
 
 - **The books are pure and tested** (`lib/books.mjs`): accounts, entries, budgets and repeats, each record stamped with its last change. A removal is a tombstone kept 120 days, and two devices merge record by record, the newest change winning.
-- **Nothing comes in twice:** each imported invoice is keyed by its number, and its category is guessed from the store and the items.
+- **Nothing comes in twice:** a photo's entry is matched against what's logged (same amount, within a day) and offered as a merge.
 - **Real money, apart from Orbit's play money:** the app never invents entries, balances or categories.
 
 Details: **[MAP.md](MAP.md)**.
@@ -63,14 +62,13 @@ Details: **[MAP.md](MAP.md)**.
 ```
 public/
 ├── index.html, app.mjs, shell.mjs, money.css
-├── views/               calendar, accounts, stats, invoices, entry, scan,
-│                        carrier import, categories, more
+├── views/               calendar, accounts, stats, entry, photo,
+│                        categories, more
 ├── lib/
 │   ├── books.mjs        the books: records, totals, merging
-│   ├── invoice.mjs      QR codes, the draw, the barcode
 │   ├── cats.mjs         categories and guessing them
 │   └── logos.mjs, brands.mjs   banks' and wallets' logos
-├── img/brand/, vendor/  logos; jsQR
+├── img/brand/           logos
 └── sw.js
 tools/sample-books.mjs   made-up books for screenshots
 tests/                   node --test

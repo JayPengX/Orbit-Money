@@ -1,15 +1,17 @@
 // One entry: its row (in every list), and the sheet that adds or changes it:
 // spending, income or a transfer; the amount (a real field: tap the number,
 // the iPhone's own keys come up); the category; how it was paid; the day; a
-// note; the 發票 it came from; a fee, a part paid another way (LINE Points), a
-// friend's share. A scanned 發票 opens it filled in. A 退款 has its own small sheet.
+// note; the receipt it came from; a fee, a part paid another way (LINE Points), a
+// friend's share. A photo read (拍照記帳, views/photo.mjs) opens it filled in,
+// offering to merge with the same payment already logged. A 退款 has its own small sheet.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE } from '../lib/books.mjs';
+import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE, sameAs } from '../lib/books.mjs';
 import { catsFor, shownCat, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 import { payPic, whatTile } from './pics.mjs';
 import { cluesFor, guessWhat, guessSubIn, guessPay, guessAmts, guessStamp, cellOf } from '../lib/guess.mjs';
+import { snap, openReceipt, receiptLabel, mergeInto } from './photo.mjs';
 
 // ---- A row ----------------------------------------------------------------------
 
@@ -104,8 +106,9 @@ export function subChips(cat, cur, onPick) {
 
 // ---- The sheet ----------------------------------------------------------------------
 
-// openEntry({ entry }) to change one; { day, kind, inv, amt, note, cat } to add one.
-export function openEntry({ entry = null, day = today(), kind = '', inv = null, amt = 0, note = '', from = '', to = '', cat = '', sub = '' } = {}) {
+// openEntry({ entry }) to change one; { day, kind, inv, amt, note, cat, sub, pay } to add one
+// (pay: { a, via } a photo showed).
+export function openEntry({ entry = null, day = today(), kind = '', inv = null, amt = 0, note = '', from = '', to = '', cat = '', sub = '', pay = null } = {}) {
   const b = state.books;
   const was = entry ? b.entries[entry.id] : null;
   const opt = b.opt || {};
@@ -119,7 +122,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   let clues = cluesFor(b, ctx);
   // (Blank: the + alone, nothing handed in, so all of it is the guess's.)
   const blank = !was && !cat && !amt && !inv && !note && !from;
-  const pay0 = was ? { a: was.a, via: was.via || '' } : from && acct(from) ? { a: from, via: '' } : lastPay() || { a: 'cash', via: '' };
+  const pay0 = was ? { a: was.a, via: was.via || '' } : pay && acct(pay.a) ? { a: pay.a, via: pay.via || '' } : from && acct(from) ? { a: from, via: '' } : lastPay() || { a: 'cash', via: '' };
   const f = {
     k: was?.k === 'adj' ? 'adj' : was?.k || kind || 'out',
     // (The amount as typed: digits, '' for none.)
@@ -159,7 +162,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   };
   // The way to pay: the one most used for it at times like this, until the person picks one.
   const usable = p => p && acct(p.a) && !acct(p.a).closed && (!p.via || (card(p.via) && !card(p.via).closed));
-  let payPicked = Boolean(was || from);
+  let payPicked = Boolean(was || from || (pay && acct(pay.a)));
   function guessPayFor() {
     if (payPicked || (f.k !== 'out' && f.k !== 'in')) return;
     const p = guessPay(clues, { k: f.k, cat: f.cat, sub: f.sub }).find(usable);
@@ -189,7 +192,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     if (!was && !cat) f.cat = catFor(f.k);
     if (!was) f.sub = sub && subOf(sub)?.parent === f.cat ? sub : guess();
     if (!was) guessPayFor();
-    if (!was && !amt) applyDefaults({ pay: !from });
+    if (!was && !amt) applyDefaults({ pay: !from && !pay });
     if (blank) stamp = guessStamp({ cat: f.cat, sub: f.sub, a: f.a, via: f.via, amt: f.auto ? Number(f.amt) : guessAmts(clues, f)[0]?.amt });
   }
   if (was) f.sub = was.sub || '';
@@ -232,6 +235,29 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   noteIn.addEventListener('input', () => (f.note = noteIn.value));
   noteIn.addEventListener('keydown', e => e.key === 'Enter' && noteIn.blur());
   const invRow = h('div', { class: 'mn-invrow q-kb-hide' });
+  // A new one from a photo: the same payment already logged (lib/books.mjs
+  // sameAs: same kind and amount, within a day), offered on top to merge into.
+  const mergeRow = h('div', { class: 'mn-merge', hidden: '' });
+  let twin = null;
+  function paintMerge() {
+    const e = !was && f.inv && (f.k === 'out' || f.k === 'in') ? sameAs(b, { k: f.k, day: f.d, total: Number(f.amt) || 0, store: f.inv.seller || f.note, no: f.inv.no }) : null;
+    if (e === twin) return;
+    twin = e;
+    mergeRow.hidden = !e;
+    if (!e) return mergeRow.replaceChildren();
+    mergeRow.replaceChildren(
+      h('span', {}, [h('b', { text: e.inv?.no && e.inv.no === f.inv.no ? W('這張記過了', 'Already in') : W('好像記過了', 'Already logged?') }), h('small', { text: `${dayLabel(e.d, { week: false })} · ${titleOf(e)} · ${money(e.amt)}` })]),
+      h('button', { class: 'q-btn primary small', type: 'button', text: W('合併', 'Merge'), onclick: () => {
+        tick();
+        mergeInto(e, { inv: f.inv, store: f.note.trim() || f.inv.seller, cat: f.k === 'move' ? '' : f.cat, sub: f.sub });
+        state.day = e.d;
+        state.month = e.d.slice(0, 7);
+        s.close();
+        toast(W(`收據併入 ${dayLabel(e.d, { week: false })} 那筆`, `Receipt added to the ${dayLabel(e.d, { week: false })} entry`));
+        saved();
+      } })
+    );
+  }
   const pills = h('div', { class: 'mn-pills' }, [payBtn, dateBtn]);
   // 手續費, 另付, 朋友分攤, 退款: one button beside the note, each a row under it once added.
   const moreBtn = h('button', { class: 'mn-pill mn-more', type: 'button', 'aria-label': W('手續費、分攤、退款', 'Fee, split, refund'), html: icons.plus, onclick: e => pickMore(e.currentTarget) });
@@ -268,6 +294,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     sizer.textContent = shown || '0';
     save.disabled = !(sum > 0) || (f.k === 'move' && (!f.to || f.to === f.a));
     paintUnits();
+    paintMerge();
   }
   // Under the subs, one row of quick amounts: a category priced by the unit
   // (NT$5 × 1, 2, 3…), else the amounts it's usually been (常用), likeliest
@@ -327,7 +354,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     paintPay();
     dateBtn.querySelector('.mn-date-t').textContent = f.d === today() ? W('今天', 'Today') : dayLabel(f.d, { week: false, year: f.d.slice(0, 4) !== today().slice(0, 4) });
     invRow.hidden = !f.inv;
-    if (f.inv) invRow.replaceChildren(h('button', { class: 'mn-invbtn', type: 'button', onclick: () => import('./invoices.mjs').then(m => m.openInvoice(f.inv)) }, [h('span', { html: glyph('receipt') }), h('span', { text: `${f.inv.no.slice(0, 2)}-${f.inv.no.slice(2)}${f.inv.items?.length ? W(` · ${f.inv.items.length} 項`, ` · ${f.inv.items.length} item${f.inv.items.length === 1 ? '' : 's'}`) : ''}` }), h('i', { html: icons.chevron })]));
+    if (f.inv) invRow.replaceChildren(h('button', { class: 'mn-invbtn', type: 'button', onclick: () => openReceipt(f.inv, was) }, [h('span', { html: glyph('receipt') }), h('span', { text: receiptLabel(f.inv) }), h('i', { html: icons.chevron })]));
   }
   function paintPay() {
     const p = payOf(f.a, f.via);
@@ -399,10 +426,6 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     const shares = f.k === 'out' ? f.friends.map(fr => ({ ...fr, n: whole(fr.amt) })).filter(fr => fr.n > 0) : [];
     const alsoAmt = f.k === 'out' && f.also ? whole(f.also.amt) : 0;
     if (shares.reduce((n, fr) => n + fr.n, 0) + alsoAmt > sum) return toast(W('分攤和另付加起來超過金額了', 'The shares come to more than the amount'), { tone: 'bad' });
-    if (f.inv && !was) {
-      const dup = live(b.entries).find(e => e.inv?.no === f.inv.no);
-      if (dup && !(await ask({ title: W('這張發票記過了', 'Already recorded'), body: `${dayLabel(dup.d)} · ${money(dup.amt)}`, ok: W('再記一次', 'Record again'), cancel: W('取消', 'Cancel'), icon: 'ticket' }))) return;
-    }
     const now = Date.now();
     const rec = {
       ...(was || {}),
@@ -483,12 +506,13 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
           saved();
         }
       })
-    : null;
+    : // (A new one: 拍照 where the delete would be; the picture's read opens this sheet again, filled in.)
+      h('button', { class: 'q-close mn-snap', type: 'button', 'aria-label': W('拍照記帳', 'From a photo'), html: icons.camera, onclick: () => (s.close(), snap()) });
   const s = sheet({
     title: was ? W('編輯', 'Edit') : W('記一筆', 'New entry'),
     lead,
     cls: 'mn-entry',
-    body: [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, subs, unitRow, moveRow, pills, noteRow, extras, invRow],
+    body: [mergeRow, f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, subs, unitRow, moveRow, pills, noteRow, extras, invRow],
     foot: h('div', { class: 'q-sheet-foot' }, [save])
   });
   paint();

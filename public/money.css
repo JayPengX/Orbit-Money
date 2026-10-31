@@ -164,7 +164,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-move-arrow svg { width: 18px; height: 18px; }
 .mn-move-pick { display: grid; justify-items: start; gap: 0 !important; min-height: 54px !important; padding: 6px 12px !important; }
 .mn-move-pick small { color: var(--q-label-2); font: 500 12px/14px var(--q-font); }
-.mn-pills { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; margin-top: var(--mn-gap); }
+.mn-pills { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 8px; margin-top: var(--mn-gap); }
 .mn-noterow { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; margin-top: var(--mn-gap); }
 .mn-noterow.solo { grid-template-columns: minmax(0, 1fr); }
 .mn-noterow .mn-note { margin-top: 0; }
@@ -194,6 +194,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-pill > i { display: grid; flex: none; width: 14px; height: 14px; color: var(--q-label-3); transform: rotate(90deg); }
 .mn-pill > i svg { width: 14px; height: 14px; }
 .mn-date-pill { cursor: pointer; }
+.mn-date-t { white-space: nowrap; }
 .mn-date { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; font-size: 16px; }
 .mn-note { margin-top: var(--mn-gap); background: var(--q-surface); font-size: 16px; }
 .mn-invrow { margin-top: var(--mn-gap); }
@@ -346,68 +347,38 @@ h1, h2, h3, p { margin: 0; }
 .mn-budget-edit { margin: 0 0 16px; }
 .mn-budget-edit .q-field { flex: none; width: 112px; min-height: 38px; text-align: right; font-size: 16px; }
 
-/* ---- 發票 ---- */
-.mn-barcode { display: block; height: 64px; padding: 8px 14px; border-radius: 12px; background: #fff; }
-.mn-barcode svg { display: block; width: 100%; height: 100%; }
-.mn-barcode.big { height: 120px; margin: 8px 0 0; padding: 12px 18px; }
-.mn-carrier-code { font: 700 20px/24px var(--q-font-mono); letter-spacing: 0.12em; text-align: center; }
-.mn-carrier-code.big { display: block; margin-top: 10px; color: var(--q-label); font-size: 24px; }
-.mn-carrier-sheet .mn-hint { margin: 10px 0 16px; text-align: center; }
-.mn-drawcard { display: grid; grid-template-columns: minmax(0, 1fr); padding: 4px 14px; border-radius: var(--q-r-card); background: var(--q-surface); }
-.mn-drawrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; }
-.mn-drawrow + .mn-drawrow { border-top: var(--q-hairline) solid var(--q-sep); }
-.mn-drawrow > span:first-child { display: grid; min-width: 0; }
-.mn-drawrow b { font: 600 15px/20px var(--q-font); }
-.mn-drawrow small { color: var(--q-label-2); font: var(--q-t-caption); }
-.mn-drawnums { display: grid; justify-items: end; gap: 2px; flex: none; font: 600 17px/22px var(--q-font-rounded); letter-spacing: 0.04em; }
-.q-sheet .mn-items { margin: 12px 0 0; }
-.mn-items .q-ritem-title { white-space: normal; }
+/* ---- 拍照記帳 ---- */
 .q-sheet > .mn-hint { margin: 12px 0; }
-.q-sheet > .q-fig.mn-facts { margin: 10px 0 0; }
 .q-sheet > .q-rowcard { margin: 0 0 16px; }
-
-/* ---- The scanner: the camera over the whole screen ---- */
-.mn-scan { position: fixed; inset: 0; width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: #000; color: #fff; }
-.mn-scan::backdrop { background: #000; }
-.mn-scan-v { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.mn-scan-frame { position: absolute; left: 50%; top: 42%; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: min(82vw, 380px); transform: translate(-50%, -50%); }
-.mn-scan-frame i { aspect-ratio: 1; border: 3px solid rgba(255, 255, 255, 0.85); border-radius: 16px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.0); }
-.mn-scan-top { position: absolute; top: calc(env(safe-area-inset-top) + 10px); right: 14px; }
-.mn-scan-x { width: 40px; height: 40px; border-radius: 50%; background: rgba(0, 0, 0, 0.5); color: #fff !important; }
-.mn-scan-foot { position: absolute; left: 0; right: 0; bottom: 0; display: grid; justify-items: center; gap: 12px; padding: 18px 16px calc(env(safe-area-inset-bottom) + 18px); background: linear-gradient(transparent, rgba(0, 0, 0, 0.75) 30%); }
-.mn-scan-status { font: 600 17px/22px var(--q-font); text-align: center; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
-.mn-scan-chips { display: flex; gap: 8px; }
-.mn-scan-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 12px; border-radius: 99px; background: rgba(255, 255, 255, 0.16); font: 600 13px/1 var(--q-font); }
-.mn-scan-chip.on { background: var(--q-green); }
-.mn-scan-chip svg { width: 14px; height: 14px; stroke-width: 3; }
-.mn-scan-photo { gap: 6px; min-height: 44px; color: #fff; }
-.mn-scan-photo svg { width: 18px; height: 18px; }
-.mn-scan.nocam .mn-scan-frame { display: none; }
-
-/* The 載具 import */
-.mn-import .mn-hint { margin-block: 10px; }
-.mn-import .mn-field { margin-top: 6px; }
-.q-sheet .mn-import-list { margin: 14px 0 16px; }
-.mn-import-list .q-ritem-title, .mn-import-list small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mn-steps { display: grid; gap: 10px; margin-top: 6px; padding-left: 22px; font: var(--q-t-body); }
-.mn-steps a { color: var(--q-accent); font-weight: 600; }
-.mn-draw-note { margin: 8px 4px 0; }
-.mn-drawwrap { display: grid; gap: 10px; }
-.mn-drawhead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 0 6px; border-bottom: var(--q-hairline) solid var(--q-sep); }
-.mn-drawhead b { color: var(--q-label); font: 600 15px/20px var(--q-font); white-space: nowrap; }
-.mn-drawhead small { color: var(--q-label-2); font: var(--q-t-caption); white-space: nowrap; }
-.mn-drawhead:only-child { border-bottom: 0; padding-bottom: 10px; }
-.mn-invempty { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px; margin-top: 18px; padding: 22px 16px 16px; border-radius: var(--q-r-card); background: var(--q-surface); text-align: center; }
-.mn-invempty > .q-tile { width: 56px; height: 56px; margin-bottom: 4px; border-radius: var(--q-r-cell); }
-.mn-invempty > .q-tile svg { width: 30px; height: 30px; }
-.mn-invempty b { font: 600 17px/22px var(--q-font); }
-.mn-invempty small { margin-bottom: 8px; color: var(--q-label-2); font: var(--q-t-footnote); }
-.mn-invempty-ways { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
-.mn-invempty .q-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
-.mn-invempty .q-btn.block { width: 100%; }
-.mn-invempty-ways .q-btn { flex-direction: column; gap: 4px; height: auto; min-height: 60px; padding: 8px 4px; border-radius: var(--q-r-cell); font-size: 14px; }
 .mn-btn-glyph { display: grid; width: 18px; height: 18px; }
 .mn-btn-glyph svg { width: 18px; height: 18px; }
+/* The picture while it's read: small, the status under it. */
+.mn-photo-img { display: block; max-width: 100%; max-height: 34vh; margin: 4px auto 0; border-radius: var(--q-r-cell); object-fit: contain; }
+.mn-photo-status { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 14px 0 4px; font: 600 17px/22px var(--q-font); text-align: center; }
+.mn-photo-status .spinner { flex: none; width: 18px; height: 18px; }
+.mn-photo-note { margin: 0 0 8px; text-align: center; }
+/* Already logged: offered on top of the entry, one tap to merge. */
+.mn-merge { display: flex; align-items: center; gap: 10px; margin: 0 0 var(--mn-gap); padding: 10px 10px 10px 12px; border-radius: var(--q-r-cell); background: color-mix(in srgb, var(--q-accent) 14%, var(--q-surface)); }
+.mn-merge[hidden] { display: none; }
+.mn-merge > span { display: grid; flex: 1; min-width: 0; }
+.mn-merge b { font: 600 15px/20px var(--q-font); }
+.mn-merge small { overflow: hidden; color: var(--q-label-2); font: var(--q-t-footnote); text-overflow: ellipsis; white-space: nowrap; }
+.mn-merge .q-btn { flex: none; min-height: 34px; padding: 0 14px; white-space: nowrap; }
+/* The receipt behind an entry: like the paper, sized to what's on it. */
+.mn-receipt { display: grid; grid-template-columns: minmax(0, 1fr); margin: 4px 0 16px; padding: 4px 16px; border-radius: var(--q-r-card); background: var(--q-surface); }
+.mn-receipt-meta { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--q-sep); color: var(--q-label-2); font: var(--q-t-footnote); }
+.mn-receipt-meta span:last-child { font-family: var(--q-font-mono); letter-spacing: 0.04em; }
+.mn-receipt-line { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; font: var(--q-t-body); }
+.mn-receipt-line > span:first-child { display: grid; flex: 1; min-width: 0; }
+.mn-receipt-line small { color: var(--q-label-2); font: var(--q-t-caption); }
+.mn-receipt-line b { flex: none; font-weight: 500; }
+.mn-receipt-sum { display: flex; justify-content: space-between; gap: 10px; margin-top: 2px; padding: 12px 0; border-top: 1px dashed var(--q-sep); font: 600 17px/22px var(--q-font); }
+/* Several read at once: each row's own choice, the way to pay for the new ones. */
+.mn-photo-list .mn-field { margin: 4px 0 12px; }
+.q-sheet .mn-photo-rows { margin: 0 0 16px; }
+.mn-photo-rows .q-ritem-title, .mn-photo-rows small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mn-photo-rows .q-ritem.skip .q-ritem-text, .mn-photo-rows .q-ritem.skip .q-ritem-value { opacity: 0.4; }
+.mn-photo-rows .q-tag.merge { background: color-mix(in srgb, var(--q-accent) 18%, transparent); color: var(--q-label); }
 .mn-back svg { width: 18px; height: 18px; transform: rotate(180deg); }
 .mn-row .q-ritem-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Taking an account or a way to pay out of use. */
@@ -421,13 +392,12 @@ h1, h2, h3, p { margin: 0; }
 /* 記一筆 beside the tabs: the primary gold. */
 .q-tab-action { background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5); }
 /* 更多: the way in, then plain rows. */
-.mn-scanbtn { margin-bottom: var(--q-s-3); }
-.mn-scanbtn { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.mn-snapbtn { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.mn-snap-hint { margin: 8px 4px 0; text-align: center; }
 .mn-quiet { color: var(--q-label-2); }
-/* 讀圖. */
-.mn-read-img { display: block; max-width: 100%; max-height: 40vh; margin: 0 auto; border-radius: var(--q-r-cell); object-fit: contain; }
-.mn-read-lede { margin: 12px 0 2px; font: 600 17px/22px var(--q-font); text-align: center; }
-.mn-read-note { margin: 0; text-align: center; }
+/* 記一筆's 拍照, where the close button would be. */
+.mn-snap { display: grid; place-items: center; }
+.mn-snap svg { width: 20px; height: 20px; }
 /* 分類. */
 .mn-catedit { display: grid; gap: 12px; }
 .mn-catedit > .q-rowcard { margin: 0; }

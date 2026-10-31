@@ -1,7 +1,7 @@
 # Orbit Money: the map
 
-Your own books: what you spend each day, what each account holds, and
-whether an invoice won. Real money, kept apart from Orbit's play money.
+Your own books: what you spend each day and what each account holds,
+any receipt or screenshot logged from a photo. Real money, kept apart from Orbit's play money.
 Signs in with the Orbit Pass; the books sync on it.
 
 Live: https://orbit.jaypengx.com/money/
@@ -25,8 +25,8 @@ Live: https://orbit.jaypengx.com/money/
   the period before, by account and way to pay, fixed against day to day,
   fees and money back, the largest, places paid twice or more, weekdays, the
   month's pace, recent months, income against spending; every row opens its
-  entries, a category's with its last twelve months) · 發票
-  (手機條碼, scan, 載具 import, 對獎). The + adds an entry anywhere.
+  entries, a category's with its last twelve months) · 更多
+  (拍照記帳 first, then the tools). The + adds an entry anywhere.
 - **The books** (`lib/books.mjs`, pure, tested): accounts (cash, bank,
   電子票證, 電子支付, credit, other; `inTotal: false` keeps one out of
   總資產), debit cards on a bank, entries (`out`, `in`, `move` between own
@@ -52,19 +52,25 @@ Live: https://orbit.jaypengx.com/money/
   更多 › 到期提醒 (views/renew.mjs) edits them. Every record has `u`; a removal is a tombstone kept 120
   days; two devices merge record by record, newest `u` wins. Stored on the
   Pass as `m1:` + gzip base64 (`orbit-money`, 1 MB).
-- **發票** (`lib/invoice.mjs`, tested): both QR codes of a paper
-  電子發票證明聯 (Big5, UTF-8 or Base64 items), the draw and its prizes,
-  the 手機條碼 as a Code 39 barcode (black on white: tills need it).
-  The camera (`views/scan.mjs`) reads with BarcodeDetector, else jsQR
-  (`vendor/jsqr.mjs`, Apache-2.0) on the frame and each half.
-- **載具** (a person can't get 財政部's AppID): the CSV the 電子發票平台
-  exports (查詢消費發票 › 匯出) read by `#kit/carrier-csv.mjs`, picked in
-  the app (`views/carrier-import.mjs`). Each invoice is `inv-<number>`, so
-  nothing comes in twice, and one matching a purchase logged by hand (same
-  amount, its day or next to it; `lib/books.mjs matchInvoices`) is attached
-  to it instead of added. No mail-in (Jay 2026-10-27: 財政部 only mails
-  monthly, and handing over the 載具's email is too much to ask).
-  The category is guessed from the store and items (`lib/cats.mjs guessCat`).
+- **拍照記帳** (`views/photo.mjs`; Jay 2026-10-31: no 發票 features, one
+  general tool): any picture (a receipt, an invoice, a bill, a store,
+  delivery or payment app's screenshot, a transfer notice, a price tag) goes
+  to the Worker's `/money-read` (Orbit-Core `money-read.js`, Gemini
+  Flash-Lite, 30 a day a Pass) with the person's categories and ways to pay,
+  and comes back as entries: kind, day, store, total, items, category and
+  way to pay (only from their own lists; none read, the store's words guess
+  the category and the usual guesses the way to pay). Picking the picture is
+  the tap; nothing is saved unseen. One opens as a filled 記一筆 (the camera
+  button is in its top corner, and 更多's gold button); several (a list on a
+  screenshot) are looked over in one sheet, each row added, merged or left out.
+  The store and items are kept on the entry (`inv`, shown as a receipt).
+- **Never twice** (`lib/books.mjs sameAs` / `matchBuys`, tested; Jay
+  2026-10-31, a NT$68 全家 typed in and then its receipt): a picture's entry
+  that is the same kind and amount as one logged on its day or a day either
+  side is offered on top of 記一筆 as 合併 (its own day first, then a note
+  naming the store, then the latest; the same 發票號碼 always). Merging keeps
+  the logged amount, day and way to pay and adds the store and items. (Why it
+  was missed before: only the 載具 file was ever matched, never a scan.)
 - **記一筆's guesses** (`lib/guess.mjs`, tested; Jay 2026-10-30: "a guess
   of everything"): every spend and income of the last half year (not `r-`
   repeats or automatic top-ups) is a clue, weighed by how close its logged
@@ -84,9 +90,6 @@ Live: https://orbit.jaypengx.com/money/
   guesses replayed on the books (`guessReplay`: each entry guessed again from
   what was logged before it). On simulated habits (an evening catch-up 3
   days in 10) the today signals took category+sub from 49% to 61% right.
-- **Proxy** (`https://invoice.orbit/…` through `proxyJson`, Orbit-Core
-  `invoice.js`): `win.json` the last draws (財政部's invoice.xml),
-  `seller.json?ids=` names behind 統編 (經濟部 GCIS).
 - **Logos** (`img/brand/`, `lib/logos.mjs`): each bank's or wallet's own
   icon (`scripts/brand-logos.mjs`, a few from its App Store app); one with
   none uses its kind's icon.

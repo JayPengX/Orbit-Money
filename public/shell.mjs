@@ -23,9 +23,8 @@ export const state = {
   range: 'month',
   at: today(),
   custom: null,
-  // 發票: the draws (財政部's numbers) and the names behind 統編, as read.
-  draws: null,
-  sellers: {}
+  // 拍照記帳: the reads left today, as the Worker last said.
+  readLeft: null
 };
 
 // Filled in by app.mjs: changed() saves soon and redraws.

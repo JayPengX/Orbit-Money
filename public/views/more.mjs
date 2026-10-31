@@ -1,8 +1,8 @@
-// 更多: everything that isn't the books themselves (Jay 2026-10-27: 發票 is
-// one feature, so the tab holds them all). First the ways purchases come in
-// without typing (a paper invoice scanned, a picture read, the 載具 file),
-// any prize to claim, then the tools as rows: 對獎, the 手機條碼, the categories, the repeats, 預算 (only while none is set:
-// once one is, it lives in 統計), the accounts put away (when there are any), the books as a file.
+// 更多: everything that isn't the books themselves. First 拍照記帳 (any
+// receipt, bill or screenshot into an entry: views/photo.mjs; Jay 2026-10-31,
+// in place of the 發票 tools), then the tools as rows: the categories, 智慧帶入,
+// 到期提醒, the repeats, 預算 (only while none is set: once one is, it lives in
+// 統計), the accounts put away (when there are any), the books as a file.
 import { h, toast, sheet, toggle } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph, presetOf } from '../lib/cats.mjs';
@@ -10,30 +10,18 @@ import { reminders } from '../lib/renew.mjs';
 import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
 import { state, W, today, acctName, card, allAccounts, saved } from '../shell.mjs';
-import { scanInvoice, invoiceState, wonCard, openInvoices, openBarcode } from './invoices.mjs';
-import { importCarrier } from './carrier-import.mjs';
-import { readPicture } from './read.mjs';
+import { snap } from './photo.mjs';
 import { openCats, presetName } from './cat-edit.mjs';
 import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
 import { openBudgets } from './stats.mjs';
 
 export function renderMore(box) {
-  const way = (glyphName, label, onclick) => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'mn-addrow-i mn-quiet', html: glyph(glyphName) }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })])]);
-  // Bringing purchases in without typing: a plain section like the tools
-  // below (Jay 10-27: no display headline), the scan button, then the other ways.
+  // 拍照記帳: one gold button (Jay 10-27: no display headline), what it reads under it.
   const ways = h('section', { class: 'q-section' }, [
-    h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('帶入消費', 'Bring purchases in') })]),
-    h('button', { class: 'q-btn primary block mn-scanbtn', type: 'button', onclick: () => scanInvoice() }, [h('span', { class: 'mn-btn-glyph', html: glyph('scan') }), W('掃描紙本發票', 'Scan a paper invoice')]),
-    h('div', { class: 'q-rowcard mn-ways' }, [
-      way('camera', W('截圖・收據', 'Screenshot'), () => readPicture()),
-      way('receipt', W('載具檔案', 'Carrier file'), () => importCarrier())
-    ])
+    h('button', { class: 'q-btn primary block mn-snapbtn', type: 'button', onclick: () => snap() }, [h('span', { class: 'mn-btn-glyph', html: glyph('camera') }), W('拍照記帳', 'Add from a photo')]),
+    h('p', { class: 'mn-hint mn-snap-hint', text: W('收據、帳單、截圖都行，AI 幫你填好', 'Receipts, bills, screenshots: AI fills it in') })
   ]);
 
-  const inv = invoiceState();
-  const won = inv.won.length ? h('section', { class: 'q-section' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: W('中獎了', 'Winners') })]), wonCard(inv.won)]) : null;
-
-  const carrier = state.books.carrier?.code || '';
   const reps = repeatsOf();
   const closed = allAccounts().filter(a => a.closed);
   const cats = catList('out').length + catList('in').length;
@@ -43,8 +31,6 @@ export function renderMore(box) {
   const tools = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('工具', 'Tools') })]),
     h('div', { class: 'q-rowcard' }, [
-      tool(W('發票對獎', 'Invoices'), inv.count ? W(`${inv.count} 張`, `${inv.count}`) : W('自動對獎', 'Auto-checked'), () => openInvoices()),
-      tool(W('手機條碼', 'Barcode'), carrier || W('未設定', 'Not set'), () => openBarcode()),
       tool(W('分類', 'Categories'), `${presetName(presetOf(state.books))} · ${W(`${cats} 個`, `${cats}`)}`, () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
       tool(W('智慧帶入', 'Smart fill'), score.of >= 5 ? W(`分類猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
@@ -57,7 +43,7 @@ export function renderMore(box) {
       tool(W('匯出', 'Export'), 'CSV', () => exportCsv())
     ])
   ]);
-  box.replaceChildren(...(won ? [won] : []), ways, tools);
+  box.replaceChildren(ways, tools);
 }
 
 const pct = (n, of) => `${Math.round((n / of) * 100)}%`;
