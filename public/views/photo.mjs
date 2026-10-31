@@ -18,14 +18,18 @@ const MAX_SIDE = 1600;
 
 // The phone's own picker (take a photo, or one from the library or Files).
 // Called straight from a tap: Safari opens a picker only inside one.
-export function snap() {
+// picked(): once a picture is chosen (記一筆 closes itself then, not before:
+// closed first, the picker floated over an empty page, Jay 2026-10-31).
+export function snap({ picked = null } = {}) {
   for (const old of document.querySelectorAll('input.mn-snap-in')) old.remove();
   const file = h('input', { class: 'mn-snap-in', type: 'file', accept: 'image/*', hidden: '' });
   document.body.append(file);
   file.addEventListener('change', () => {
     const f = file.files?.[0];
     file.remove();
-    if (f) read(f);
+    if (!f) return;
+    picked?.();
+    read(f);
   });
   file.click();
 }

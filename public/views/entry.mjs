@@ -507,7 +507,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
         }
       })
     : // (A new one: 拍照 where the delete would be; the picture's read opens this sheet again, filled in.)
-      h('button', { class: 'q-close mn-snap', type: 'button', 'aria-label': W('拍照記帳', 'From a photo'), html: icons.camera, onclick: () => (s.close(), snap()) });
+      h('button', { class: 'q-close mn-snap', type: 'button', 'aria-label': W('拍照記帳', 'From a photo'), html: icons.camera, onclick: () => snap({ picked: () => s.close() }) });
   const s = sheet({
     title: was ? W('編輯', 'Edit') : W('記一筆', 'New entry'),
     lead,
