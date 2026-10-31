@@ -376,12 +376,22 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     const out = f.k === 'out';
     menu(anchor, [
       !f.feeOn ? { label: W('手續費', 'Fee'), onClick: () => ((f.feeOn = true), paintExtras(), focusLast('.mn-x-fee input')) } : null,
-      out && !f.also ? { label: W('另一種付款（點數、禮券）', 'Paid partly another way'), onClick: () => ((f.also = { a: openAccounts().find(x => x.id !== f.a && x.kind === 'wallet')?.id || openAccounts().find(x => x.id !== f.a)?.id || f.a, via: '', amt: '' }), paintExtras(), focusLast('.mn-x-also input')) } : null,
+      out && !f.also ? { label: W('另一種付款（點數、禮券）', 'Paid partly another way'), onClick: () => ((f.also = { a: openAccounts().find(x => x.brand === 'linepoints')?.id || openAccounts().find(x => x.id !== f.a && x.kind === 'wallet')?.id || openAccounts().find(x => x.id !== f.a)?.id || f.a, via: '', amt: '' }), paintExtras(), focusLast('.mn-x-also input')) } : null,
       out ? { label: W('朋友分攤', 'A friend’s share'), onClick: () => (f.friends.push({ who: '', amt: '', a: 'cash', wait: false }), paintExtras(), focusLast('.mn-x-friend input')) } : null,
       out && was ? { label: W('退款', 'Refund'), onClick: () => (s.close(), openRefund({ of: was })) } : null
     ].filter(Boolean));
   }
-  const focusLast = sel => requestAnimationFrame(() => [...extras.querySelectorAll(sel)].pop()?.focus());
+  // (The new row in view above the 儲存 bar, and again once the keys are up:
+  // it sat behind the bar, Jay 2026-10-31 "UI kind of stuck".)
+  const focusLast = sel =>
+    requestAnimationFrame(() => {
+      const el = [...extras.querySelectorAll(sel)].pop();
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      const show = () => el.closest('.mn-xrow')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      show();
+      setTimeout(show, 400);
+    });
   const numIn = (value, onInput, label) => {
     const i = h('input', { class: 'q-field num mn-xin', type: 'text', inputmode: 'numeric', maxlength: '7', placeholder: 'NT$', value, 'aria-label': label, enterkeyhint: 'done' });
     i.addEventListener('input', () => onInput(i.value));
@@ -400,7 +410,18 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
       rows.push(h('div', { class: 'mn-xrow mn-x-fee' }, [h('span', { class: 'mn-x-l', text: W('手續費', 'Fee') }), feeIn, fx ? h('button', { class: 'mn-subchip num', type: 'button', text: W('海外 1.5%', 'Abroad 1.5%'), 'aria-label': W(`海外交易手續費 1.5%：${money(fx)}`, `Foreign fee 1.5%: ${money(fx)}`), onclick: () => (tick(), (f.fee = String(fx)), (feeIn.value = f.fee)) }) : h('span'), xBtn(W('移除手續費', 'Remove fee'), () => ((f.feeOn = false), (f.fee = '')))]));
     }
     if (f.k === 'out' && f.also) {
-      const pick = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, payOptions({ keep: [f.also.a, f.also.via] }).map(o => ({ label: o.label, lead: payPic(o.a, o.via, 28), icon: o.a === f.also.a && o.via === f.also.via ? '✓' : '', onClick: () => ((f.also.a = o.a), (f.also.via = o.via), paintExtras()) }))) }, [h('span', { class: 'mn-pill-t', text: payOf(f.also.a, f.also.via)?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron })]);
+      // (LINE Points always offered, Jay 2026-10-31: with no account for it yet,
+      // a tap adds one, kept out of 總資產 since its balance isn't known.)
+      const points = allAccounts().some(x => x.brand === 'linepoints' && !x.closed)
+        ? []
+        : [{ label: W('LINE Points（新增）', 'LINE Points (add)'), onClick: () => {
+            const pts = put(b, 'accts', { id: `a-${newId()}`, name: 'LINE Points', kind: 'wallet', brand: 'linepoints', open: 0, inTotal: false, order: allAccounts().length });
+            f.also.a = pts.id;
+            f.also.via = '';
+            saved();
+            paintExtras();
+          } }];
+      const pick = h('button', { class: 'mn-pill', type: 'button', onclick: e => menu(e.currentTarget, [...payOptions({ keep: [f.also.a, f.also.via] }).map(o => ({ label: o.label, lead: payPic(o.a, o.via, 28), icon: o.a === f.also.a && o.via === f.also.via ? '✓' : '', onClick: () => ((f.also.a = o.a), (f.also.via = o.via), paintExtras()) })), ...points]) }, [h('span', { class: 'mn-pill-t', text: payOf(f.also.a, f.also.via)?.label || W('選帳戶', 'Choose') }), h('i', { html: icons.chevron })]);
       rows.push(h('div', { class: 'mn-xrow mn-x-also' }, [h('span', { class: 'mn-x-l', text: W('另付', 'Also') }), pick, numIn(f.also.amt, v => (f.also.amt = v), W('這部分的金額', 'This part')), xBtn(W('移除', 'Remove'), () => (f.also = null))]));
     }
     if (f.k === 'out')

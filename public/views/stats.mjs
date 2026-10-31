@@ -526,14 +526,33 @@ function payCard(kind, p, whole) {
   const rows = [];
   for (const x of list) {
     const a = acct(x.a);
-    rows.push(
-      h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openPay(kind, x.a, null, p) }, [
+    const open = () => openPay(kind, x.a, null, p);
+    const line = onclick =>
+      h('button', { class: 'q-ritem chevron mn-row mn-catrow', type: 'button', onclick }, [
         acctTile(a || { kind: 'other' }, 28),
         h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: x.a ? acctName(x.a) : W('沒有帳戶', 'No account') }), share(x.amt, whole)]),
         val(x.amt, pct(x.amt, whole))
-      ])
+      ]);
+    if (x.ways.length < 2) {
+      rows.push(line(open));
+      continue;
+    }
+    // (Its ways to pay folded under it until tapped, as a category's subs, Jay 2026-10-31.)
+    const key = `pay:${x.a}`;
+    const box = h('div', { class: 'mn-catsubs', hidden: !unfolded.has(key) });
+    box.append(
+      ...x.ways.map(w => subRow(w.via ? card(w.via)?.name || W('已刪除', 'Removed') : W('帳戶扣款', 'Direct'), w.amt, whole, '', () => openPay(kind, x.a, w.via, p))),
+      h('button', { class: 'q-ritem chevron mn-row mn-subrow mn-catall', type: 'button', onclick: open }, [h('span', { class: 'mn-subname', text: W(`${x.a ? acctName(x.a) : ''}的明細`, `All of ${x.a ? acctName(x.a) : ''}`) })])
     );
-    if (x.ways.length > 1) for (const w of x.ways) rows.push(subRow(w.via ? card(w.via)?.name || W('已刪除', 'Removed') : W('帳戶扣款', 'Direct'), w.amt, whole, '', () => openPay(kind, x.a, w.via, p)));
+    const row = line(() => {
+      const on = box.hidden;
+      box.hidden = !on;
+      row.setAttribute('aria-expanded', String(on));
+      on ? unfolded.add(key) : unfolded.delete(key);
+    });
+    row.classList.add('mn-catfold');
+    row.setAttribute('aria-expanded', String(!box.hidden));
+    rows.push(row, box);
   }
   return section(kind === 'in' ? W('入帳帳戶', 'Into') : W('付款方式', 'Paid with'), h('div', { class: 'q-rowcard' }, rows));
 }

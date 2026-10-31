@@ -578,3 +578,4 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-st .mn-catrow .mn-catval, .mn-st .mn-row:has(> .mn-catval) .mn-catval { width: 104px; }
 .mn-cathead2 .mn-donut { width: min(96px, 25vw); height: min(96px, 25vw); }
 @media (max-width: 360px) { .mn-cathead2 { gap: 12px; } .mn-cathead-line { gap: 6px; } .mn-cathead-line small { width: 50px; } }
+.mn-entry .mn-xrow { scroll-margin-bottom: 104px; }
