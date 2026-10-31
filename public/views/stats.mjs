@@ -103,7 +103,7 @@ export function renderStats(box) {
   }
   // (Then the quick facts, the categories with how each moved, and the rest;
   // what changed most is on each category's own line now.)
-  parts.push(facts(kind, p, amt), catSection(kind, p, amt, prev));
+  parts.push(catSection(kind, p, amt, prev));
   if (kind === 'out') {
     if (state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
     parts.push(dayCard(kind, p, now), payCard(kind, p, amt), placeCard(kind, p), bigCard(kind, p));
@@ -115,20 +115,24 @@ export function renderStats(box) {
   done();
 }
 
-// Three quick facts in one strip under the card: the largest one, how many
-// and their average, and the place paid most often; each opens what it says.
-function facts(kind, p, amt) {
+// The quick facts beside the donut: [label, value, tap] — the biggest
+// category, what went up most, the largest one, how many and their average,
+// the place paid most often (only what there is).
+function factsOf(kind, p, amt, cats, was) {
   const all = lines(B(), p.from, p.to).filter(l => l.k === kind && !l.fee && l.amt > 0);
-  if (!all.length) return null;
   const n = new Set(all.map(l => l.e.id)).size;
   const [big] = largest(B(), kind, p.from, p.to, 1);
   const [spot] = places(B(), kind, p.from, p.to, 1);
-  const cell = (label, value, note, onclick) => h(onclick ? 'button' : 'div', { class: 'mn-fact', ...(onclick ? { type: 'button', onclick } : {}) }, [h('small', { text: label }), h('b', { class: 'num', text: value }), h('span', { text: note })]);
-  return h('div', { class: 'mn-facts-row' }, [
-    big ? cell(W('最大一筆', 'Largest'), money(big.amt), placeOf(big.e) || catName(catOf(big.e.cat), lang), () => openEntry({ entry: big.e })) : null,
-    cell(W('筆數', 'Count'), W(`${n} 筆`, `${n}`), W(`平均 ${money(Math.round(amt / n))}`, `${money(Math.round(amt / n))} each`)),
-    spot ? cell(W('最常去', 'Most often'), spot.name, W(`${spot.n} 次`, `${spot.n}×`), () => openPlace(kind, spot.name, p)) : null
-  ]);
+  const top = cats[0];
+  const mover = was ? cats.map(c => ({ c, d: c.amt - (was[c.cat] || 0) })).sort((x, y) => y.d - x.d)[0] : null;
+  const nm = id => catName(catOf(id), lang);
+  return [
+    top && cats.length > 1 ? [W('最多', 'Most'), `${nm(top.cat)} ${pct(top.amt, amt)}`] : null,
+    mover && mover.d > 0 ? [W('漲最多', 'Up most'), `${nm(mover.c.cat)} +${short(mover.d)}`] : null,
+    big ? [W('最大一筆', 'Largest'), `${money(big.amt)} ${placeOf(big.e) || nm(big.e.cat)}`, () => openEntry({ entry: big.e })] : null,
+    n ? [W('筆數', 'Count'), W(`${n} 筆`, `${n}`)] : null,
+    spot ? [W('最常去', 'Most often'), W(`${spot.name} ${spot.n} 次`, `${spot.name} ${spot.n}×`), () => openPlace(kind, spot.name, p)] : null
+  ].filter(Boolean).slice(0, 4);
 }
 
 // Any dates: from and to (to never before from). Closed without picking,
@@ -413,7 +417,8 @@ function dayCard(kind, p, now) {
   const sum = Object.fromEntries(keys.map(k => [k, 0]));
   for (const l of lines(B(), p.from, p.to)) if (l.k === kind) sum[byMonth ? l.d.slice(0, 7) : l.d] += l.amt;
   const top = Math.max(0, ...Object.values(sum));
-  if (keys.length < 2) return null;
+  // (A chart of mostly empty days says nothing: five with something at least, Jay 2026-10-31.)
+  if (keys.length < 2 || Object.values(sum).filter(v => v > 0).length < 5) return null;
   return section(
     byMonth ? W('每個月', 'Each month') : W('每一天', 'Each day'),
     bars(
@@ -454,10 +459,6 @@ function catSection(kind, p, whole, prev = null) {
   // (How each moved: against the period before, when the books reach back to it.)
   const start = firstDay(state.books);
   const was = prev && start && start <= prev.to ? Object.fromEntries(byCat(B(), kind, prev.from, prev.to).map(c => [c.cat, c.amt])) : null;
-  // The split as one bar (Jay 2026-10-31): each category its colour and
-  // width, in the same order as the lines.
-  const split = h('div', { class: 'mn-split', role: 'img', 'aria-label': cats.map(c => `${catName(catOf(c.cat), lang)} ${pct(c.amt, whole)}`).join('、') },
-    cats.map(c => h('i', { style: `flex:${c.amt} 1 0;background:${catOf(c.cat).color}`, title: `${catName(catOf(c.cat), lang)} ${money(c.amt)} · ${pct(c.amt, whole)}` })));
   // (The donut kept beside it, Jay 2026-10-31: categories inside, their subs
   // in their shades around them; a tap on a slice names it in the middle.)
   const outer = [];
@@ -479,17 +480,12 @@ function catSection(kind, p, whole, prev = null) {
     },
     { size: 96 }
   );
-  // Beside it: the bar, the biggest and what moved most.
-  const top = cats[0];
-  const mover = was ? cats.map(c => ({ c, d: c.amt - (was[c.cat] || 0) })).sort((x, y) => y.d - x.d)[0] : null;
-  const say = (k, text) => h('div', { class: 'mn-cathead-line' }, [h('small', { text: k }), h('b', { text })]);
+  // Beside it the quick facts, one per line (Jay 2026-10-31: the bar
+  // beside the donut said it twice and left a hole).
+  const facts = factsOf(kind, p, whole, cats, was);
   const head = h('div', { class: 'mn-cathead2' }, [
     ring,
-    h('div', { class: 'mn-cathead-side' }, [
-      split,
-      say(W('最多', 'Most'), `${catName(catOf(top.cat), lang)} ${pct(top.amt, whole)}`),
-      mover && mover.d > 0 ? say(W('漲最多', 'Up most'), `${catName(catOf(mover.c.cat), lang)} +${short(mover.d)}`) : null
-    ])
+    h('div', { class: 'mn-cathead-side' }, facts.map(([k, v, tap]) => h(tap ? 'button' : 'div', { class: 'mn-cathead-line', ...(tap ? { type: 'button', onclick: tap } : {}) }, [h('small', { text: k }), h('b', { text: v })])))
   ]);
   const rows = [];
   for (const c of cats) {
@@ -517,7 +513,7 @@ function catSection(kind, p, whole, prev = null) {
     row.setAttribute('aria-expanded', String(!box.hidden));
     rows.push(row, box);
   }
-  const note = was ? W(`${cats.length} 類 · 比${p.prevName}`, `${cats.length} · vs ${p.prevName.toLowerCase()}`) : W(`${cats.length} 類`, `${cats.length}`);
+  const note = was ? W(`▲▼ 比${p.prevName}`, `▲▼ vs ${p.prevName.toLowerCase()}`) : '';
   return section(kind === 'in' ? W('收入分類', 'By category') : W('分類', 'By category'), h('div', { class: 'q-rowcard mn-cats-card' }, [head, ...rows]), note);
 }
 
@@ -609,7 +605,8 @@ function weekCard(p, now) {
   const list = weekdays(B(), p.from, p.to, now);
   const names = en ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['一', '二', '三', '四', '五', '六', '日'];
   const topAt = list.reduce((m, x) => (x.avg > list[m].avg ? x.wd : m), 0);
-  if (!list[topAt].avg) return null;
+  // (Only once most weekdays have something: else it's mostly empty, Jay 2026-10-31.)
+  if (!list[topAt].avg || list.filter(x => x.avg > 0).length < 5) return null;
   return section(
     W('星期幾花最多', 'By weekday'),
     bars(
