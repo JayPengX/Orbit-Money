@@ -105,7 +105,7 @@ test('訂閱 and 遊戲 moved to 數位: entries, repeats and the person’s own
   B.put(b, 'recur', { id: 'n', k: 'out', amt: 390, cat: 'fun', sub: 'fun:subs', a: 'cash', every: 'month', day: 5, from: '2026-10-05' }, T);
   C.saveCat(b, { id: 'fun:subs', zh: '串流', amt: 390 }, T);
   C.saveCat(b, { id: 'refund', hidden: true }, T);
-  assert.equal(C.upgradeCats(b, T + 1), 5);
+  assert.equal(C.upgradeCats(b, T + 1), 6);
   assert.equal(b.entries.g.cat, 'digital');
   assert.equal(b.entries.g.sub, 'digital:games');
   assert.equal(b.recur.n.sub, 'digital:subs');
@@ -123,6 +123,22 @@ test('digital things land in 數位: Claude, Cloudflare, Steam', () => {
   assert.equal(C.guessSub('digital', 'Steam'), 'digital:games');
   assert.equal(C.guessSub('digital', 'Claude.ai subscription'), 'digital:ai');
   assert.equal(C.guessCat('威秀影城'), 'fun');
+});
+
+test('數位 has four broad subs (Jay 2026-10-31): a project’s upkeep together, tools apart', () => {
+  C.useCats({});
+  assert.deepEqual(C.subsOf('digital').map(s => s.zh), ['專案維運', '工具訂閱', '影音串流', '遊戲']);
+  for (const w of ['TDX 運輸資料', 'Namecheap domain', 'Vercel Pro', 'GitHub Actions']) assert.equal(C.guessSub('digital', w), 'digital:cloud', w);
+  for (const w of ['iCloud+', 'ChatGPT Plus', 'App Store']) assert.equal(C.guessSub('digital', w), 'digital:ai', w);
+  const b = B.emptyBooks();
+  B.put(b, 'entries', { id: 'a', d: '2026-10-01', k: 'out', amt: 90, cat: 'digital', sub: 'digital:apps', note: 'Notion' }, 1);
+  B.put(b, 'entries', { id: 'g', d: '2026-10-01', k: 'out', amt: 30, cat: 'digital', sub: 'digital:cloud', note: 'Google One' }, 1);
+  B.put(b, 'entries', { id: 't', d: '2026-10-01', k: 'out', amt: 300, cat: 'digital', sub: 'digital:cloud', note: 'TDX' }, 1);
+  b.opt = { ...b.opt, dig2: 1 };
+  C.upgradeCats(b, 2);
+  assert.equal(b.entries.a.sub, 'digital:ai');
+  assert.equal(b.entries.g.sub, 'digital:ai');
+  assert.equal(b.entries.t.sub, 'digital:cloud');
 });
 
 

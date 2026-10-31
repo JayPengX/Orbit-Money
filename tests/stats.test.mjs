@@ -122,12 +122,12 @@ test('數位: 訂閱 is 影音串流 now, storage moved to 雲端・網域, unso
   B.put(b, 'entries', { id: 's', d: '2026-11-01', k: 'out', amt: 990, cat: 'digital', sub: '', note: 'Steam 夏季特賣' }, T);
   B.put(b, 'entries', { id: 'x', d: '2026-11-01', k: 'out', amt: 99, cat: 'digital', sub: '', note: '' }, T);
   assert.ok(C.upgradeCats(b, T + 1) >= 3);
-  assert.equal(b.entries.i.sub, 'digital:cloud');
+  assert.equal(b.entries.i.sub, 'digital:ai');
   assert.equal(b.entries.n.sub, 'digital:subs');
   assert.equal(b.entries.s.sub, 'digital:games');
   assert.equal(b.entries.x.sub, '');
   assert.equal(C.subOf('digital:subs').zh, '影音串流');
-  assert.deepEqual(C.subsOf('digital').map(s => s.id), ['digital:ai', 'digital:cloud', 'digital:apps', 'digital:subs', 'digital:games']);
+  assert.deepEqual(C.subsOf('digital').map(s => s.id), ['digital:cloud', 'digital:ai', 'digital:subs', 'digital:games']);
   // (Once: a choice made after stands.)
   B.put(b, 'entries', { ...b.entries.i, sub: 'digital:subs' }, T + 2);
   assert.equal(C.upgradeCats(b, T + 3), 0);

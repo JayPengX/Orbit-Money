@@ -19,10 +19,11 @@ export function renderAccts(box) {
   const all = openAccounts();
   // The focal point, on its card: what it all comes to, then the two
   // halves of it as quiet figures.
-  const hero = h('section', { class: 'q-focus' }, [
-    h('span', { class: 'q-focus-label', text: W('總資產', 'Net worth') }),
-    h('b', { class: 'q-focus-value q-fit', text: money(w.net) }),
-    h('div', { class: 'q-focus-figs' }, [fig(W('資產', 'Assets'), money(w.assets)), fig(W('負債', 'Debts'), money(w.debts))])
+  // (One short card as 月曆's, Jay 2026-10-31: the total left, its two
+  // halves right, so the accounts start on the first screen.)
+  const hero = h('section', { class: 'q-focus mn-sum' }, [
+    h('div', { class: 'mn-sum-main' }, [h('span', { class: 'q-focus-label', text: W('總資產', 'Net worth') }), h('b', { class: 'q-focus-value q-fit', text: money(w.net) })]),
+    h('div', { class: 'q-focus-figs mn-sum-figs' }, [fig(W('資產', 'Assets'), money(w.assets)), fig(W('負債', 'Debts'), money(w.debts))])
   ]);
   const groups = ACCOUNT_KINDS.map(kind => {
     const list = all.filter(a => groupOf(a.kind) === kind);

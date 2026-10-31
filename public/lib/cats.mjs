@@ -47,7 +47,11 @@ export const OUT = [
   // games. Then: what keeps things running and what's for fun are "really
   // different", so the tools come first and 影音串流 and 遊戲 stand apart;
   // 統計 shows each sub on its own. `subs` was 訂閱 until then.)
-  { id: 'digital', zh: '數位', en: 'Digital', icon: 'cloud', color: '#5e5ce6', subs: S('digital', [['ai', 'AI', 'AI'], ['cloud', '雲端網域', 'Cloud'], ['apps', '軟體', 'Apps'], ['subs', '影音串流', 'Media'], ['games', '遊戲', 'Games']]) },
+  // (Jay 2026-10-31: subs had got "too specific" and 統計 is built on them;
+  // TDX, the domain, hosting are all the upkeep of a project he runs. So
+  // four broad ones: 專案維運 what keeps a project running, 工具訂閱 the
+  // tools for oneself (AI, apps, storage), and the two kinds of fun.)
+  { id: 'digital', zh: '數位', en: 'Digital', icon: 'cloud', color: '#5e5ce6', subs: S('digital', [['cloud', '專案維運', 'Project upkeep'], ['ai', '工具訂閱', 'Tools'], ['subs', '影音串流', 'Media'], ['games', '遊戲', 'Games']]) },
   { id: 'health', zh: '醫療', en: 'Health', icon: 'health', color: '#ff383c', subs: S('health', [['clinic', '看診', 'Doctor'], ['meds', '藥品', 'Medicine'], ['dental', '牙醫', 'Dentist']]) },
   { id: 'learn', zh: '學習', en: 'Learning', icon: 'book', color: '#00c8b3', subs: S('learn', [['books', '書', 'Books'], ['class', '課程', 'Classes']]) },
   { id: 'social', zh: '人情', en: 'Gifts', icon: 'gift', color: '#f59e0b', subs: S('social', [['gift', '禮物', 'Gifts'], ['redenv', '紅包', 'Red envelopes'], ['treat', '請客', 'Treating']]) },
@@ -313,11 +317,10 @@ const SUB_GUESS = [
   ['car:park', /停車/],
   ['daily:stationery', /文具|文化用品/],
   ['daily:grocery', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市/i],
-  ['digital:ai', /anthropic|claude|openai|chatgpt|gemini|perplexity|midjourney/i],
-  ['digital:cloud', /cloudflare|github|aws|google cloud|vercel|godaddy|namecheap|gandi|網域|tdx|icloud|google one|dropbox|onedrive/i],
+  ['digital:cloud', /cloudflare|github|aws|google cloud|gcp|azure|vercel|netlify|render\.com|fly\.io|heroku|digitalocean|linode|godaddy|namecheap|gandi|porkbun|網域|域名|domain|主機|hosting|tdx|\bapi\b/i],
+  ['digital:ai', /anthropic|claude|openai|chatgpt|gemini|perplexity|midjourney|notion|adobe|microsoft 365|office 365|icloud|google one|dropbox|onedrive|雲端硬碟|app store|google play|apple\.com\/bill/i],
   ['digital:games', /steam|playstation|nintendo|xbox|epic games|遊戲|點數卡|mycard|gash/i],
   ['digital:subs', /netflix|spotify|youtube|disney|apple music|apple tv|kkbox|friday|catchplay|hbo|動畫瘋|愛奇藝|iqiyi/i],
-  ['digital:apps', /app store|google play|apple\.com\/bill/i],
   ['fun:ktv', /ktv|錢櫃|好樂迪/i],
   ['shop:online', /momo|蝦皮|shopee|pchome|博客來/i],
   ['home:rent', /房租|租金/],
@@ -341,20 +344,24 @@ export function guessSub(cat, text = '', at = null) {
 // the person's changes to them go along. The 退款 income category is gone
 // (books.mjs upgradeBooks turns its entries into money back): a change to it
 // is let go. 訂閱 became 影音串流 (2026-10-28): one under it that was storage
-// (iCloud, Google One) moves to 雲端・網域, and one logged under 數位 with no
+// (iCloud, Google One) moves to 工具訂閱 (was 雲端・網域), and one logged under 數位 with no
 // sub gets the one its words say; once (books.opt.dig2), so a later choice of
 // the person's stands. → how many records changed.
-const MOVED = { 'fun:subs': 'digital:subs', 'fun:games': 'digital:games' };
+// 2026-10-31: 軟體 went into 工具訂閱 (digital:ai), and storage logged under
+// 雲端網域 (now 專案維運) moves to 工具訂閱 too (once, books.opt.dig3).
+const MOVED = { 'fun:subs': 'digital:subs', 'fun:games': 'digital:games', 'digital:apps': 'digital:ai' };
 const STORAGE = /icloud|google one|dropbox|onedrive|雲端硬碟/i;
 export function upgradeCats(books, now = Date.now()) {
   let n = 0;
   const split = !books.opt?.dig2;
+  const broad = !books.opt?.dig3;
   for (const col of ['entries', 'recur'])
     for (const e of live(books[col])) {
       const words = `${e.note || ''} ${e.inv?.seller || ''} ${(e.inv?.items || []).map(x => x.name).join(' ')}`;
       if (MOVED[e.sub]) put(books, col, { ...e, cat: 'digital', sub: MOVED[e.sub] }, now), n++;
+      else if (broad && e.sub === 'digital:cloud' && STORAGE.test(words)) put(books, col, { ...e, sub: 'digital:ai' }, now), n++;
       else if (!split) continue;
-      else if (e.sub === 'digital:subs' && STORAGE.test(words)) put(books, col, { ...e, sub: 'digital:cloud' }, now), n++;
+      else if (e.sub === 'digital:subs' && STORAGE.test(words)) put(books, col, { ...e, sub: 'digital:ai' }, now), n++;
       else if (e.cat === 'digital' && !e.sub) {
         const sub = guessSub('digital', words);
         if (sub) put(books, col, { ...e, sub }, now), n++;
@@ -364,12 +371,14 @@ export function upgradeCats(books, now = Date.now()) {
     const mine = books.cats?.[from];
     if (!mine || mine.del) continue;
     const { id, parent, k, u, ...rest } = mine;
-    put(books, 'cats', { ...(books.cats[to] && !books.cats[to].del ? books.cats[to] : {}), ...rest, id: to }, now);
+    // (軟體's own name or look doesn't carry onto 工具訂閱.)
+    if (from !== 'digital:apps') put(books, 'cats', { ...(books.cats[to] && !books.cats[to].del ? books.cats[to] : {}), ...rest, id: to }, now);
     drop(books, 'cats', from, now);
     n++;
   }
   if (books.cats?.refund && !books.cats.refund.del) drop(books, 'cats', 'refund', now), n++;
   if (split) (books.opt ||= {}).dig2 = 1, n++;
+  if (broad) (books.opt ||= {}).dig3 = 1, n++;
   if (n) useBooksCats(books);
   return n;
 }

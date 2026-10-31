@@ -171,29 +171,29 @@ function hero(kind, p, prev, amt, now, redraw) {
   const gone = daysIn(p.from, p.to, now);
   const start = firstDay(state.books);
   const name = kind === 'in' ? W('收入', 'income') : W('支出', 'spent');
-  const sub = [];
-  let ahead = '';
+  // (Beside the total, as 月曆's card: against the period before, a day's
+  // average and where a running month is heading; the value is the line's
+  // own, so it reads at a glance, Jay 2026-10-31.)
+  const figs = [];
   if (before || (start && start <= prev.to)) {
     const diff = before ? Math.round(((amt - before) / before) * 100) : null;
-    sub.push(diff == null ? W(`${p.prevName} ${money(0)}`, `${p.prevName} ${money(0)}`) : W(`比${p.prevName} ${diff >= 0 ? '▲' : '▼'}${Math.abs(diff)}%`, `${diff >= 0 ? '▲' : '▼'}${Math.abs(diff)}% vs ${p.prevName.toLowerCase()}`));
+    figs.push(diff == null ? fig(W(`比${p.prevName}`, `vs ${p.prevName.toLowerCase()}`), W('新', 'New')) : fig(W(`比${p.prevName}`, `vs ${p.prevName.toLowerCase()}`), `${diff >= 0 ? '▲' : '▼'}${Math.abs(diff)}%`));
   }
   if (kind === 'out') {
-    if (gone > 1) sub.push(W(`平均每天 ${money(Math.round(amt / gone))}`, `${money(Math.round(amt / gone))} a day`));
+    // (A running month's heading first; else a day's average.)
     const end = state.range === 'month' ? pace(b, p.from.slice(0, 7), now) : null;
-    // (Where a running month is heading, on its own line.)
-    if (end != null) ahead = W(`照這速度月底 ${money(end)}`, `${money(end)} by month end at this pace`);
+    if (end != null && end !== amt) figs.push(fig(W('照這速度月底', 'By month end'), money(end)));
+    else if (gone > 1) figs.push(fig(W('平均每天', 'A day'), money(Math.round(amt / gone))));
   } else {
     const k = kept(amt, total(b, 'out', p.from, p.to));
-    if (k != null) sub.push(k >= 0 ? W(`存下 ${Math.round(k * 100)}%`, `${Math.round(k * 100)}% kept`) : W('花超過收入', 'Spent beyond it'));
+    if (k != null) figs.push(fig(W('存下', 'Kept'), k >= 0 ? `${Math.round(k * 100)}%` : W('花超過', 'Over'), k >= 0 ? 'in' : ''));
   }
   const label = state.range === 'custom'
     ? h('button', { class: 'q-focus-label mn-hero-pick', type: 'button', onclick: () => openCustom(redraw) }, [`${p.label} ${name}`, h('i', { html: icons.chevron })])
     : h('span', { class: 'q-focus-label', text: W(`${p.label}${name}`, `${p.label} · ${name}`) });
-  return h('section', { class: 'q-focus mn-focus mn-hero' }, [
-    label,
-    h('b', { class: 'q-focus-value q-fit', text: money(amt) }),
-    sub.length ? h('span', { class: 'q-focus-sub', text: sub.join(' · ') }) : null,
-    ahead ? h('span', { class: 'q-focus-sub', text: ahead }) : null,
+  return h('section', { class: 'q-focus mn-focus mn-sum mn-hero' }, [
+    h('div', { class: 'mn-sum-main' }, [label, h('b', { class: 'q-focus-value q-fit', text: money(amt) })]),
+    figs.length ? h('div', { class: 'q-focus-figs mn-sum-figs' }, figs.slice(0, 2)) : null,
     state.range === 'custom' ? null : periodBars(kind, p, now, redraw)
   ]);
 }
@@ -202,7 +202,8 @@ function hero(kind, p, prev, amt, now, redraw) {
 function periodBars(kind, p, now, redraw) {
   const w = windowOf(state.range, p, now);
   const list = trendOf(B(), kind, w.from, w.to, w.unit);
-  if (list.length < 2 && !w.older) return null;
+  // (One period with anything in it compares with nothing: no chart, Jay 2026-10-31.)
+  if (list.filter(x => x.amt > 0).length < 2 && !w.older) return null;
   const cur = periodKey(w.unit, now);
   const on = periodKey(w.unit, p.from);
   const max = Math.max(1, ...list.map(x => x.amt));
@@ -221,7 +222,7 @@ function periodBars(kind, p, now, redraw) {
   );
   const row = h('div', { class: 'mn-pbars', style: `--n:${list.length}` }, [
     ...cols,
-    avg ? h('span', { class: 'mn-pbar-avg', style: `bottom:calc(18px + (100% - 18px) * ${(avg / max).toFixed(3)})` }) : null
+    avg ? h('span', { class: 'mn-pbar-avg', style: `bottom:calc(16px + (100% - 16px) * ${(avg / max).toFixed(3)})` }, [h('small', { class: 'num', text: W(`平均 ${short(Math.round(avg))}`, `avg ${short(Math.round(avg))}`) })]) : null
   ]);
   // (Older ones: ‹ or a swipe to the right moves the bars back six and picks the
   // newest of them; › forward.)
@@ -241,10 +242,7 @@ function periodBars(kind, p, now, redraw) {
     if (Math.abs(dx) > 50) move(dx > 0 ? -1 : 1);
   });
   const arrow = (n, ok, label) => h('button', { class: `mn-pbars-step${n < 0 ? ' back' : ''}`, type: 'button', 'aria-label': label, disabled: ok ? null : true, html: icons.chevron, onclick: () => move(n) });
-  return h('div', { class: 'mn-pbars-box' }, [
-    h('div', { class: 'mn-pbars-row' }, [arrow(-1, w.older, W('更早', 'Earlier')), row, arrow(1, w.newer, W('較近', 'Later'))]),
-    avg ? h('small', { class: 'mn-pbars-note', text: W(`點長條看那段 · 虛線是之前平均 ${money(Math.round(avg))}`, `Tap a bar to see it · dashed: ${money(Math.round(avg))} on average`) }) : h('small', { class: 'mn-pbars-note', text: W('點長條看那段', 'Tap a bar to see it') })
-  ]);
+  return h('div', { class: 'mn-pbars-box' }, [h('div', { class: 'mn-pbars-row' }, [arrow(-1, w.older, W('更早', 'Earlier')), row, arrow(1, w.newer, W('較近', 'Later'))])]);
 }
 
 // 篩選: every category of the card's span and its subs, each with a switch;
@@ -432,7 +430,7 @@ function catSection(kind, p, whole) {
       const c = k && cats.find(x => x.cat === k);
       return c ? { name: catName(catOf(c.cat), lang), amt: money(c.amt), note: pct(c.amt, whole) } : { name: label, amt: money(whole), note: W(`${cats.length} 類`, `${cats.length} ${cats.length === 1 ? 'category' : 'categories'}`) };
     },
-    { onpick: k => { for (const el of legend.children) el.setAttribute('aria-pressed', String(el.dataset.k === k)); } }
+    { size: 120, onpick: k => { for (const el of legend.children) el.setAttribute('aria-pressed', String(el.dataset.k === k)); } }
   );
   // (The five biggest by name; the rest as one line, their slices still in the ring.)
   const top = cats.length > 6 ? cats.slice(0, 5) : cats;
