@@ -3,7 +3,7 @@
 // in place of the 發票 tools), then the tools as rows: the categories, 智慧帶入,
 // 到期提醒, the repeats, 預算 (only while none is set: once one is, it lives in
 // 統計), the accounts put away (when there are any), the books as a file.
-import { h, toast, sheet, toggle } from '#kit/ui.mjs';
+import { h, toast, sheet, toggle, tile } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph, presetOf } from '../lib/cats.mjs';
 import { reminders } from '../lib/renew.mjs';
@@ -16,10 +16,15 @@ import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
 import { openBudgets } from './stats.mjs';
 
 export function renderMore(box) {
-  // 拍照記帳: one gold button (Jay 10-27: no display headline), what it reads under it.
+  // 拍照記帳 first, as a row of its own with what it reads (Jay 10-31: the
+  // gold button with a caption under it floated; "ugly").
   const ways = h('section', { class: 'q-section' }, [
-    h('button', { class: 'q-btn primary block mn-snapbtn', type: 'button', onclick: () => snap() }, [h('span', { class: 'mn-btn-glyph', html: glyph('camera') }), W('拍照記帳', 'Add from a photo')]),
-    h('p', { class: 'mn-hint mn-snap-hint', text: W('收據、帳單、截圖都行，AI 幫你填好', 'Receipts, bills, screenshots: AI fills it in') })
+    h('div', { class: 'q-rowcard' }, [
+      h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => snap() }, [
+        tile(glyph('camera'), 'var(--q-accent)'),
+        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('拍照記帳', 'Add from a photo') }), h('small', { text: W('收據、帳單、截圖，AI 幫你填好', 'Receipts, bills, screenshots: AI fills it in') })])
+      ])
+    ])
   ]);
 
   const reps = repeatsOf();
@@ -27,20 +32,27 @@ export function renderMore(box) {
   const cats = catList('out').length + catList('in').length;
   const next = reminders(state.books, today())[0];
   const score = guessScore(state.books);
-  const tool = (label, value, onclick) => h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), h('span', { class: 'q-ritem-value num', text: value })]);
+  // Each tool: its tile, what it is (or where it stands), and a number when there is one.
+  const tool = (icon, color, label, sub, value, onclick) =>
+    h('button', { class: 'q-ritem chevron mn-tool', type: 'button', onclick }, [
+      tile(icon, color),
+      h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label }), sub ? h('small', { text: sub }) : null]),
+      value ? h('span', { class: 'q-ritem-value num', text: value }) : null
+    ]);
+  const dueIn = next?.due ? Math.round((Date.parse(next.due) - Date.parse(today())) / 86_400_000) : null;
   const tools = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('工具', 'Tools') })]),
     h('div', { class: 'q-rowcard' }, [
-      tool(W('分類', 'Categories'), `${presetName(presetOf(state.books))} · ${W(`${cats} 個`, `${cats}`)}`, () => openCats()),
+      tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W(`範本：${presetName(presetOf(state.books))}`, `Set: ${presetName(presetOf(state.books))}`), W(`${cats} 個`, `${cats}`), () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
-      tool(W('智慧帶入', 'Smart fill'), score.of >= 5 ? W(`分類猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
+      tool(glyph('spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('照你的習慣先選好分類和付款', 'Picks what you usually log'), score.of >= 5 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
       // (TPASS, subscriptions, memberships: the soonest one.)
-      tool(W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : '', () => openRenewals()),
+      tool(glyph('bell'), '#ff9500', W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : W('TPASS、訂閱、會員到期前提醒', 'TPASS, subscriptions, memberships'), dueIn == null ? '' : dueIn <= 0 ? W('今天', 'Today') : W(`${dueIn} 天後`, `in ${dueIn} d`), () => openRenewals()),
       // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
-      tool(W('固定收支', 'Repeats'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : '', () => openRepeats()),
-      live(state.books.budgets).length ? null : tool(W('預算', 'Budget'), '', () => openBudgets()),
-      closed.length ? tool(W('已封存', 'Put away'), W(`${closed.length} 個帳戶`, `${closed.length}`), () => openClosed()) : null,
-      tool(W('匯出', 'Export'), 'CSV', () => exportCsv())
+      tool(glyph('repeat'), '#30b0c7', W('固定收支', 'Repeats'), W('房租、薪水，到日子自動記', 'Rent, pay: logged on the day'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : '', () => openRepeats()),
+      live(state.books.budgets).length ? null : tool(glyph('target'), '#ff3b30', W('預算', 'Budget'), W('每月上限，統計裡看剩多少', 'A monthly cap, tracked in Stats'), '', () => openBudgets()),
+      closed.length ? tool(glyph('lock'), '#8e8e93', W('已封存', 'Put away'), W('不用的帳戶', 'Accounts no longer used'), W(`${closed.length} 個`, `${closed.length}`), () => openClosed()) : null,
+      tool(glyph('share'), '#0088ff', W('匯出', 'Export'), W('整本帳本存成試算表', 'All entries as a spreadsheet'), 'CSV', () => exportCsv())
     ])
   ]);
   box.replaceChildren(ways, tools);
