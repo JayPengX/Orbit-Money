@@ -533,7 +533,14 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     title: was ? W('編輯', 'Edit') : W('記一筆', 'New entry'),
     lead,
     cls: 'mn-entry',
-    body: [mergeRow, f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow, cats, subs, unitRow, moveRow, pills, noteRow, extras, invRow],
+    // (Three runs, one column on a phone; on a phone on its side the
+    // categories stand beside the amount and the rest: money.css .mn-part.)
+    body: [
+      mergeRow,
+      h('div', { class: 'mn-part mn-part-a' }, [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow]),
+      h('div', { class: 'mn-part mn-part-p' }, [cats, subs]),
+      h('div', { class: 'mn-part mn-part-b' }, [unitRow, moveRow, pills, noteRow, extras, invRow])
+    ],
     foot: h('div', { class: 'q-sheet-foot' }, [save])
   });
   paint();

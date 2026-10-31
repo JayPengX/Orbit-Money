@@ -10,7 +10,7 @@ import { addDays } from '#kit/format.mjs';
 import { lines, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
 import { catList, catOf, catName, subOf, glyph } from '../lib/cats.mjs';
 import { byCat, byAccount, shape, largest, places, sameplace, placeOf, daysIn, weekdays, pace, months, kept, firstDay, total, trendOf, periodKey } from '../lib/stats.mjs';
-import { state, W, en, lang, money, plain, short, monthLabel, dayLabel, today, saved, acct, acctName, card } from '../shell.mjs';
+import { state, W, en, lang, money, plain, short, monthLabel, dayLabel, today, saved, acct, acctName, card, flow } from '../shell.mjs';
 import { entryRow, openEntry } from './entry.mjs';
 import { acctTile } from './pics.mjs';
 
@@ -95,7 +95,13 @@ export function renderStats(box) {
 
   const amt = total(B(), kind, p.from, p.to);
   const parts = [bar, hero(kind, p, prev, amt, now, redraw)];
-  const done = () => box.replaceChildren(h('div', { class: 'mn-st' }, parts.filter(Boolean)));
+  // (Wide: the controls, the period and its categories head the first
+  // column; the rest run on into the next ones, in the phone's order.)
+  const done = () => {
+    const st = h('div', { class: 'mn-st' });
+    box.replaceChildren(st);
+    flow(st, parts, { first: 3 });
+  };
   if (!amt) {
     parts.push(empty({ icon: 'chart', title: kind === 'in' ? W('這段時間沒有收入', 'No income in this period') : W('這段時間沒有支出', 'No spending in this period'), body: skip.size ? W('有些分類被篩掉了', 'Some categories are filtered out') : '' }));
     if (kind === 'out' && state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));

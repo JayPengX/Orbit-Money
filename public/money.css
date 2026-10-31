@@ -18,7 +18,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 h1, h2, h3, p { margin: 0; }
 .num { font-variant-numeric: tabular-nums; }
 
-.page { padding: 0 max(16px, env(safe-area-inset-right)) calc(96px + var(--q-nav)) max(16px, env(safe-area-inset-left)); }
+.page { padding: 0 16px calc(96px + var(--q-nav)) 16px; }
 .tab-panel { display: grid; gap: 14px; padding-top: 8px; }
 .tab-panel > .q-nav-title { margin-bottom: -6px; }
 .tab-panel .q-section { display: grid; gap: 8px; margin: 10px 0 0; }
@@ -129,8 +129,9 @@ h1, h2, h3, p { margin: 0; }
    The amount is a field: tapped, the iPhone's number keys. */
 .mn-entry { --mn-gap: var(--q-s-3); }
 /* (Many rows added on a small phone: the sheet scrolls, nothing is squeezed.) */
-.mn-entry > * { flex-shrink: 0; }
-.mn-entry > .q-seg { margin-top: 2px; }
+.mn-entry > *, .mn-entry > .mn-part > * { flex-shrink: 0; }
+.mn-part { display: contents; }
+.mn-entry .mn-part > .q-seg { margin-top: 2px; }
 .mn-amount { display: flex; align-items: center; gap: 8px; min-height: 68px; margin-top: var(--mn-gap); padding: 0 16px 0 12px; border-radius: var(--q-r-card); background: var(--q-surface); }
 .mn-amount-what { display: flex; align-items: center; gap: 10px; flex: none; max-width: 45%; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label-2); font: 500 15px/20px var(--q-font); }
 .mn-amount-what .q-tile { flex: none; width: 44px; height: 44px; border-radius: 13px; }
@@ -321,13 +322,14 @@ h1, h2, h3, p { margin: 0; }
 .mn-subrow small { flex: none; width: 30px; font: 500 12px/16px var(--q-font-rounded); text-align: right; }
 .mn-diff.up { color: var(--q-red); }
 .mn-diff.down { color: var(--mn-in); }
-.mn-shape { --mn-fixed: var(--q-accent); --mn-var: color-mix(in srgb, var(--q-label) 22%, var(--q-surface)); --mn-fee: var(--q-orange); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px; padding: 16px; border-radius: var(--q-r-card); background: var(--q-surface); }
+.mn-shape { --mn-fixed: var(--q-accent); --mn-var: color-mix(in srgb, var(--q-label) 22%, var(--q-surface)); --mn-fee: var(--q-orange); display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px; border-radius: var(--q-r-card); background: var(--q-surface); }
+.mn-shape .mn-donut { width: min(var(--d), 34vw); height: min(var(--d), 34vw); }
 .mn-shape .mn-donut-mid { inset: 16%; }
 .mn-shape .mn-donut-mid b:not(.long) { font-size: 13px; line-height: 17px; }
 .mn-shape-grid i.fixed { background: var(--mn-fixed); }
 .mn-shape-grid i.var { background: var(--mn-var); }
 .mn-shape-grid i.fee { background: var(--mn-fee); }
-.mn-shape-grid { display: grid; flex: 1 1 190px; min-width: 0; gap: 8px; }
+.mn-shape-grid { display: grid; flex: 1 1 120px; min-width: 0; gap: 8px; }
 .mn-shape-grid > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 8px; min-width: 0; }
 .mn-shape-grid > div > span { grid-column: 2; text-align: right; }
 .mn-shape-grid small { display: flex; min-width: 0; overflow: hidden; white-space: nowrap; align-items: center; gap: 6px; color: var(--q-label-2); font: var(--q-t-footnote); }
@@ -577,3 +579,54 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-cathead2 .mn-donut { width: min(96px, 25vw); height: min(96px, 25vw); }
 @media (max-width: 360px) { .mn-cathead2 { gap: 12px; } .mn-cathead-line { gap: 6px; } .mn-cathead-line small { width: 50px; } }
 .mn-entry .mn-xrow { scroll-margin-bottom: 104px; }
+
+/* ---- Every screen, either way up (Jay 2026-10-31; Orbit-Core DESIGN.md §10) ----
+   A phone upright: one column, as always. A phone on its side or a tablet:
+   two columns of phone width; a computer: up to three (shell.mjs columns,
+   flow). Each column is laid out as on a phone. */
+:root.q-wide { --q-page-max: 1180px; }
+.mn-cols { display: grid; gap: 14px var(--q-s-5); align-items: start; }
+.mn-cols.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mn-cols.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mn-col { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.mn-col > .q-section:first-child { margin-top: 0; }
+/* 月曆: the month beside the day; a computer gives the calendar a little more. */
+:root.q-w3 #panel-cal > .mn-cols { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.mn-cal-card.roomy { padding-bottom: 8px; }
+.mn-cal-card.roomy .mn-day { height: 58px; }
+/* The month's figures stay one short card however wide the column. */
+:root.q-wide .mn-sum .q-focus-value { font-size: 34px; }
+:root.q-wide .mn-sum-figs b { font-size: 15px; }
+/* 更多: the tools as cards in a grid. */
+.tab-panel .q-section > .q-rowcard.mn-tool-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; overflow: visible; border-radius: 0; background: none; }
+.mn-tool-grid > .q-ritem { min-height: 72px; border-radius: var(--q-r-card); background: var(--q-surface); }
+.mn-tool-grid > .q-ritem::before { display: none; }
+/* 記一筆 on a phone on its side (390 tall): the categories in a column of
+   their own beside the amount, the way to pay, the day and the note, so the
+   whole entry is on one screen (seven across, two rows of subs under). */
+html.q-tabrail:not(.q-float) dialog.q-sheet.mn-entry {
+  width: min(860px, calc(100vw - var(--q-inset-l) - var(--q-inset-r) - 16px));
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); grid-template-rows: auto auto auto auto auto 1fr auto;
+  column-gap: 20px; align-content: start;
+}
+html.q-tabrail:not(.q-float) .mn-entry::before { grid-column: 1 / -1; grid-row: 1; }
+html.q-tabrail:not(.q-float) .mn-entry > .q-sheet-head { grid-column: 1 / -1; grid-row: 2; }
+html.q-tabrail:not(.q-float) .mn-entry > .mn-merge { grid-column: 1 / -1; grid-row: 3; }
+html.q-tabrail:not(.q-float) .mn-entry > .q-sheet-foot { grid-column: 1 / -1; grid-row: 7; }
+html.q-tabrail:not(.q-float) .mn-entry > .mn-part { display: grid; align-content: start; min-width: 0; }
+html.q-tabrail:not(.q-float) .mn-entry > .mn-part-a { grid-column: 1; grid-row: 4; }
+html.q-tabrail:not(.q-float) .mn-entry > .mn-part-b { grid-column: 1; grid-row: 5; }
+html.q-tabrail:not(.q-float) .mn-entry > .mn-part-p { grid-column: 2; grid-row: 4 / 7; }
+html.q-tabrail:not(.q-float) .mn-entry .mn-cats { grid-template-columns: repeat(7, minmax(0, 1fr)); margin-top: 0; }
+html.q-tabrail:not(.q-float) .mn-entry .mn-cat { padding-block: 3px 2px; }
+html.q-tabrail:not(.q-float) .mn-entry .mn-cat .q-tile { width: 32px; height: 32px; border-radius: 10px; }
+/* A phone on its side: an account's balance on one line with its picture, so
+   the month and the entries start on the first screen. */
+@media (max-height: 520px) {
+  .mn-acct-hero { grid-template-columns: auto auto; grid-template-rows: auto auto; justify-content: center; align-items: center; column-gap: 12px; row-gap: 0; padding-top: 0; }
+  .mn-acct-hero > :first-child { grid-row: 1 / 3; --s: 44px; width: 44px; height: 44px; }
+  .mn-acct-hero small { margin: 0; }
+  .mn-acct-hero b { font-size: 28px; line-height: 34px; }
+}
+/* (The smallest phones: a row's line keeps two more pixels: 玉山 薪轉 → 現金 whole.) */
+@media (max-width: 340px) { .mn-row.q-ritem { gap: 10px; } }

@@ -11,7 +11,7 @@ import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState,
 import { reminders } from '../lib/renew.mjs';
 import { openReminder, renewNow, reminderTile, leftText, dueText } from './renew.mjs';
 import { addDays } from '#kit/format.mjs';
-import { state, hooks, W, en, lang, money, short, monthLabel, dayLabel, today } from '../shell.mjs';
+import { state, hooks, W, en, lang, money, short, monthLabel, dayLabel, today, columns, columnsHere } from '../shell.mjs';
 import { entryRow, openEntry } from './entry.mjs';
 
 const WEEK = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['日', '一', '二', '三', '四', '五', '六'];
@@ -39,7 +39,10 @@ export function renderCal(box) {
   const now = today();
   const budget = budgetState(b, ym, now).find(x => !x.cat);
   const place = myPlace('work');
-  const open = calOpen();
+  // (Beside the day's entries on a tablet or a computer, the whole month
+  // always: there's height for it. A phone on its side keeps the week.)
+  const roomy = columnsHere() > 1 && globalThis.innerHeight > 600;
+  const open = roomy || calOpen();
 
   // The month's figures, on one short card (Jay 2026-10-30: the big card
   // and the whole month pushed the day's entries off the screen): spent
@@ -94,7 +97,7 @@ export function renderCal(box) {
   ]);
   const grid = h('div', { class: 'mn-cal' }, [...WEEK.map((w, i) => h('span', { class: `mn-w${i === 0 || i === 6 ? ' off' : ''}`, text: w })), ...cells]);
   swipe(grid, go);
-  const fold = h('button', { class: `mn-fold${open ? ' open' : ''}`, type: 'button', 'aria-expanded': String(open), 'aria-label': open ? W('收起月曆', 'Show one week') : W('展開月曆', 'Show the month'), html: icons.chevron, onclick: () => (setCalOpen(!open), render()) });
+  const fold = roomy ? null : h('button', { class: `mn-fold${open ? ' open' : ''}`, type: 'button', 'aria-expanded': String(open), 'aria-label': open ? W('收起月曆', 'Show one week') : W('展開月曆', 'Show the month'), html: icons.chevron, onclick: () => (setCalOpen(!open), render()) });
 
   // A day picked: its square and the list under it, the rest left as it is
   // (one in the month next door shows that month).
@@ -114,7 +117,10 @@ export function renderCal(box) {
 
   // The day's entries come straight after the calendar, so today's log is
   // on the screen when it opens; what's due soon follows.
-  box.replaceChildren(hero, h('div', { class: `mn-cal-card${open ? '' : ' week'}` }, [calHead, grid, fold]), daySec, ...[renewals(b, now)].filter(Boolean));
+  // (Wide: the month on the left, the day it opens on the right, a list
+  // beside what it opens.)
+  const calCard = h('div', { class: `mn-cal-card${open ? '' : ' week'}${roomy ? ' roomy' : ''}` }, [calHead, grid, fold]);
+  box.replaceChildren(...columns([[hero, calCard], [daySec, renewals(b, now)]]));
 }
 
 // The calendar opened or folded, kept on this phone.

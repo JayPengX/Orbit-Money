@@ -9,7 +9,7 @@ import { catList, catName, subOf, catOf, glyph, presetOf } from '../lib/cats.mjs
 import { reminders } from '../lib/renew.mjs';
 import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
-import { state, W, today, acctName, card, allAccounts, saved } from '../shell.mjs';
+import { state, W, today, acctName, card, allAccounts, saved, columnsHere } from '../shell.mjs';
 import { snap } from './photo.mjs';
 import { openCats, presetName } from './cat-edit.mjs';
 import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
@@ -18,14 +18,13 @@ import { openBudgets } from './stats.mjs';
 export function renderMore(box) {
   // 拍照記帳 first, as a row of its own with what it reads (Jay 10-31: the
   // gold button with a caption under it floated; "ugly").
-  const ways = h('section', { class: 'q-section' }, [
-    h('div', { class: 'q-rowcard' }, [
-      h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => snap() }, [
-        tile(glyph('camera'), 'var(--q-accent)'),
-        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('拍照記帳', 'Add from a photo') }), h('small', { text: W('收據、帳單、截圖，AI 幫你填好', 'Receipts, bills, screenshots: AI fills it in') })])
-      ])
-    ])
+  const snapRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => snap() }, [
+    tile(glyph('camera'), 'var(--q-accent)'),
+    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('拍照記帳', 'Add from a photo') }), h('small', { text: W('收據、帳單、截圖，AI 幫你填好', 'Receipts, bills, screenshots: AI fills it in') })])
   ]);
+  // (Wide: every tool a card in one grid, 拍照記帳 the first of them.)
+  const wide = columnsHere() > 1;
+  const ways = wide ? null : h('section', { class: 'q-section' }, [h('div', { class: 'q-rowcard' }, [snapRow])]);
 
   const reps = repeatsOf();
   const closed = allAccounts().filter(a => a.closed);
@@ -42,7 +41,8 @@ export function renderMore(box) {
   const dueIn = next?.due ? Math.round((Date.parse(next.due) - Date.parse(today())) / 86_400_000) : null;
   const tools = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('工具', 'Tools') })]),
-    h('div', { class: 'q-rowcard' }, [
+    h('div', { class: `q-rowcard${wide ? ' mn-tool-grid' : ''}` }, [
+      wide ? snapRow : null,
       tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W(`範本：${presetName(presetOf(state.books))}`, `Set: ${presetName(presetOf(state.books))}`), W(`${cats} 個`, `${cats}`), () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
       tool(glyph('spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('照你的習慣先選好分類和付款', 'Picks what you usually log'), score.of >= 5 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
@@ -55,7 +55,16 @@ export function renderMore(box) {
       tool(glyph('share'), '#0088ff', W('匯出', 'Export'), W('整本帳本存成試算表', 'All entries as a spreadsheet'), 'CSV', () => exportCsv())
     ])
   ]);
-  box.replaceChildren(ways, tools);
+  // (Wide: as many across as there's room for, and no lone card on the last
+  // row: 拍照記帳, the first, runs across what's left over.)
+  if (wide) {
+    const grid = tools.querySelector('.mn-tool-grid');
+    const n = columnsHere();
+    const left = grid.children.length % n;
+    grid.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
+    if (left) snapRow.style.gridColumn = `span ${n - left + 1}`;
+  }
+  box.replaceChildren(...[ways, tools].filter(Boolean));
 }
 
 const pct = (n, of) => `${Math.round((n / of) * 100)}%`;

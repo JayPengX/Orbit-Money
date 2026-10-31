@@ -4,6 +4,8 @@ import { lang, W } from '#kit/lang.mjs';
 import { money as kitMoney, num, compact, setFormatLocale, twDay } from '#kit/format.mjs';
 import { emptyBooks, accounts, live } from './lib/books.mjs';
 import { brandOf, logoOf } from './lib/brands.mjs';
+import * as orbitKit from '#kit/orbit.mjs';
+import { h } from '#kit/ui.mjs';
 
 export { lang, W };
 setFormatLocale(lang);
@@ -85,4 +87,51 @@ export function payLabel(e) {
   // way after a +: LINE Pay + NT$59, the points' part.)
   const also = e.k === 'out' && Array.isArray(e.also) ? e.also.filter(p => p?.a && p.amt > 0) : [];
   return (c ? (c.last4 ? `${c.name} •${c.last4}` : `${acctName(e.a)} ${c.name}`) : acctName(e.a)) + also.map(p => ` + ${money(p.amt)}`).join('');
+}
+
+// ---- Wide screens (Jay 2026-10-31: every screen, either way up) ----
+// How many columns a tab's page has room for: 1 on a phone upright, 2 on a
+// phone on its side or a tablet, 3 on a computer (the kit's screenFit marks).
+// (A kit without screenFit: one column, as before.)
+export function columnsHere() {
+  const fit = orbitKit.screenFit?.();
+  return fit?.w3 ? 3 : fit?.wide ? 2 : 1;
+}
+// A tab's page in columns, each laid out as on a phone: `cols` is a list of
+// lists of parts, one per column. One column: the parts as they are.
+export function columns(cols) {
+  const parts = cols.flat().filter(Boolean);
+  if (columnsHere() < 2) return parts;
+  const kept = cols.map(c => c.filter(Boolean)).filter(c => c.length);
+  return [h('div', { class: `mn-cols n${kept.length}` }, kept.map(c => h('div', { class: 'mn-col' }, c)))];
+}
+// A page of parts in reading order, cut into as many columns as there is room
+// for (`most`), each column a run of them, as even in height as the order
+// allows: reading down the first column and on gives the phone's order.
+// The heights are measured in `box` first, one column wide.
+export function flow(box, parts, { most = 3, first = 1 } = {}) {
+  parts = parts.filter(Boolean);
+  const n = Math.min(most, columnsHere(), parts.length - first + 1);
+  if (n < 2) return box.replaceChildren(...parts);
+  // (Measured as they'll stand: one column's width.)
+  const probe = h('div', { class: `mn-cols n${n}` }, [h('div', { class: 'mn-col' }, parts)]);
+  box.replaceChildren(probe);
+  const tall = parts.map(p => p.getBoundingClientRect().height + 14);
+  // The cut that makes the tallest column shortest (a few parts: try each).
+  // `first` parts always stay together at the head of the first column.
+  let best = null;
+  const cuts = (from, left) => {
+    if (left === 1) return [[parts.length]];
+    const out = [];
+    for (let i = from + 1; i <= parts.length - left + 1; i++) for (const rest of cuts(i, left - 1)) out.push([i, ...rest]);
+    return out;
+  };
+  for (const c of cuts(Math.max(0, first - 1), n)) {
+    let from = 0;
+    const max = Math.max(...c.map(to => tall.slice(from, (from = to)).reduce((s, x) => s + x, 0)));
+    if (!best || max < best.max) best = { c, max };
+  }
+  let from = 0;
+  const cols = best.c.map(to => parts.slice(from, (from = to)));
+  box.replaceChildren(h('div', { class: `mn-cols n${n}` }, cols.map(c => h('div', { class: 'mn-col' }, c))));
 }

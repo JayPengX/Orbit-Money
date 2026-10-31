@@ -11,6 +11,7 @@
 // the Pass's copy before anything is written (the kit's pass-sync.mjs).
 import * as kitUI from '#kit/ui.mjs';
 import { passSync } from '#kit/pass-sync.mjs';
+import * as orbitKit from '#kit/orbit.mjs';
 import { orbitSession, tabBar, topActions, installGate, watchUpdates, keepOffline, storedAccount, cachedPayload, schedulePush, setNotifyOn, enablePush } from '#kit/orbit.mjs';
 import { decodeBooks, encodeBooks, mergeBooks, runRepeats, upgradeBooks, put } from './lib/books.mjs';
 import { state, hooks, lang, W, today, dayLabel } from './shell.mjs';
@@ -207,5 +208,16 @@ setInterval(() => {
   if (settle()) hooks.changed();
   else quietRefresh();
 }, 60_000);
+
+// A turn of the phone or a window resized: the page laid out again for the
+// columns it has room for now (shell.mjs columns, flow).
+let fitNow = '';
+orbitKit.onScreen?.(fit => {
+  const key = `${fit.w3}${fit.wide}${globalThis.innerHeight > 600}`;
+  if (key === fitNow) return;
+  fitNow = key;
+  stamp++;
+  if (state.loaded) render();
+});
 
 keepOffline();
