@@ -9,9 +9,9 @@ import { h, icons, tile, pickSeg, sheet, toast, menu, empty, toggle } from '#kit
 import { addDays } from '#kit/format.mjs';
 import { lines, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
 import { catList, catOf, catName, subOf, glyph } from '../lib/cats.mjs';
-import { byCat, byAccount, changes, shape, largest, places, sameplace, placeOf, daysIn, weekdays, pace, months, kept, firstDay, total, trendOf, periodKey } from '../lib/stats.mjs';
+import { byCat, byAccount, shape, largest, places, sameplace, placeOf, daysIn, weekdays, pace, months, kept, firstDay, total, trendOf, periodKey } from '../lib/stats.mjs';
 import { state, W, en, lang, money, plain, short, monthLabel, dayLabel, today, saved, acct, acctName, card } from '../shell.mjs';
-import { entryRow } from './entry.mjs';
+import { entryRow, openEntry } from './entry.mjs';
 import { acctTile } from './pics.mjs';
 
 const span = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1;
@@ -79,36 +79,56 @@ export function renderStats(box) {
   );
   const kinds = pickSeg(
     [
-      ['out', W('支出', 'Spending')],
-      ['in', W('收入', 'Income')]
+      ['out', W('支出', 'Out')],
+      ['in', W('收入', 'In')]
     ],
     kind,
     k => ((state.kind = k), redraw()),
-    { chips: true, cls: 'mn-kind', label: W('支出或收入', 'Spending or income') }
+    { cls: 'mn-kind', label: W('支出或收入', 'Spending or income') }
   );
-  const filter = h('button', { class: `mn-filter${skip.size ? ' on' : ''}`, type: 'button', 'aria-label': W('篩選分類', 'Filter categories'), onclick: () => openFilter(kind, p, redraw) }, [
+  const filter = h('button', { class: `mn-filter${skip.size ? ' on' : ''}`, type: 'button', 'aria-label': skip.size ? W(`篩選：不含 ${skip.size} 項`, `Filter: ${skip.size} off`) : W('篩選分類', 'Filter categories'), onclick: () => openFilter(kind, p, redraw) }, [
     h('i', { html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg>' }),
-    skip.size ? W(`不含 ${skip.size} 項`, `${skip.size} off`) : W('篩選', 'Filter')
+    skip.size ? h('b', { class: 'num', text: String(skip.size) }) : null
   ]);
-  const bar = h('div', { class: 'mn-toolbar' }, [kinds, filter]);
+  // (Every control on one row, Jay 2026-10-31: more of the page is the numbers.)
+  const bar = h('div', { class: 'mn-toolbar' }, [scale, kinds, filter]);
 
   const amt = total(B(), kind, p.from, p.to);
-  const parts = [scale, bar, hero(kind, p, prev, amt, now, redraw)];
+  const parts = [bar, hero(kind, p, prev, amt, now, redraw)];
+  const done = () => box.replaceChildren(h('div', { class: 'mn-st' }, parts.filter(Boolean)));
   if (!amt) {
     parts.push(empty({ icon: 'chart', title: kind === 'in' ? W('這段時間沒有收入', 'No income in this period') : W('這段時間沒有支出', 'No spending in this period'), body: skip.size ? W('有些分類被篩掉了', 'Some categories are filtered out') : '' }));
     if (kind === 'out' && state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
-    return box.replaceChildren(...parts.filter(Boolean));
+    return done();
   }
+  // (Then the quick facts, the categories with how each moved, and the rest;
+  // what changed most is on each category's own line now.)
+  parts.push(facts(kind, p, amt), catSection(kind, p, amt, prev));
   if (kind === 'out') {
-    parts.push(catSection(kind, p, amt), changeSection(kind, p, prev));
     if (state.range === 'month') parts.push(budgetCard(p.from.slice(0, 7), now, redraw));
-    parts.push(payCard(kind, p, amt), dayCard(kind, p, now), bigCard(kind, p), placeCard(kind, p));
+    parts.push(dayCard(kind, p, now), payCard(kind, p, amt), placeCard(kind, p), bigCard(kind, p));
     if (daysIn(p.from, p.to, now) >= 14) parts.push(weekCard(p, now));
     parts.push(shapeCard(p));
   } else {
-    parts.push(catSection(kind, p, amt), dayCard(kind, p, now), payCard(kind, p, amt), inOutCard(p, now), bigCard(kind, p));
+    parts.push(dayCard(kind, p, now), payCard(kind, p, amt), inOutCard(p, now), bigCard(kind, p));
   }
-  box.replaceChildren(...parts.filter(Boolean));
+  done();
+}
+
+// Three quick facts in one strip under the card: the largest one, how many
+// and their average, and the place paid most often; each opens what it says.
+function facts(kind, p, amt) {
+  const all = lines(B(), p.from, p.to).filter(l => l.k === kind && !l.fee && l.amt > 0);
+  if (!all.length) return null;
+  const n = new Set(all.map(l => l.e.id)).size;
+  const [big] = largest(B(), kind, p.from, p.to, 1);
+  const [spot] = places(B(), kind, p.from, p.to, 1);
+  const cell = (label, value, note, onclick) => h(onclick ? 'button' : 'div', { class: 'mn-fact', ...(onclick ? { type: 'button', onclick } : {}) }, [h('small', { text: label }), h('b', { class: 'num', text: value }), h('span', { text: note })]);
+  return h('div', { class: 'mn-facts-row' }, [
+    big ? cell(W('最大一筆', 'Largest'), money(big.amt), placeOf(big.e) || catName(catOf(big.e.cat), lang), () => openEntry({ entry: big.e })) : null,
+    cell(W('筆數', 'Count'), W(`${n} 筆`, `${n}`), W(`平均 ${money(Math.round(amt / n))}`, `${money(Math.round(amt / n))} each`)),
+    spot ? cell(W('最常去', 'Most often'), spot.name, W(`${spot.n} 次`, `${spot.n}×`), () => openPlace(kind, spot.name, p)) : null
+  ]);
 }
 
 // Any dates: from and to (to never before from). Closed without picking,
@@ -411,22 +431,40 @@ function dayCard(kind, p, now) {
 // pie): categories inside, their subs in their shades around them, the
 // biggest named beside it; a tap on a slice or a name says its amount.
 // A category's line: its tile, name and share bar, the amount and share.
-const catRow = (look, amt, whole, onclick) =>
-  h('button', { class: 'q-ritem chevron mn-row mn-catrow', type: 'button', onclick }, [
+// (`before`: the same in the period before, for how it moved; null: no period before.)
+const catRow = (look, amt, whole, onclick, before = null) => {
+  const moved = before == null ? null : before ? Math.round(((amt - before) / before) * 100) : W('新', 'New');
+  return h('button', { class: 'q-ritem chevron mn-row mn-catrow', type: 'button', onclick }, [
     tile(glyph(look.icon), look.color),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(look, lang) }), share(amt, whole, look.color)]),
-    val(amt, pct(amt, whole))
+    h('span', { class: 'mn-catval' }, [
+      h('b', { class: 'num', text: money(amt) }),
+      h('small', { class: 'num' }, [
+        pct(amt, whole),
+        moved == null || moved === 0 ? null : h('span', { class: `mn-diff ${typeof moved === 'number' ? (moved > 0 ? 'up' : 'down') : ''}`, text: typeof moved === 'number' ? ` ${moved > 0 ? '▲' : '▼'}${Math.abs(moved)}%` : ` ${moved}` })
+      ])
+    ])
   ]);
+};
 // The categories opened to their subs, kept while the app is open.
 const unfolded = new Set();
-function catSection(kind, p, whole) {
+function catSection(kind, p, whole, prev = null) {
   const cats = byCat(B(), kind, p.from, p.to, id => subOf(id)?.parent || '');
   const subs = c => (c.subs.length > 1 ? c.subs : []);
+  // (How each moved: against the period before, when the books reach back to it.)
+  const start = firstDay(state.books);
+  const was = prev && start && start <= prev.to ? Object.fromEntries(byCat(B(), kind, prev.from, prev.to).map(c => [c.cat, c.amt])) : null;
+  // The split as one bar (Jay 2026-10-31): each category its colour and
+  // width, in the same order as the lines.
+  const split = h('div', { class: 'mn-split', role: 'img', 'aria-label': cats.map(c => `${catName(catOf(c.cat), lang)} ${pct(c.amt, whole)}`).join('、') },
+    cats.map(c => h('i', { style: `flex:${c.amt} 1 0;background:${catOf(c.cat).color}`, title: `${catName(catOf(c.cat), lang)} ${money(c.amt)} · ${pct(c.amt, whole)}` })));
+  // (The donut kept beside it, Jay 2026-10-31: categories inside, their subs
+  // in their shades around them; a tap on a slice names it in the middle.)
   const outer = [];
   for (const c of cats) {
     const col = catOf(c.cat).color;
     const list = subs(c);
-    if (list.length) list.forEach((s, i) => outer.push({ k: `${c.cat}/${s.sub}`, of: c.cat, amt: s.amt, color: tint(col, i, list.length) }));
+    if (list.length) list.forEach((x, i) => outer.push({ k: `${c.cat}/${x.sub}`, of: c.cat, amt: x.amt, color: tint(col, i, list.length) }));
     else outer.push({ k: c.cat, of: c.cat, amt: c.amt, color: col });
   }
   const label = kind === 'in' ? W('收入', 'Income') : W('支出', 'Spending');
@@ -437,19 +475,21 @@ function catSection(kind, p, whole) {
     ],
     k => {
       const c = k && cats.find(x => x.cat === k);
-      return c ? { name: catName(catOf(c.cat), lang), amt: money(c.amt), note: pct(c.amt, whole) } : { name: label, amt: money(whole), note: W(`${cats.length} 類`, `${cats.length} ${cats.length === 1 ? 'category' : 'categories'}`) };
+      return c ? { name: catName(catOf(c.cat), lang), amt: short(c.amt), note: pct(c.amt, whole) } : { name: label, amt: short(whole), note: '' };
     },
-    { size: 120, onpick: k => { for (const el of legend.children) el.setAttribute('aria-pressed', String(el.dataset.k === k)); } }
+    { size: 96 }
   );
-  // (The five biggest by name; the rest as one line, their slices still in the ring.)
-  const top = cats.length > 6 ? cats.slice(0, 5) : cats;
-  const rest = cats.slice(top.length);
-  const legend = h('div', { class: 'mn-donut-legend' }, [
-    ...top.map(c => {
-      const look = catOf(c.cat);
-      return h('button', { type: 'button', 'data-k': c.cat, 'aria-pressed': 'false', onclick: () => ring.pick(c.cat) }, [h('i', { style: `background:${look.color}` }), h('span', { text: catName(look, lang) }), h('b', { class: 'num', text: pct(c.amt, whole) })]);
-    }),
-    rest.length ? h('div', { class: 'mn-donut-rest' }, [h('i'), h('span', { text: W(`其他 ${rest.length} 類`, `${rest.length} more`) }), h('b', { class: 'num', text: pct(rest.reduce((n, c) => n + c.amt, 0), whole) })]) : null
+  // Beside it: the bar, the biggest and what moved most.
+  const top = cats[0];
+  const mover = was ? cats.map(c => ({ c, d: c.amt - (was[c.cat] || 0) })).sort((x, y) => y.d - x.d)[0] : null;
+  const say = (k, text) => h('div', { class: 'mn-cathead-line' }, [h('small', { text: k }), h('b', { text })]);
+  const head = h('div', { class: 'mn-cathead2' }, [
+    ring,
+    h('div', { class: 'mn-cathead-side' }, [
+      split,
+      say(W('最多', 'Most'), `${catName(catOf(top.cat), lang)} ${pct(top.amt, whole)}`),
+      mover && mover.d > 0 ? say(W('漲最多', 'Up most'), `${catName(catOf(mover.c.cat), lang)} +${short(mover.d)}`) : null
+    ])
   ]);
   const rows = [];
   for (const c of cats) {
@@ -457,7 +497,7 @@ function catSection(kind, p, whole) {
     const list = subs(c);
     const open = () => openCat(kind, c.cat, '', p);
     if (!list.length) {
-      rows.push(catRow(look, c.amt, whole, open));
+      rows.push(catRow(look, c.amt, whole, open, was ? was[c.cat] || 0 : null));
       continue;
     }
     // (Subs folded until the category is tapped, Jay 2026-10-31: "collapse
@@ -472,35 +512,13 @@ function catSection(kind, p, whole) {
       box.hidden = !on;
       row.setAttribute('aria-expanded', String(on));
       on ? unfolded.add(c.cat) : unfolded.delete(c.cat);
-    });
+    }, was ? was[c.cat] || 0 : null);
     row.classList.add('mn-catfold');
     row.setAttribute('aria-expanded', String(!box.hidden));
     rows.push(row, box);
   }
-  return section(kind === 'in' ? W('收入分類', 'By category') : W('分類', 'By category'), h('div', { class: 'q-rowcard mn-cats-card' }, [h('div', { class: 'mn-donut-row' }, [ring, legend]), ...rows]));
-}
-
-// What moved most against the period before (up to five).
-function changeSection(kind, p, prev) {
-  const list = changes(B(), kind, p, prev).slice(0, 5);
-  if (!list.length || !total(B(), kind, prev.from, prev.to)) return null;
-  return section(
-    W(`比${p.prevName}`, `Against ${p.prevName.toLowerCase()}`),
-    h(
-      'div',
-      { class: 'q-rowcard' },
-      list.map(x => {
-        const look = catOf(x.cat);
-        const up = x.diff > 0;
-        const note = x.before ? `${up ? '+' : '−'}${Math.abs(Math.round((x.diff / x.before) * 100))}%` : W('新', 'New');
-        return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openCat(kind, x.cat, '', p) }, [
-          tile(glyph(look.icon), look.color),
-          h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(look, lang) }), h('small', { class: 'num', text: W(`${p.prevName} ${money(x.before)}`, `was ${money(x.before)}`) })]),
-          h('span', { class: 'mn-catval' }, [h('b', { class: 'num', text: money(x.amt) }), h('small', { class: `num mn-diff ${up ? 'up' : 'down'}`, text: x.before ? `${up ? '▲' : '▼'} ${note.slice(1)}` : note })])
-        ]);
-      })
-    )
-  );
+  const note = was ? W(`${cats.length} 類 · 比${p.prevName}`, `${cats.length} · vs ${p.prevName.toLowerCase()}`) : W(`${cats.length} 類`, `${cats.length}`);
+  return section(kind === 'in' ? W('收入分類', 'By category') : W('分類', 'By category'), h('div', { class: 'q-rowcard mn-cats-card' }, [head, ...rows]), note);
 }
 
 // ---- By account ----------------------------------------------------------------------
@@ -514,7 +532,7 @@ function payCard(kind, p, whole) {
     const a = acct(x.a);
     rows.push(
       h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openPay(kind, x.a, null, p) }, [
-        acctTile(a || { kind: 'other' }),
+        acctTile(a || { kind: 'other' }, 28),
         h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: x.a ? acctName(x.a) : W('沒有帳戶', 'No account') }), share(x.amt, whole)]),
         val(x.amt, pct(x.amt, whole))
       ])
