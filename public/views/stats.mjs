@@ -410,6 +410,15 @@ function dayCard(kind, p, now) {
 // a donut (Jay 2026-10-30: the bars only show the trend, the split wants a
 // pie): categories inside, their subs in their shades around them, the
 // biggest named beside it; a tap on a slice or a name says its amount.
+// A category's line: its tile, name and share bar, the amount and share.
+const catRow = (look, amt, whole, onclick) =>
+  h('button', { class: 'q-ritem chevron mn-row mn-catrow', type: 'button', onclick }, [
+    tile(glyph(look.icon), look.color),
+    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(look, lang) }), share(amt, whole, look.color)]),
+    val(amt, pct(amt, whole))
+  ]);
+// The categories opened to their subs, kept while the app is open.
+const unfolded = new Set();
 function catSection(kind, p, whole) {
   const cats = byCat(B(), kind, p.from, p.to, id => subOf(id)?.parent || '');
   const subs = c => (c.subs.length > 1 ? c.subs : []);
@@ -445,15 +454,28 @@ function catSection(kind, p, whole) {
   const rows = [];
   for (const c of cats) {
     const look = catOf(c.cat);
-    rows.push(
-      h('button', { class: 'q-ritem chevron mn-row mn-catrow', type: 'button', onclick: () => openCat(kind, c.cat, '', p) }, [
-        tile(glyph(look.icon), look.color),
-        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(look, lang) }), share(c.amt, whole, look.color)]),
-        val(c.amt, pct(c.amt, whole))
-      ])
+    const list = subs(c);
+    const open = () => openCat(kind, c.cat, '', p);
+    if (!list.length) {
+      rows.push(catRow(look, c.amt, whole, open));
+      continue;
+    }
+    // (Subs folded until the category is tapped, Jay 2026-10-31: "collapse
+    // the subcategory default to show more info"; the last line opens it all.)
+    const box = h('div', { class: 'mn-catsubs', hidden: !unfolded.has(c.cat) });
+    box.append(
+      ...list.map((s, i, all) => subRow(s.sub ? catName(subOf(s.sub), lang) : W('未分細項', 'Other'), s.amt, whole, tint(look.color, i, all.length), () => openCat(kind, c.cat, s.sub || '-', p))),
+      h('button', { class: 'q-ritem chevron mn-row mn-subrow mn-catall', type: 'button', onclick: open }, [h('span', { class: 'mn-subname', text: W(`${catName(look, lang)}的明細`, `All of ${catName(look, lang)}`) })])
     );
-    // (Subs only when they split it: one line the same as its category says nothing.)
-    subs(c).forEach((s, i, all) => rows.push(subRow(s.sub ? catName(subOf(s.sub), lang) : W('未分細項', 'Other'), s.amt, whole, tint(look.color, i, all.length), () => openCat(kind, c.cat, s.sub || '-', p))));
+    const row = catRow(look, c.amt, whole, () => {
+      const on = box.hidden;
+      box.hidden = !on;
+      row.setAttribute('aria-expanded', String(on));
+      on ? unfolded.add(c.cat) : unfolded.delete(c.cat);
+    });
+    row.classList.add('mn-catfold');
+    row.setAttribute('aria-expanded', String(!box.hidden));
+    rows.push(row, box);
   }
   return section(kind === 'in' ? W('收入分類', 'By category') : W('分類', 'By category'), h('div', { class: 'q-rowcard mn-cats-card' }, [h('div', { class: 'mn-donut-row' }, [ring, legend]), ...rows]));
 }

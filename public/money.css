@@ -519,3 +519,9 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-preset-on { display: inline-flex; color: var(--q-accent); }
 .mn-preset-on svg { width: 20px; height: 20px; }
 .mn-presetsheet .mn-hint { margin: 12px 4px 4px; }
+/* 統計's categories: subs folded under their category until it's tapped (Jay 2026-10-31). */
+.mn-catfold::after { transform: rotate(135deg); margin-top: -4px; transition: transform 0.2s; }
+.mn-catfold[aria-expanded='true']::after { transform: rotate(-45deg); margin-top: 4px; }
+.mn-catsubs { display: grid; }
+.mn-catsubs[hidden] { display: none; }
+.mn-catall .mn-subname { color: var(--q-accent); }
