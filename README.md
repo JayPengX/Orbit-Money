@@ -36,7 +36,7 @@ Your own books for real money: what you spend each day, what each account holds,
 - **統計 Stats:** one page, top to bottom. Pick week, month, year or your own dates; the card shows the total against the period before, the daily average and where the month is heading, over gold bars of the periods before (tap one to jump to it). Under it, a donut of the categories with their sub-categories around them (tap one to leave it out of the count), and budgets.
 - **拍照記帳 From a photo:** any receipt, invoice, bill, app screenshot, transfer notice or price tag; AI reads the amount, day, store, items, category and way to pay into an entry to check before saving, and offers to merge it with one you already logged.
 - **記一筆 Entries:** guesses the kind, category, sub-category and way to pay from your own entries most like now (the hour, the weekday, today's), with the usual amounts one tap away; spending, income, moves between your own accounts, balance fixes and repeats added on their day.
-- **Category sets:** 學生, 上班族 or 家庭, a short list picked before the first entry, or all of them; changeable in 更多 › 分類.
+- **Categories:** one broad set of twelve (餐飲, 交通, 購物, 居住, 娛樂, 數位, 醫療, 學習, 人情, 家人, 稅費, 其他), each with two to four subs; yours to rename, hide, add or merge in 更多 › 分類.
 - **Syncs** between devices through the Orbit Pass, record by record.
 
 ## Tech stack

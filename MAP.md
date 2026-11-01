@@ -26,7 +26,8 @@ Live: https://orbit.jaypengx.com/money/
   fees and money back, the largest, places paid twice or more, weekdays, the
   month's pace, recent months, income against spending; every row opens its
   entries, a category's with its last twelve months) · 更多
-  (拍照記帳 first, then the tools). The + adds an entry anywhere.
+  (the tools as rows, each saying what it does and where it stands, 拍照記帳
+  first). The + adds an entry anywhere.
 - **Every screen** (Jay 2026-10-31; Orbit-Core DESIGN.md §10): a phone upright
   is one column; on its side or a tablet two, a computer three (`shell.mjs`
   `columns` for 月曆's month beside the day, `flow` for 帳戶 and 統計: the
@@ -44,14 +45,13 @@ Live: https://orbit.jaypengx.com/money/
   `r-<id>-<day>`). Every total goes through `lines` (one function: a spend
   less what came back, its fee, an income). `upgradeBooks` / `upgradeCats`
   bring older books up on open (退款 income → money back for its likeliest
-  spend; 訂閱/遊戲 from 娛樂 to 數位; 2026-10-31 數位's subs broad: 專案維運, 工具訂閱, 影音串流, 遊戲, 軟體 folded into 工具訂閱). **Category sets** (Jay 2026-10-30, too
-  many 類別; `lib/cats.mjs PRESETS`): 學生 (11), 上班族 (13), 家庭 (13), 全部,
-  picked once before the first 記一筆 and at the top of 更多 › 分類
-  (`books.opt.preset`, `opt.picked`). A set only changes what the picker
-  shows (nothing logged moves; a hidden one still names its history); the
-  person's own hidden ones in `cats` are 「我的」, kept while a set is in use.
-  Hiding, showing, adding, merging or deleting under a set first writes the
-  set down as theirs (`ownPreset`). 到期提醒 (`renew`, lib/renew.mjs): any pass, subscription,
+  spend; 訂閱/遊戲 from 娛樂 to 數位; 2026-10-31 數位's subs broad: 專案維運, 工具訂閱, 影音串流, 遊戲, 軟體 folded into 工具訂閱). **One set of categories** (Jay 2026-11-01, `lib/cats.mjs`): twelve broad
+  spending ones for everyone, each with two to four broad subs (交通: TPASS,
+  搭車 for YouBike, 捷運, 公車 and 計程車, 長途, 汽機車). Books from the old 20
+  and their subs move once (`books.opt.cats12`: entries, repeats, reminders,
+  money back, the guess stamps; two budgets that became one add up; the
+  person's own subs go with their category). The presets (學生/上班族/家庭)
+  and their picker are gone. 到期提醒 (`renew`, lib/renew.mjs): any pass, subscription,
   membership or card fee, each with its start, how long it lasts, whether it
   renews itself, the category whose spend restarts it, and when to be told;
   `upgradeRenew` turns the old TPASS setting into the first item. Due ones show
