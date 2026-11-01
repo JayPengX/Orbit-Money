@@ -15,7 +15,7 @@ import * as orbitKit from '#kit/orbit.mjs';
 import { orbitSession, tabBar, topActions, installGate, watchUpdates, keepOffline, storedAccount, cachedPayload, schedulePush, setNotifyOn, enablePush } from '#kit/orbit.mjs';
 import { decodeBooks, encodeBooks, mergeBooks, runRepeats, upgradeBooks, put } from './lib/books.mjs';
 import { state, hooks, lang, W, today, dayLabel } from './shell.mjs';
-import { useBooksCats, upgradeCats } from './lib/cats.mjs';
+import { useBooksCats, upgradeCats, needsMeals, splitMeals } from './lib/cats.mjs';
 import { reminders, remindTimes, upgradeRenew } from './lib/renew.mjs';
 import { renderCal } from './views/calendar.mjs';
 import { renderAccts } from './views/accounts.mjs';
@@ -182,6 +182,47 @@ async function boot() {
   plan();
   await sync();
   for (const item of first?.inbox || []) q.dropInbox(item.id).catch(() => {});
+  mealsBack();
+}
+
+// 早餐, 午餐 and 晚餐 apart again (Jay 2026-11-01, lib/cats.mjs splitMeals):
+// what the twelve put under 三餐 goes back to the meal it was logged under,
+// read from the books as they stood before the twelve (the Pass keeps past
+// versions 30 days). Offline or the Pass not answering: tried again on the
+// next opening, nothing changed meanwhile.
+const TWELVE_AT = Date.parse('2026-11-01T06:00:00Z');
+async function mealsBack() {
+  if (!needsMeals(state.books)) return;
+  let past = null;
+  if (storedAccount()) {
+    try {
+      const list = await q.past();
+      // (No list: the Pass didn't answer as it should; next time, not by the hour.)
+      if (!Array.isArray(list?.versions)) return;
+      const { versions } = list;
+      // The versions since the twelve went out, oldest first: the last one
+      // without it is the books just before; else the newest from before.
+      const since = versions.filter(v => v.at >= TWELVE_AT).reverse().slice(0, 12);
+      for (const v of since) {
+        const got = await q.past(v.updated);
+        if (typeof got?.payload !== 'string') return;
+        const old = await decodeBooks(got.payload);
+        if (!old) continue;
+        if (old.opt?.cats12) break;
+        past = old;
+      }
+      const before = !past && versions.find(v => v.at < TWELVE_AT);
+      if (before) {
+        const got = await q.past(before.updated);
+        if (typeof got?.payload !== 'string') return;
+        past = await decodeBooks(got.payload);
+      }
+    } catch {
+      return;
+    }
+  }
+  if (!needsMeals(state.books)) return;
+  if (splitMeals(state.books, past).n) hooks.changed();
 }
 if (!gated) boot();
 

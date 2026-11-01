@@ -320,7 +320,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     for (const el of cats.children) el.setAttribute('aria-checked', String(el.dataset.cat === f.cat));
     paintSubs();
   }
-  // What the amount goes under, beside it: the sub when one's picked (宵夜, TPASS), else the category.
+  // What the amount goes under, beside it: the sub when one's picked (午餐, TPASS), else the category.
   function paintWhat() {
     const look = f.k === 'move' || f.k === 'adj' ? lookOf({ k: f.k }) : catOf(f.cat);
     const fine = f.k === 'out' || f.k === 'in' ? subOf(f.sub) : null;
@@ -331,7 +331,8 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((touched = true), (f.sub = id), guessPayFor(), applyDefaults(), paintAmount(), paintPay(), paintSubs(), paintWhat()));
     subs.hidden = !list.length;
     subs.style.setProperty('--n', subCols(list.length));
-    subs.classList.toggle('few', list.length <= 4);
+    // (Five short ones fit one line too: 早餐 午餐 晚餐 飲料點心 聚餐 at 320.)
+    subs.classList.toggle('few', list.length <= 4 || (list.length <= 5 && list.reduce((n, x) => n + x.textContent.length, 0) <= 12));
     subs.replaceChildren(...list);
   }
   let catsKind = '';

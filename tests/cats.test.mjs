@@ -17,7 +17,7 @@ function sample() {
 test('the defaults: TPASS under 交通, meals under 餐飲', () => {
   C.useCats({});
   assert.ok(C.subsOf('transport').some(s => s.zh === 'TPASS'));
-  assert.deepEqual(C.subsOf('food').map(s => s.zh), ['三餐', '飲料點心', '聚餐']);
+  assert.deepEqual(C.subsOf('food').map(s => s.zh), ['早餐', '午餐', '晚餐', '飲料點心', '聚餐']);
   assert.equal(C.catList('out').length, 12);
   assert.equal(C.subOf('transport:tpass').parent, 'transport');
   assert.equal(C.catOf('nope').id, 'other');
@@ -147,7 +147,8 @@ test('數位 has four broad subs (Jay 2026-10-31): a project’s upkeep together
 test('the twelve (Jay 2026-11-01): what was logged under the old set moves once, nothing else changes', () => {
   const b = B.emptyBooks();
   const e = (id, cat, sub, more = {}) => B.put(b, 'entries', { id, d: '2026-10-01', k: 'out', amt: 100, cat, sub, a: 'cash', note: '', ...more }, T);
-  e('bf', 'food', 'food:breakfast', { g: 'food|food:lunch|cash||0' });
+  e('lu', 'food', 'food:lunch');
+  e('bf', 'food', 'food:late', { g: 'food|food:snack|cash||0' });
   e('sn', 'food', 'food:snack');
   e('tea', 'drink', 'drink:tea');
   e('dr', 'drink', '');
@@ -178,8 +179,10 @@ test('the twelve (Jay 2026-11-01): what was logged under the old set moves once,
   C.upgradeCats(b, T + 1);
   C.useBooksCats(b);
   const at = id => `${b.entries[id].cat} ${b.entries[id].sub}`;
-  assert.equal(at('bf'), 'food food:meals');
-  assert.equal(b.entries.bf.g, 'food|food:meals|cash||0');
+  // (宵夜 is 晚餐 now; 早餐, 午餐 and 晚餐 stay themselves.)
+  assert.equal(at('bf'), 'food food:dinner');
+  assert.equal(at('lu'), 'food food:lunch');
+  assert.equal(b.entries.bf.g, 'food|food:drink|cash||0');
   assert.equal(at('sn'), 'food food:drink');
   assert.equal(at('tea'), 'food food:drink');
   assert.equal(at('dr'), 'food food:drink');
@@ -226,7 +229,63 @@ test('guesses in the twelve', () => {
   assert.equal(C.guessSub('transport', '台灣高鐵'), 'transport:long');
   assert.equal(C.guessCat('路易莎咖啡'), 'food');
   assert.equal(C.guessSub('food', '路易莎咖啡'), 'food:drink');
-  assert.equal(C.guessSub('food', '', new Date(2026, 9, 1, 12, 30)), 'food:meals');
+  assert.equal(C.guessSub('food', '', new Date(2026, 9, 1, 12, 30)), 'food:lunch');
+  assert.equal(C.guessSub('food', '', new Date(2026, 9, 1, 7, 30)), 'food:breakfast');
+  assert.equal(C.guessSub('food', '', new Date(2026, 9, 1, 19, 0)), 'food:dinner');
+  assert.equal(C.guessSub('food', '', new Date(2026, 9, 1, 23, 30)), 'food:dinner');
   assert.equal(C.guessCat('中華電信'), 'home');
   assert.equal(C.guessSub('home', '中華電信'), 'home:net');
+});
+
+test('three meals again: what the twelve put under 三餐 goes back to the meal it was, nothing else changes', () => {
+  C.useCats({});
+  const T = Date.UTC(2026, 10, 1, 10);
+  // The books before the twelve (the Pass's kept version) and after.
+  const old = B.emptyBooks();
+  const b = B.emptyBooks();
+  const tw = (d, h) => Date.parse(`${d}T${String(h).padStart(2, '0')}:00:00+08:00`);
+  const rows = [
+    ['b1', 'food:breakfast', '2026-10-20', tw('2026-10-21', 9)],
+    ['l1', 'food:lunch', '2026-10-20', tw('2026-10-20', 20)],
+    ['d1', 'food:dinner', '2026-10-21', tw('2026-10-21', 8)],
+    ['n1', 'food:late', '2026-10-22', tw('2026-10-23', 1)]
+  ];
+  for (const [id, sub, d, t] of rows) {
+    B.put(old, 'entries', { id, d, k: 'out', amt: 100, cat: 'food', sub, a: 'cash', t, g: `food|${sub}|cash||0` }, T - 9e6);
+    B.put(b, 'entries', { id, d, k: 'out', amt: 100, cat: 'food', sub: 'food:meals', a: 'cash', t, g: 'food|food:meals|cash||0' }, T);
+  }
+  // Logged after the twelve: by the hour, on its own day; logged days later: just 餐飲.
+  B.put(b, 'entries', { id: 'x1', d: '2026-11-01', k: 'out', amt: 85, cat: 'food', sub: 'food:meals', a: 'cash', t: tw('2026-11-01', 12) }, T);
+  B.put(b, 'entries', { id: 'x2', d: '2026-11-01', k: 'out', amt: 70, cat: 'food', sub: 'food:meals', a: 'cash', t: tw('2026-11-01', 18) }, T);
+  B.put(b, 'entries', { id: 'x3', d: '2026-10-28', k: 'out', amt: 60, cat: 'food', sub: 'food:meals', a: 'cash', t: tw('2026-11-01', 18) }, T);
+  B.put(b, 'entries', { id: 'cof', d: '2026-11-01', k: 'out', amt: 55, cat: 'food', sub: 'food:drink', a: 'cash', t: tw('2026-11-01', 15) }, T);
+  B.put(b, 'recur', { id: 'r', k: 'out', amt: 1200, cat: 'food', sub: 'food:meals', a: 'cash', every: 'month', day: 1, from: '2026-10-01' }, T);
+  B.put(old, 'recur', { id: 'r', k: 'out', amt: 1200, cat: 'food', sub: 'food:lunch', a: 'cash', every: 'month', day: 1, from: '2026-10-01' }, T - 9e6);
+  C.saveCat(b, { id: 'food:meals', pay: { a: 'easy', via: '' } }, T);
+  const before = JSON.parse(JSON.stringify(b));
+  const sum = x => B.live(x.entries).reduce((s, e) => s + e.amt, 0);
+  assert.ok(C.needsMeals(b));
+  const r = C.splitMeals(b, old, T + 1);
+  const sub = id => b.entries[id].sub;
+  assert.deepEqual([sub('b1'), sub('l1'), sub('d1'), sub('n1')], ['food:breakfast', 'food:lunch', 'food:dinner', 'food:dinner']);
+  assert.equal(b.entries.b1.g, 'food|food:breakfast|cash||0');
+  assert.deepEqual([sub('x1'), sub('x2'), sub('x3'), sub('cof')], ['food:lunch', 'food:dinner', '', 'food:drink']);
+  assert.equal(b.recur.r.sub, 'food:lunch');
+  assert.deepEqual({ back: r.back, hour: r.hour, plain: r.plain }, { back: 5, hour: 2, plain: 1 });
+  // Every record still there with the same amount, day, account and category; totals the same.
+  assert.equal(B.live(b.entries).length, B.live(before.entries).length);
+  assert.equal(sum(b), sum(before));
+  for (const e of B.live(before.entries)) for (const k of ['amt', 'd', 'a', 'cat', 'k', 't']) assert.equal(b.entries[e.id][k], e[k]);
+  // 三餐 is gone; its way to pay went to the three meals.
+  assert.equal(b.cats['food:meals'].del, 1);
+  C.useBooksCats(b);
+  assert.deepEqual(C.defaultsOf('food', 'food:lunch').pay, { a: 'easy', via: '' });
+  assert.ok(!C.subsOf('food').some(x => x.id === 'food:meals'));
+  assert.ok(!C.needsMeals(b));
+  // Without the old books (no Pass): by the hour alone.
+  const c = B.emptyBooks();
+  B.put(c, 'entries', { id: 'y', d: '2026-10-20', k: 'out', amt: 90, cat: 'food', sub: 'food:meals', a: 'cash', t: tw('2026-10-20', 7) }, T);
+  C.splitMeals(c, null, T + 1);
+  assert.equal(c.entries.y.sub, 'food:breakfast');
+  C.useCats({});
 });

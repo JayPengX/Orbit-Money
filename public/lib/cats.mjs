@@ -29,14 +29,14 @@ export const GLYPHS = {
 };
 const icon = name => GLYPHS[name] || kitIcons[name] || kitIcons.grid;
 
-// Spending: twelve broad ones, each with two to four broad subs (Jay
+// Spending: twelve broad ones, each with two to five broad subs (Jay
 // 2026-11-01, "one set for everyone": 統計 is built on them, so a sub is a
 // meaningful bucket, never a single shop or line; the old 20 categories and
 // 61 subs, and the presets that hid some of them, went; upgradeCats moves
 // what was logged under them). The person can still add their own.
 const S = (cat, list) => list.map(([key, zh, en]) => ({ id: `${cat}:${key}`, zh, en, parent: cat }));
 export const OUT = [
-  { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['meals', '三餐', 'Meals'], ['drink', '飲料點心', 'Drinks & snacks'], ['out', '聚餐', 'Eating out']]) },
+  { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['breakfast', '早餐', 'Breakfast'], ['lunch', '午餐', 'Lunch'], ['dinner', '晚餐', 'Dinner'], ['drink', '飲料點心', 'Drinks & snacks'], ['out', '聚餐', 'Eating out']]) },
   // (The family's Orbit Transit: TPASS on its own, Jay 2026-10-27.)
   { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['ride', '搭車', 'Rides'], ['long', '長途', 'Long trips'], ['car', '汽機車', 'Car & scooter']]) },
   { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55', subs: S('shop', [['style', '服飾美妝', 'Clothes & beauty'], ['tech', '3C 家電', 'Tech'], ['daily', '日用品', 'Household']]) },
@@ -249,8 +249,9 @@ const SUB_GUESS = [
   ['family:parents', /孝親/]
 ];
 // A meal by the hour it's eaten (a new entry for today under 餐飲): the
-// afternoon's is 飲料點心, the rest 三餐.
-const MEAL = h => (h >= 14.5 && h < 17 ? 'drink' : 'meals');
+// afternoon's is 飲料點心; late at night is 晚餐 (no 宵夜 of its own: three
+// meals, Jay 2026-11-01).
+const MEAL = h => (h < 4 ? 'dinner' : h < 10.5 ? 'breakfast' : h < 14.5 ? 'lunch' : h < 17 ? 'drink' : 'dinner');
 export function guessSub(cat, text = '', at = null) {
   const s = String(text || '');
   const hit = SUB_GUESS.find(([id, re]) => id.startsWith(`${cat}:`) && re.test(s))?.[0] || (cat === 'food' && at ? `food:${MEAL(at.getHours() + at.getMinutes() / 60)}` : '');
@@ -315,7 +316,8 @@ const OLD_TOP = { drink: 'food', daily: 'shop', bills: 'home', phone: 'home', ca
 const OLD_TOP_SUB = { drink: 'food:drink', daily: 'shop:daily', bills: 'home:bills', phone: 'home:net', car: 'transport:car', travel: 'fun:travel', insure: 'health:insure', pet: 'family:pet', kids: 'family:kids' };
 // Old built-in subs: the new one ('' = just the category; 網購 by what the words say).
 const OLD_SUB = {
-  'food:breakfast': 'food:meals', 'food:lunch': 'food:meals', 'food:dinner': 'food:meals', 'food:late': 'food:meals', 'food:snack': 'food:drink',
+  // (早餐, 午餐 and 晚餐 stay: they're three subs again, Jay 2026-11-01.)
+  'food:late': 'food:dinner', 'food:snack': 'food:drink',
   'drink:coffee': 'food:drink', 'drink:tea': 'food:drink',
   'transport:mrt': 'transport:ride', 'transport:bus': 'transport:ride', 'transport:youbike': 'transport:ride', 'transport:taxi': 'transport:ride',
   'transport:thsr': 'transport:long', 'transport:tra': 'transport:long', 'transport:coach': 'transport:long',
@@ -398,4 +400,68 @@ function broadCats(books, now) {
   const { preset, ...opt } = books.opt || {};
   books.opt = { ...opt, cats12: 1, picked: 1 };
   return n + 1;
+}
+
+// ---- Three meals again (2026-11-01) -----------------------------------------------------
+// The twelve put 早餐, 午餐, 晚餐 and 宵夜 into one 三餐; Jay wants them apart
+// again (統計 by meal). What sat under 三餐 goes back to the meal it was
+// logged under, read from the books as they stood before the twelve (`past`:
+// those books, the Pass's kept version, app.mjs); 宵夜 to 晚餐. One logged
+// after the twelve (or not in `past`) by the hour it was logged, when that
+// was on its own day; else just 餐飲. 三餐 itself goes. Amounts, days, notes
+// and everything else stay as they were. No flag: whatever is still under
+// 三餐 (a phone that was away) goes the same way when it turns up.
+const OLD_MEAL = { 'food:breakfast': 'food:breakfast', 'food:lunch': 'food:lunch', 'food:dinner': 'food:dinner', 'food:late': 'food:dinner' };
+const TW = 8 * 3_600_000;
+const twDay = t => new Date(t + TW).toISOString().slice(0, 10);
+const twHour = t => {
+  const x = new Date(t + TW);
+  return x.getUTCHours() + x.getUTCMinutes() / 60;
+};
+const BY_HOUR = h => (h < 4 ? 'dinner' : h < 10.5 ? 'breakfast' : h < 15 ? 'lunch' : 'dinner');
+// The meal one record goes back to ('' when it can't be told).
+export function mealOf(r, was = '') {
+  if (OLD_MEAL[was]) return OLD_MEAL[was];
+  if (r.t && r.d && twDay(r.t) === r.d) return `food:${BY_HOUR(twHour(r.t))}`;
+  return '';
+}
+const MEAL_COLS = ['entries', 'recur', 'renew'];
+const gSub = r => (typeof r.g === 'string' ? r.g.split('|')[1] : '');
+// Whether the books still have something under 三餐.
+export function needsMeals(books) {
+  return MEAL_COLS.some(col => live(books[col] || {}).some(e => e.sub === 'food:meals' || gSub(e) === 'food:meals')) || Boolean(books.cats?.['food:meals'] && !books.cats['food:meals'].del);
+}
+// → { n: records changed, back: put back from `past`, hour: by the hour, plain: left as just 餐飲 }.
+export function splitMeals(books, past = null, now = Date.now()) {
+  const out = { n: 0, back: 0, hour: 0, plain: 0 };
+  for (const col of MEAL_COLS)
+    for (const e of live(books[col] || {})) {
+      const old = past?.[col]?.[e.id];
+      const next = { ...e };
+      if (e.sub === 'food:meals') {
+        next.sub = mealOf(e, old?.sub);
+        out[OLD_MEAL[old?.sub] ? 'back' : next.sub ? 'hour' : 'plain']++;
+      }
+      if (gSub(e) === 'food:meals') {
+        const parts = e.g.split('|');
+        parts[1] = mealOf(e, gSub(old || {})) || next.sub || '';
+        next.g = parts.join('|');
+      }
+      if (next.sub === e.sub && next.g === e.g) continue;
+      put(books, col, next, now);
+      out.n++;
+    }
+  // 三餐's own settings: a way to pay goes to each meal that has none; then it goes.
+  const mine = books.cats?.['food:meals'];
+  if (mine && !mine.del) {
+    if (mine.pay?.a)
+      for (const id of ['food:breakfast', 'food:lunch', 'food:dinner']) {
+        const there = books.cats[id] && !books.cats[id].del ? books.cats[id] : null;
+        if (!there?.pay?.a) put(books, 'cats', { ...(there || {}), id, pay: mine.pay }, now);
+      }
+    drop(books, 'cats', 'food:meals', now);
+    out.n++;
+  }
+  useBooksCats(books);
+  return out;
 }

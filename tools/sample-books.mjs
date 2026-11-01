@@ -18,14 +18,14 @@ acct('a6', 'LINE Points', 'wallet', 320, { brand: 'linepoints' });
 put(b, 'cards', { id: 'c1', acct: 'a1', name: '玉山 Debit', last4: '4821', net: 'mastercard' }, now);
 put(b, 'cards', { id: 'c2', acct: 'a3', name: 'Apple Pay' }, now);
 acct('a7', 'JCB 卡', 'credit', 0, { net: 'jcb', pay: 'a1' });
-const spend = [['food', 120, '', 'food:meals'], ['food', 65, '路易莎', 'food:drink'], ['transport', 30, '', 'transport:ride'], ['food', 180, '', 'food:meals'], ['shop', 420, '全聯', 'shop:daily'], ['shop', 990, 'Uniqlo', 'shop:style'], ['fun', 320, '威秀', 'fun:leisure']];
+const spend = [['food', 120, '', 'food:lunch'], ['food', 65, '路易莎', 'food:drink'], ['transport', 30, '', 'transport:ride'], ['food', 180, '', 'food:lunch'], ['shop', 420, '全聯', 'shop:daily'], ['shop', 990, 'Uniqlo', 'shop:style'], ['fun', 320, '威秀', 'fun:leisure']];
 let n = 0;
 for (let i = 0; i < 26; i++) {
   const d = addDays(day, -i);
   for (let j = 0; j < (i % 3) + 1; j++) {
     const [cat, amt, note, sub] = spend[(i + j) % spend.length];
     const a = ['cash', 'a3', 'a2', 'a1'][(i + j) % 4];
-    put(b, 'entries', { id: `e${n++}`, d, k: 'out', amt: amt + (sub === 'food:meals' ? (i % 2) * 14 : (i * 7) % 40), cat, sub, note, a, via: a === 'a1' ? 'c1' : '', to: '', t: now - i * 86_400_000 + j }, now);
+    put(b, 'entries', { id: `e${n++}`, d, k: 'out', amt: amt + (sub === 'food:lunch' ? (i % 2) * 14 : (i * 7) % 40), cat, sub, note, a, via: a === 'a1' ? 'c1' : '', to: '', t: now - i * 86_400_000 + j }, now);
   }
 }
 put(b, 'entries', { id: 'e-sal', d: addDays(day, -20), k: 'in', amt: 52000, cat: 'salary', note: '十月薪水', a: 'a1', via: '', to: '', t: now }, now);
@@ -56,7 +56,7 @@ put(b, 'entries', { id: 'x-ref', d: day, k: 'back', why: 'refund', of: 'e5', amt
 for (let m = 1; m <= 4; m++) {
   const d = addDays(day, -30 * m);
   put(b, 'entries', { id: `h-sal-${m}`, d: addDays(d, -5), k: 'in', amt: 52000, cat: 'salary', note: '薪水', a: 'a1', via: '', to: '', t: now }, now);
-  put(b, 'entries', { id: `h-food-${m}`, d, k: 'out', amt: 5200 + m * 430, cat: 'food', sub: 'food:meals', note: '', a: 'cash', via: '', to: '', t: now }, now);
+  put(b, 'entries', { id: `h-food-${m}`, d, k: 'out', amt: 5200 + m * 430, cat: 'food', sub: 'food:lunch', note: '', a: 'cash', via: '', to: '', t: now }, now);
   put(b, 'entries', { id: `h-shop-${m}`, d: addDays(d, 3), k: 'out', amt: 3100 + ((m * 977) % 2400), cat: 'shop', sub: 'shop:online', note: '蝦皮', a: 'a3', via: '', to: '', t: now }, now);
   put(b, 'entries', { id: `h-tr-${m}`, d: addDays(d, 1), k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', note: '', a: 'a1', via: 'c1', to: '', t: now }, now);
   put(b, 'entries', { id: `r-rent-${addDays(d, -3)}`, d: addDays(d, -3), k: 'out', amt: 8000, cat: 'home', sub: 'home:rent', note: '房租', a: 'a1', via: '', to: '', t: now }, now);
