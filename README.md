@@ -13,7 +13,7 @@
   <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-ES_modules-F7DF1E?logo=javascript&logoColor=000"> <img alt="PWA" src="https://img.shields.io/badge/PWA-works_offline-5A0FC8?logo=pwa&logoColor=fff"> <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=fff"> <img alt="Tests" src="https://img.shields.io/badge/Tests-node_--test-339933?logo=nodedotjs&logoColor=fff">
 </p>
 
-Your own books for real money: what you spend each day, what each account holds, and any receipt logged from a photo. Part of **Orbit**, a family of phone apps for life in Taiwan that share one sign-in, the Orbit Pass. See them all at [orbit.jaypengx.com](https://orbit.jaypengx.com/pass/).
+Your own books for real money: what you spend each day, what each account holds, and any receipt logged from a photo. Part of **Orbit**, a family of apps for life in Taiwan that share one sign-in, the Orbit Pass. See them all at [orbit.jaypengx.com](https://orbit.jaypengx.com/pass/).
 
 <p align="center">
   <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month on a calendar">
@@ -37,6 +37,7 @@ Your own books for real money: what you spend each day, what each account holds,
 - **記一筆 Entries:** guesses the kind, category, sub-category and way to pay from your own entries most like now (the hour, the weekday, today's), with the usual amounts one tap away; spending, income, moves between your own accounts, balance fixes and repeats added on their day.
 - **Categories:** one broad set of twelve (餐飲, 交通, 購物, 居住, 娛樂, 數位, 醫療, 學習, 人情, 家人, 稅費, 其他), each with two to four subs; yours to rename, hide, add or merge in 更多 › 分類.
 - **Syncs** between devices through the Orbit Pass, record by record.
+- **Every screen, either way up:** 月曆's month beside the day's entries, 帳戶 and 統計 in two or three columns, 更多's tools as a grid of cards.
 
 ## Tech stack
 
