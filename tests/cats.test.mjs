@@ -9,15 +9,16 @@ const T = Date.UTC(2026, 9, 27);
 function sample() {
   const b = B.emptyBooks();
   B.put(b, 'entries', { id: 'e1', d: '2026-10-01', k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', a: 'cash' }, T);
-  B.put(b, 'entries', { id: 'e2', d: '2026-10-02', k: 'out', amt: 90, cat: 'drink', sub: 'drink:tea', a: 'cash' }, T);
-  B.put(b, 'budgets', { id: 'b-drink', cat: 'drink', amt: 1000 }, T);
+  B.put(b, 'entries', { id: 'e2', d: '2026-10-02', k: 'out', amt: 90, cat: 'fun', sub: 'fun:leisure', a: 'cash' }, T);
+  B.put(b, 'budgets', { id: 'b-fun', cat: 'fun', amt: 1000 }, T);
   return b;
 }
 
 test('the defaults: TPASS under 交通, meals under 餐飲', () => {
   C.useCats({});
   assert.ok(C.subsOf('transport').some(s => s.zh === 'TPASS'));
-  assert.deepEqual(C.subsOf('food').slice(0, 3).map(s => s.zh), ['早餐', '午餐', '晚餐']);
+  assert.deepEqual(C.subsOf('food').map(s => s.zh), ['三餐', '飲料點心', '聚餐']);
+  assert.equal(C.catList('out').length, 12);
   assert.equal(C.subOf('transport:tpass').parent, 'transport');
   assert.equal(C.catOf('nope').id, 'other');
 });
@@ -25,15 +26,15 @@ test('the defaults: TPASS under 交通, meals under 餐飲', () => {
 test('rename, hide and reorder are the person’s own, the built-in kept', () => {
   const b = sample();
   C.saveCat(b, { id: 'food', zh: '吃飯' }, T);
-  C.saveCat(b, { id: 'pet', hidden: true }, T);
-  C.moveCat(b, 'drink', -1, T);
+  C.saveCat(b, { id: 'family', hidden: true }, T);
+  C.moveCat(b, 'transport', -1, T);
   C.useCats(b.cats);
   const list = C.catList('out').map(c => c.id);
   assert.equal(C.catOf('food').zh, '吃飯');
-  assert.ok(!list.includes('pet'));
-  assert.ok(C.catList('out', { all: true }).some(c => c.id === 'pet'));
-  assert.deepEqual(list.slice(0, 2), ['drink', 'food']);
-  assert.equal(C.catOf('pet').zh, '寵物');
+  assert.ok(!list.includes('family'));
+  assert.ok(C.catList('out', { all: true }).some(c => c.id === 'family'));
+  assert.deepEqual(list.slice(0, 2), ['transport', 'food']);
+  assert.equal(C.catOf('family').zh, '家人');
 });
 
 test('a new category and sub, removed while unused', () => {
@@ -51,14 +52,14 @@ test('a new category and sub, removed while unused', () => {
 
 test('one with history can’t just go: merged, its entries move', () => {
   const b = sample();
-  assert.equal(C.removeCat(b, 'drink', T), false);
-  assert.ok(C.mergeCat(b, 'drink', 'food', T + 1));
+  assert.equal(C.removeCat(b, 'fun', T), false);
+  assert.ok(C.mergeCat(b, 'fun', 'food', T + 1));
   C.useCats(b.cats);
   assert.equal(b.entries.e2.cat, 'food');
-  assert.equal(b.entries.e2.sub, 'drink:tea');
-  assert.equal(C.subOf('drink:tea').parent, 'food');
-  assert.ok(b.budgets['b-drink'].del);
-  assert.ok(!C.catList('out').some(c => c.id === 'drink'));
+  assert.equal(b.entries.e2.sub, 'fun:leisure');
+  assert.equal(C.subOf('fun:leisure').parent, 'food');
+  assert.ok(b.budgets['b-fun'].del);
+  assert.ok(!C.catList('out').some(c => c.id === 'fun'));
   // A sub into its parent: the entry keeps the category, the sub let go.
   assert.ok(C.mergeCat(b, 'transport:tpass', 'transport', T + 2));
   assert.equal(b.entries.e1.cat, 'transport');
@@ -77,24 +78,24 @@ test('the changes travel with the books', async () => {
 test('a merge undone puts every record back', () => {
   const b = sample();
   const undo = C.catUndo(b);
-  C.mergeCat(b, 'drink', 'food', T + 1);
+  C.mergeCat(b, 'fun', 'food', T + 1);
   undo(T + 2);
   C.useCats(b.cats);
-  assert.equal(b.entries.e2.cat, 'drink');
-  assert.ok(!b.budgets['b-drink'].del);
-  assert.equal(C.subOf('drink:tea').parent, 'drink');
-  assert.ok(C.catList('out').some(c => c.id === 'drink'));
+  assert.equal(b.entries.e2.cat, 'fun');
+  assert.ok(!b.budgets['b-fun'].del);
+  assert.equal(C.subOf('fun:leisure').parent, 'fun');
+  assert.ok(C.catList('out').some(c => c.id === 'fun'));
 });
 
 test('what a pick fills in: nothing until set, a sub’s own over its category’s', () => {
   const b = sample();
   C.useCats(b.cats);
-  assert.deepEqual(C.defaultsOf('transport', 'transport:youbike'), { pay: null, amt: 0, unit: 0 });
+  assert.deepEqual(C.defaultsOf('transport', 'transport:ride'), { pay: null, amt: 0, unit: 0 });
   C.saveCat(b, { id: 'transport', pay: { a: 'bank', via: '' } }, T);
-  C.saveCat(b, { id: 'transport:youbike', pay: { a: 'card', via: '' }, unit: 5 }, T);
+  C.saveCat(b, { id: 'transport:ride', pay: { a: 'card', via: '' }, unit: 5 }, T);
   C.saveCat(b, { id: 'transport:tpass', amt: 1200 }, T);
   C.useCats(b.cats);
-  assert.deepEqual(C.defaultsOf('transport', 'transport:youbike'), { pay: { a: 'card', via: '' }, unit: 5, amt: 0 });
+  assert.deepEqual(C.defaultsOf('transport', 'transport:ride'), { pay: { a: 'card', via: '' }, unit: 5, amt: 0 });
   assert.deepEqual(C.defaultsOf('transport', 'transport:tpass'), { pay: { a: 'bank', via: '' }, amt: 1200, unit: 0 });
   assert.deepEqual(C.defaultsOf('transport', ''), { pay: { a: 'bank', via: '' }, amt: 0, unit: 0 });
 });
@@ -105,6 +106,7 @@ test('訂閱 and 遊戲 moved to 數位: entries, repeats and the person’s own
   B.put(b, 'recur', { id: 'n', k: 'out', amt: 390, cat: 'fun', sub: 'fun:subs', a: 'cash', every: 'month', day: 5, from: '2026-10-05' }, T);
   C.saveCat(b, { id: 'fun:subs', zh: '串流', amt: 390 }, T);
   C.saveCat(b, { id: 'refund', hidden: true }, T);
+  b.opt = { ...b.opt, cats12: 1 };
   assert.equal(C.upgradeCats(b, T + 1), 6);
   assert.equal(b.entries.g.cat, 'digital');
   assert.equal(b.entries.g.sub, 'digital:games');
@@ -134,7 +136,7 @@ test('數位 has four broad subs (Jay 2026-10-31): a project’s upkeep together
   B.put(b, 'entries', { id: 'a', d: '2026-10-01', k: 'out', amt: 90, cat: 'digital', sub: 'digital:apps', note: 'Notion' }, 1);
   B.put(b, 'entries', { id: 'g', d: '2026-10-01', k: 'out', amt: 30, cat: 'digital', sub: 'digital:cloud', note: 'Google One' }, 1);
   B.put(b, 'entries', { id: 't', d: '2026-10-01', k: 'out', amt: 300, cat: 'digital', sub: 'digital:cloud', note: 'TDX' }, 1);
-  b.opt = { ...b.opt, dig2: 1 };
+  b.opt = { ...b.opt, dig2: 1, cats12: 1 };
   C.upgradeCats(b, 2);
   assert.equal(b.entries.a.sub, 'digital:ai');
   assert.equal(b.entries.g.sub, 'digital:ai');
@@ -142,61 +144,89 @@ test('數位 has four broad subs (Jay 2026-10-31): a project’s upkeep together
 });
 
 
-test('presets: a slimmer set for a kind of person, nothing logged moves, a change becomes the person’s own', () => {
-  const b = sample();
-  C.saveCat(b, { id: 'pet', hidden: true }, T);
-  assert.equal(C.presetOf(b), 'mine');
-  C.usePreset(b, 'student');
-  assert.equal(C.presetOf(b), 'student');
-  const out = C.catList('out').map(c => c.id);
-  assert.ok(out.includes('learn') && out.includes('transport') && out.includes('daily') && out.includes('health') && !out.includes('home') && !out.includes('kids'));
-  assert.ok(C.subsOf('daily').some(s => s.zh === '文具'));
-  assert.equal(out.length, 11);
-  assert.ok(!C.subsOf('transport').some(s => s.id === 'transport:taxi'));
-  assert.deepEqual(C.catList('in').map(c => c.id).slice(0, 2), ['allowance', 'redenv']);
-  // A hidden one still names its history, and the person's own record is untouched.
-  assert.equal(C.catOf('home').id, 'home');
-  assert.equal(b.cats.pet.hidden, true);
-  assert.equal(b.cats.home, undefined);
-  assert.equal(b.entries.e1.cat, 'transport');
-  // A new entry's default skips what the set hides; a guess too.
-  assert.equal(C.shownCat('in', 'salary'), 'allowance');
-  assert.equal(C.guessCat('全聯福利中心'), 'daily');
-  assert.equal(C.guessSub('daily', '小明文具店'), 'daily:stationery');
-  assert.equal(C.guessCat('台塑石化 加油站'), '');
-  // Back to 「我的」: their own set, exactly.
-  C.usePreset(b, 'mine');
-  assert.equal(C.presetOf(b), 'mine');
-  assert.ok(C.catList('out').some(c => c.id === 'home') && !C.catList('out').some(c => c.id === 'pet'));
-  // A change under a preset writes the preset down as theirs first.
-  C.usePreset(b, 'worker');
-  assert.ok(C.ownPreset(b, T + 1));
-  C.saveCat(b, { id: 'learn', hidden: false }, T + 1);
+test('the twelve (Jay 2026-11-01): what was logged under the old set moves once, nothing else changes', () => {
+  const b = B.emptyBooks();
+  const e = (id, cat, sub, more = {}) => B.put(b, 'entries', { id, d: '2026-10-01', k: 'out', amt: 100, cat, sub, a: 'cash', note: '', ...more }, T);
+  e('bf', 'food', 'food:breakfast', { g: 'food|food:lunch|cash||0' });
+  e('sn', 'food', 'food:snack');
+  e('tea', 'drink', 'drink:tea');
+  e('dr', 'drink', '');
+  e('yb', 'transport', 'transport:youbike');
+  e('hsr', 'transport', 'transport:thsr');
+  e('tp', 'transport', 'transport:tpass');
+  e('gas', 'car', 'car:fuel');
+  e('px', 'daily', 'daily:grocery');
+  e('ol', 'shop', 'shop:online', { note: 'Uniqlo' });
+  e('ol2', 'shop', 'shop:online', { note: '蝦皮' });
+  e('pw', 'bills', '');
+  e('mob', 'phone', 'phone:mobile');
+  e('mv', 'fun', 'fun:ktv');
+  e('tr', 'travel', 'travel:stay');
+  e('ins', 'insure', '');
+  e('pet', 'pet', '');
+  e('den', 'health', 'health:dental');
+  B.put(b, 'entries', { id: 'pz', d: '2026-10-01', k: 'in', amt: 200, cat: 'prize', a: 'cash' }, T);
+  B.put(b, 'recur', { id: 'r', k: 'out', amt: 499, cat: 'phone', sub: 'phone:net', a: 'cash', every: 'month', day: 5, from: '2026-10-05' }, T);
+  B.put(b, 'budgets', { id: 'bf', cat: 'food', amt: 6000 }, T);
+  B.put(b, 'budgets', { id: 'bd', cat: 'drink', amt: 1500 }, T);
+  B.put(b, 'budgets', { id: 'bc', cat: 'car', amt: 2000 }, T);
+  C.saveCat(b, { id: 'transport:youbike', pay: { a: 'easy', via: '' }, unit: 5 }, T);
+  C.saveCat(b, { id: 'home', hidden: true, order: 9 }, T);
+  const mine = C.addCat(b, { k: 'out', parent: 'drink', zh: '咖啡豆' }, T);
+  e('bean', 'drink', mine.id);
+  b.opt = { ...b.opt, preset: 'student', picked: 1 };
+  C.upgradeCats(b, T + 1);
   C.useBooksCats(b);
-  assert.equal(C.presetOf(b), 'mine');
-  const mine = C.catList('out').map(c => c.id);
-  assert.ok(mine.includes('learn') && mine.includes('bills') && !mine.includes('insure') && !mine.includes('kids') && !mine.includes('pet'));
-  assert.equal(C.ownPreset(b, T + 2), false);
+  const at = id => `${b.entries[id].cat} ${b.entries[id].sub}`;
+  assert.equal(at('bf'), 'food food:meals');
+  assert.equal(b.entries.bf.g, 'food|food:meals|cash||0');
+  assert.equal(at('sn'), 'food food:drink');
+  assert.equal(at('tea'), 'food food:drink');
+  assert.equal(at('dr'), 'food food:drink');
+  assert.equal(at('yb'), 'transport transport:ride');
+  assert.equal(at('hsr'), 'transport transport:long');
+  assert.equal(at('tp'), 'transport transport:tpass');
+  assert.equal(at('gas'), 'transport transport:car');
+  assert.equal(at('px'), 'shop shop:daily');
+  assert.equal(at('ol'), 'shop shop:style');
+  assert.equal(at('ol2'), 'shop ');
+  assert.equal(at('pw'), 'home home:bills');
+  assert.equal(at('mob'), 'home home:net');
+  assert.equal(at('mv'), 'fun fun:leisure');
+  assert.equal(at('tr'), 'fun fun:travel');
+  assert.equal(at('ins'), 'health health:insure');
+  assert.equal(at('pet'), 'family family:pet');
+  assert.equal(at('den'), 'health health:clinic');
+  assert.equal(b.entries.pz.cat, 'otherin');
+  assert.equal(b.recur.r.sub, 'home:net');
+  assert.equal(b.entries.bf.amt, 100);
+  // Budgets of two that became one add up; one alone just moves.
+  assert.equal(B.live(b.budgets).find(x => x.cat === 'food').amt, 7500);
+  assert.equal(B.live(b.budgets).find(x => x.cat === 'transport').amt, 2000);
+  assert.equal(B.live(b.budgets).length, 2);
+  // YouBike's card goes to 搭車, its NT$5 doesn't; the old record goes.
+  assert.deepEqual(C.defaultsOf('transport', 'transport:ride'), { pay: { a: 'easy', via: '' }, amt: 0, unit: 0 });
+  assert.equal(b.cats['transport:youbike'].del, 1);
+  // The person's own sub goes along with its category; their entry too.
+  assert.equal(C.subOf(mine.id).parent, 'food');
+  assert.equal(at('bean'), `food ${mine.id}`);
+  // One set: no preset, nothing of the old hides.
+  assert.equal(b.opt.preset, undefined);
+  assert.ok(C.catList('out').some(c => c.id === 'home'));
+  assert.equal(C.upgradeCats(b, T + 2), 0);
   C.useCats({});
 });
 
-test('presets: new books show everything until one is picked', () => {
-  const b = B.emptyBooks();
-  assert.equal(C.presetOf(b), 'all');
-  C.usePreset(b, 'family');
-  assert.ok(C.catList('out').some(c => c.id === 'kids'));
-  assert.equal(C.presetCats(b, 'all', 'out').length, C.OUT.length);
-  assert.ok(C.catList('out').length < C.OUT.length);
+test('guesses in the twelve', () => {
   C.useCats({});
-});
-
-test('presets: the student set keeps 零用錢 first, also once it is the person’s own', () => {
-  const b = B.emptyBooks();
-  C.usePreset(b, 'student');
-  assert.equal(C.catList('in')[0].id, 'allowance');
-  C.ownPreset(b, T);
-  C.useBooksCats(b);
-  assert.equal(C.catList('in')[0].id, 'allowance');
-  assert.equal(C.catList('out').length, Object.keys(C.PRESETS[0].out).length);
-  C.useCats({});
+  assert.equal(C.guessCat('全聯福利中心'), 'shop');
+  assert.equal(C.guessSub('shop', '全聯福利中心'), 'shop:daily');
+  assert.equal(C.guessCat('台塑石化 加油站'), 'transport');
+  assert.equal(C.guessSub('transport', '台塑石化 加油站'), 'transport:car');
+  assert.equal(C.guessSub('transport', '台灣高鐵'), 'transport:long');
+  assert.equal(C.guessCat('路易莎咖啡'), 'food');
+  assert.equal(C.guessSub('food', '路易莎咖啡'), 'food:drink');
+  assert.equal(C.guessSub('food', '', new Date(2026, 9, 1, 12, 30)), 'food:meals');
+  assert.equal(C.guessCat('中華電信'), 'home');
+  assert.equal(C.guessSub('home', '中華電信'), 'home:net');
 });

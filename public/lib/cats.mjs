@@ -29,37 +29,26 @@ export const GLYPHS = {
 };
 const icon = name => GLYPHS[name] || kitIcons[name] || kitIcons.grid;
 
-// Spending. `subs`: the finer kinds most people keep apart (Jay 2026-10-27:
-// 餐飲 into meals, his monthly TPASS under 交通), each picked or not.
+// Spending: twelve broad ones, each with two to four broad subs (Jay
+// 2026-11-01, "one set for everyone": 統計 is built on them, so a sub is a
+// meaningful bucket, never a single shop or line; the old 20 categories and
+// 61 subs, and the presets that hid some of them, went; upgradeCats moves
+// what was logged under them). The person can still add their own.
 const S = (cat, list) => list.map(([key, zh, en]) => ({ id: `${cat}:${key}`, zh, en, parent: cat }));
 export const OUT = [
-  { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['breakfast', '早餐', 'Breakfast'], ['lunch', '午餐', 'Lunch'], ['dinner', '晚餐', 'Dinner'], ['late', '宵夜', 'Late night'], ['snack', '點心', 'Snacks'], ['out', '聚餐', 'Eating out']]) },
-  { id: 'drink', zh: '飲料', en: 'Drinks', icon: 'cup', color: '#ac7f5e', subs: S('drink', [['coffee', '咖啡', 'Coffee'], ['tea', '手搖飲', 'Bubble tea']]) },
-  // (The family's Orbit Transit: TPASS and every way it rides.)
-  { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['mrt', '捷運', 'MRT'], ['bus', '公車', 'Bus'], ['youbike', 'YouBike', 'YouBike'], ['thsr', '高鐵', 'High-speed rail'], ['tra', '台鐵', 'Railway'], ['coach', '客運', 'Coach'], ['taxi', '計程車', 'Taxi']]) },
-  { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55', subs: S('shop', [['clothes', '服飾', 'Clothes'], ['tech', '3C', 'Tech'], ['online', '網購', 'Online'], ['beauty', '美妝', 'Beauty']]) },
-  { id: 'daily', zh: '日用品', en: 'Household', icon: 'basket', color: '#00c3d0', subs: S('daily', [['grocery', '超市', 'Groceries'], ['supplies', '生活用品', 'Supplies'], ['stationery', '文具', 'Stationery']]) },
-  { id: 'home', zh: '居住', en: 'Housing', icon: 'home', color: '#6155f5', subs: S('home', [['rent', '房租', 'Rent'], ['fee', '管理費', 'Building fee'], ['loan', '房貸', 'Mortgage'], ['fix', '修繕', 'Repairs']]) },
-  { id: 'bills', zh: '水電瓦斯', en: 'Utilities', icon: 'bolt', color: '#e3a008', subs: S('bills', [['power', '電費', 'Power'], ['water', '水費', 'Water'], ['gas', '瓦斯', 'Gas']]) },
-  { id: 'phone', zh: '通訊', en: 'Phone', icon: 'phone', color: '#34c759', subs: S('phone', [['mobile', '手機', 'Mobile'], ['net', '網路', 'Internet']]) },
-  { id: 'fun', zh: '娛樂', en: 'Fun', icon: 'tv', color: '#cb30e0', subs: S('fun', [['movie', '電影', 'Movies'], ['show', '展演', 'Shows'], ['ktv', 'KTV', 'KTV']]) },
-  // (Jay 2026-10-27: a domain, Claude Pro, Cloudflare's plan, TDX's quota,
-  // games. Then: what keeps things running and what's for fun are "really
-  // different", so the tools come first and 影音串流 and 遊戲 stand apart;
-  // 統計 shows each sub on its own. `subs` was 訂閱 until then.)
-  // (Jay 2026-10-31: subs had got "too specific" and 統計 is built on them;
-  // TDX, the domain, hosting are all the upkeep of a project he runs. So
-  // four broad ones: 專案維運 what keeps a project running, 工具訂閱 the
-  // tools for oneself (AI, apps, storage), and the two kinds of fun.)
+  { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['meals', '三餐', 'Meals'], ['drink', '飲料點心', 'Drinks & snacks'], ['out', '聚餐', 'Eating out']]) },
+  // (The family's Orbit Transit: TPASS on its own, Jay 2026-10-27.)
+  { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['ride', '搭車', 'Rides'], ['long', '長途', 'Long trips'], ['car', '汽機車', 'Car & scooter']]) },
+  { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55', subs: S('shop', [['style', '服飾美妝', 'Clothes & beauty'], ['tech', '3C 家電', 'Tech'], ['daily', '日用品', 'Household']]) },
+  { id: 'home', zh: '居住', en: 'Housing', icon: 'home', color: '#6155f5', subs: S('home', [['rent', '房租房貸', 'Rent & mortgage'], ['bills', '水電瓦斯', 'Utilities'], ['net', '電信網路', 'Phone & internet'], ['fix', '管理修繕', 'Upkeep']]) },
+  { id: 'fun', zh: '娛樂', en: 'Fun', icon: 'tv', color: '#cb30e0', subs: S('fun', [['leisure', '休閒', 'Going out'], ['travel', '旅遊', 'Travel'], ['sport', '運動', 'Sport']]) },
+  // (Jay 2026-10-31: what keeps a project of his running (TDX, the domain,
+  // hosting) is 專案維運 and stays under 數位; 工具訂閱 the tools for oneself.)
   { id: 'digital', zh: '數位', en: 'Digital', icon: 'cloud', color: '#5e5ce6', subs: S('digital', [['cloud', '專案維運', 'Project upkeep'], ['ai', '工具訂閱', 'Tools'], ['subs', '影音串流', 'Media'], ['games', '遊戲', 'Games']]) },
-  { id: 'health', zh: '醫療', en: 'Health', icon: 'health', color: '#ff383c', subs: S('health', [['clinic', '看診', 'Doctor'], ['meds', '藥品', 'Medicine'], ['dental', '牙醫', 'Dentist']]) },
+  { id: 'health', zh: '醫療', en: 'Health', icon: 'health', color: '#ff383c', subs: S('health', [['clinic', '看診', 'Doctor'], ['meds', '藥品', 'Medicine'], ['insure', '保險', 'Insurance']]) },
   { id: 'learn', zh: '學習', en: 'Learning', icon: 'book', color: '#00c8b3', subs: S('learn', [['books', '書', 'Books'], ['class', '課程', 'Classes']]) },
   { id: 'social', zh: '人情', en: 'Gifts', icon: 'gift', color: '#f59e0b', subs: S('social', [['gift', '禮物', 'Gifts'], ['redenv', '紅包', 'Red envelopes'], ['treat', '請客', 'Treating']]) },
-  { id: 'car', zh: '汽機車', en: 'Vehicle', icon: 'car', color: '#64748b', subs: S('car', [['fuel', '加油', 'Fuel'], ['park', '停車', 'Parking'], ['toll', 'ETC', 'Tolls'], ['service', '保養', 'Service']]) },
-  { id: 'travel', zh: '旅遊', en: 'Travel', icon: 'plane', color: '#0ea5e9', subs: S('travel', [['stay', '住宿', 'Stay'], ['ticket', '機票車票', 'Tickets'], ['tour', '行程', 'Activities']]) },
-  { id: 'pet', zh: '寵物', en: 'Pets', icon: 'paw', color: '#a16207', subs: [] },
-  { id: 'kids', zh: '育兒', en: 'Kids', icon: 'baby', color: '#ec4899', subs: [] },
-  { id: 'insure', zh: '保險', en: 'Insurance', icon: 'shield', color: '#475569', subs: [] },
+  { id: 'family', zh: '家人', en: 'Family', icon: 'user', color: '#ec4899', subs: S('family', [['parents', '孝親', 'Parents'], ['kids', '育兒', 'Kids'], ['pet', '寵物', 'Pets']]) },
   // (手續費: an entry's own fee is counted here, books.mjs FEE.)
   { id: 'tax', zh: '稅費', en: 'Tax & fees', icon: 'bank', color: '#78716c', subs: S('tax', [['fee', '手續費', 'Fees'], ['tax', '稅金', 'Taxes'], ['fine', '罰單', 'Fines']]) },
   { id: 'other', zh: '其他', en: 'Other', icon: 'grid', color: '#8e8e93', subs: [] }
@@ -68,13 +57,12 @@ export const OUT = [
 export const IN = [
   { id: 'salary', zh: '薪水', en: 'Salary', icon: 'wallet', color: '#16a34a', subs: [] },
   { id: 'bonus', zh: '獎金', en: 'Bonus', icon: 'spark', color: '#eab308', subs: [] },
-  { id: 'invest', zh: '投資', en: 'Investing', icon: 'chart', color: '#0d9488', subs: S('invest', [['dividend', '股利', 'Dividends'], ['interest', '利息', 'Interest'], ['gain', '買賣', 'Gains']]) },
   { id: 'side', zh: '兼職', en: 'Side work', icon: 'work', color: '#2563eb', subs: [] },
+  { id: 'invest', zh: '投資', en: 'Investing', icon: 'chart', color: '#0d9488', subs: S('invest', [['dividend', '股利', 'Dividends'], ['interest', '利息', 'Interest'], ['gain', '買賣', 'Gains']]) },
   { id: 'allowance', zh: '零用錢', en: 'Allowance', icon: 'coin', color: '#65a30d', subs: [] },
   { id: 'redenv', zh: '紅包', en: 'Red envelope', icon: 'gift', color: '#dc2626', subs: [] },
   // (No 退款: money back comes off what it was for, Jay 2026-10-27.)
   { id: 'cashback', zh: '回饋', en: 'Cashback', icon: 'star', color: '#0891b2', subs: S('cashback', [['points', '點數', 'Points'], ['cash', '現金回饋', 'Cash back']]) },
-  { id: 'prize', zh: '中獎', en: 'Prize', icon: 'trophy', color: '#f59e0b', subs: [] },
   // A card's 自動加值 paid by nobody in the books (a parent's card): its own, not 其他 (Jay 2026-10-29).
   { id: 'topup', zh: '自動加值', en: 'Auto top-up', icon: 'swap', color: '#0ea5e9', subs: [] },
   { id: 'otherin', zh: '其他', en: 'Other', icon: 'grid', color: '#8e8e93', subs: [] }
@@ -87,85 +75,19 @@ export const ADJ = { id: 'adj', zh: '調整餘額', en: 'Balance fix', icon: 'pe
 // color, order, hidden } }): a built-in's id renames, reorders, hides or
 // moves it; a new id adds one (a sub when it has a parent). app.mjs hands
 // them in before anything is drawn.
-// Under a preset (books.opt.preset) its own set shows instead of the
-// person's hidden ones; their names, looks and subs stand either way.
 let table = BUILT;
-export function useCats(cats, preset = '') {
+export function useCats(cats) {
   table = new Map(BUILT);
   for (const r of Object.values(cats || {})) {
     if (!r || r.del) continue;
     const base = BUILT.get(r.id);
     table.set(r.id, { ...(base || { icon: 'grid', color: '#8e8e93' }), ...r, zh: r.zh || base?.zh || '', en: r.zh || base?.en || '' });
   }
-  const p = PRESETS.find(x => x.id === preset);
-  // (In the preset's own order, the rest after, unless the person set one.)
-  const rank = p && p.id !== 'all' ? [...Object.keys(p.out), ...p.in] : [];
-  if (p) [...table].forEach(([id, c], i) => table.set(id, { ...c, hidden: !inPreset(p, c), order: c.order ?? (p.id === 'all' ? undefined : rank.includes(id) ? rank.indexOf(id) : 100 + i) }));
 }
-export const useBooksCats = books => useCats(books.cats, books.opt?.preset);
+export const useBooksCats = books => useCats(books.cats);
 
-// ---- Presets ----------------------------------------------------------------------
-// (Jay 2026-10-30: too many categories; a set for each kind of person, and
-// what the person changes becomes their own.) A top id with the sub keys
-// it keeps (all of them when none are named); `all` shows everything. A
-// switch only changes what the picker shows: nothing logged moves, and the
-// person's own set (their hidden ones, books.cats) waits under 「我的」.
-export const PRESETS = [
-  {
-    id: 'student', zh: '學生', en: 'Student', icon: 'school',
-    out: { food: ['breakfast', 'lunch', 'dinner', 'snack', 'out'], drink: [], transport: ['tpass', 'mrt', 'bus', 'youbike', 'tra', 'thsr', 'coach'], learn: [], daily: ['supplies', 'stationery'], shop: ['clothes', 'tech', 'online'], health: [], fun: [], digital: [], social: ['gift', 'treat'], other: [] },
-    in: ['allowance', 'redenv', 'side', 'prize', 'cashback', 'topup', 'otherin']
-  },
-  {
-    id: 'worker', zh: '上班族', en: 'Office worker', icon: 'work',
-    out: { food: [], drink: [], transport: [], shop: [], daily: [], home: ['rent', 'fee', 'fix'], bills: [], phone: [], fun: [], digital: [], health: [], social: [], other: [] },
-    in: ['salary', 'bonus', 'invest', 'side', 'redenv', 'cashback', 'prize', 'topup', 'otherin']
-  },
-  {
-    id: 'family', zh: '家庭', en: 'Family', icon: 'home',
-    out: { food: ['breakfast', 'lunch', 'dinner', 'snack', 'out'], daily: [], home: [], bills: [], phone: [], transport: ['mrt', 'bus', 'thsr', 'tra', 'taxi'], car: [], kids: [], learn: [], health: [], insure: [], social: [], other: [] },
-    in: ['salary', 'bonus', 'invest', 'side', 'redenv', 'cashback', 'topup', 'otherin']
-  },
-  { id: 'all', zh: '全部', en: 'Everything', icon: 'grid' }
-];
-function inPreset(p, c) {
-  if (p.id === 'all') return true;
-  if (c.k === 'in') return !c.parent && p.in.includes(c.id);
-  if (!c.parent) return Boolean(p.out[c.id]);
-  const keep = p.out[c.parent];
-  return Boolean(keep) && (!keep.length || keep.includes(c.id.slice(c.parent.length + 1)));
-}
-// Which set is in use: a preset's id, 'mine' (the person's own changes), or
-// 'all' when nothing was ever changed.
-export const presetOf = books => (PRESETS.some(p => p.id === books.opt?.preset) ? books.opt.preset : hasOwn(books) ? 'mine' : 'all');
-// Whether the person's own set differs from showing everything (one hidden, or one of their own).
-export const hasOwn = books => Object.values(books.cats || {}).some(r => r && !r.del && (r.hidden || !BUILT.has(r.id)));
-// Use a preset, or 'mine' to go back to the person's own.
-export function usePreset(books, id) {
-  books.opt = { ...books.opt, preset: id === 'mine' ? '' : id, picked: 1 };
-  useBooksCats(books);
-}
-// Before the person changes what shows (hides, adds, merges): what the preset
-// shows becomes theirs, written down, and 「我的」 is in use from then on.
-export function ownPreset(books, now = Date.now()) {
-  if (!PRESETS.some(p => p.id === books.opt?.preset)) return false;
-  useBooksCats(books);
-  for (const c of table.values()) {
-    const m = mineOf(books, c.id);
-    if (Boolean(m.hidden) !== c.hidden || (c.order != null && m.order !== c.order)) saveCat(books, { id: c.id, hidden: c.hidden, ...(c.order != null ? { order: c.order } : {}) }, now);
-  }
-  usePreset(books, 'mine');
-  return true;
-}
-// What a set would show (the person's own names), the table left as it was.
-export function presetCats(books, id, kind) {
-  useCats(books.cats, id === 'mine' ? '' : id);
-  const list = catList(kind);
-  useBooksCats(books);
-  return list;
-}
 // A picked or guessed category if it shows, else the kind's first that does
-// (one the preset hides isn't offered for a new entry).
+// (a hidden one isn't offered for a new entry).
 export function shownCat(kind, id) {
   const list = catsFor(kind);
   return list.find(c => c.id === id)?.id || list[0]?.id || (kind === 'in' ? 'otherin' : 'other');
@@ -258,7 +180,7 @@ export function catUndo(books) {
   };
 }
 // Choices for a category's look.
-export const CAT_ICONS = ['food', 'cup', 'bus', 'car', 'bag', 'basket', 'home', 'bolt', 'phone', 'tv', 'health', 'book', 'gift', 'plane', 'paw', 'baby', 'shield', 'bank', 'wallet', 'coin', 'spark', 'chart', 'work', 'trophy', 'swap', 'grid'];
+export const CAT_ICONS = ['food', 'cup', 'bus', 'car', 'bag', 'basket', 'home', 'bolt', 'phone', 'tv', 'health', 'book', 'gift', 'plane', 'paw', 'baby', 'user', 'shield', 'bank', 'wallet', 'coin', 'spark', 'chart', 'work', 'trophy', 'swap', 'grid'];
 export const CAT_COLORS = ['#ff8d28', '#ff383c', '#ff2d55', '#cb30e0', '#6155f5', '#0088ff', '#00c3d0', '#34c759', '#e3a008', '#ac7f5e', '#64748b', '#8e8e93'];
 
 // Gone when nothing uses it (a built-in only ever hidden); false when it has history.
@@ -280,20 +202,15 @@ export const lookOf = e => (e.k === 'move' ? MOVE : e.k === 'adj' ? ADJ : catOf(
 // A spending category from a store's name or an item (an imported 載具
 // invoice): '' when nothing fits, for the caller's own default.
 const GUESS = [
-  ['drink', /咖啡|星巴克|路易莎|cama|85度C|清心|50嵐|迷客夏|可不可|茶湯會|麻古|鮮茶|手搖|飲料|coffee|starbucks|louisa/i],
-  ['transport', /tpass|定期票|月票|youbike|捷運|高鐵|台鐵|臺鐵|鐵路|客運|公車|悠遊卡|一卡通|uber|計程車|台灣大車隊/i],
-  ['car', /加油|中油|台塑石化|全國加油|停車|嘉義汽車|輪胎|機車行|保養/i],
-  ['daily', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市|寶雅|屈臣氏|康是美|小北百貨|日藥本舖/i],
-  ['health', /藥局|藥房|醫院|診所|牙醫|醫療|大樹藥|丁丁藥/i],
-  ['phone', /中華電信|台灣大哥大|遠傳|台灣之星|亞太電信|電信/i],
-  ['bills', /台灣電力|台電|自來水|瓦斯|天然氣/i],
-  ['daily', /文具|文化用品/],
+  ['food', /咖啡|星巴克|路易莎|cama|85度C|清心|50嵐|迷客夏|可不可|茶湯會|麻古|鮮茶|手搖|飲料|coffee|starbucks|louisa/i],
+  ['transport', /tpass|定期票|月票|youbike|捷運|高鐵|台鐵|臺鐵|鐵路|客運|公車|悠遊卡|一卡通|uber|計程車|台灣大車隊|加油|中油|台塑石化|全國加油|停車|輪胎|機車行|保養|遠通電收/i],
+  ['shop', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市|寶雅|屈臣氏|康是美|小北百貨|日藥本舖|文具|文化用品/i],
+  ['health', /藥局|藥房|醫院|診所|牙醫|醫療|大樹藥|丁丁藥|保險|人壽|產險/i],
+  ['home', /中華電信|台灣大哥大|遠傳|台灣之星|亞太電信|電信|台灣電力|台電|自來水|瓦斯|天然氣|房租|租金|管理費|房貸/i],
   ['learn', /書店|誠品|博客來|金石堂|補習/i],
   ['digital', /cloudflare|anthropic|claude|openai|chatgpt|gemini|github|google one|icloud|netflix|spotify|youtube premium|disney\+|kkbox|app store|apple\.com\/bill|google play|steam|playstation|nintendo|xbox|epic games|網域|tdx/i],
-  ['fun', /影城|威秀|秀泰|電影|ktv|錢櫃|好樂迪|遊樂/i],
-  ['home', /房租|租金|管理費|房貸/],
-  ['pet', /寵物|動物醫院|毛孩/i],
-  ['travel', /飯店|酒店|旅館|旅行社|民宿|航空|機場|booking|agoda|airbnb/i],
+  ['fun', /影城|威秀|秀泰|電影|ktv|錢櫃|好樂迪|遊樂|飯店|酒店|旅館|旅行社|民宿|航空|機場|booking|agoda|airbnb|健身|運動中心/i],
+  ['family', /寵物|動物醫院|毛孩|孝親/i],
   ['shop', /momo|蝦皮|shopee|pchome|uniqlo|zara|h&m|無印良品|百貨|新光三越|遠東|sogo|3c|燦坤|全國電子|順發|apple|小米/i],
   ['food', /便利商店|統一超商|7-?eleven|全家|萊爾富|ok超商|ok便利|麥當勞|肯德基|摩斯|漢堡|餐|麵|飯|食|小吃|便當|鍋|燒肉|壽司|拉麵|早午餐|吃/i]
 ];
@@ -304,34 +221,36 @@ export function guessCat(text) {
 }
 // The finer kind too, where the words say it ('' when not, or when the person hid it).
 const SUB_GUESS = [
-  ['drink:coffee', /咖啡|星巴克|路易莎|cama|coffee|starbucks|louisa/i],
-  ['drink:tea', /50嵐|清心|迷客夏|可不可|茶湯會|麻古|鮮茶|手搖/],
+  ['food:drink', /咖啡|星巴克|路易莎|cama|coffee|starbucks|louisa|50嵐|清心|迷客夏|可不可|茶湯會|麻古|鮮茶|手搖|飲料|甜點|蛋糕|麵包/i],
   ['transport:tpass', /tpass|定期票|月票/i],
-  ['transport:thsr', /高鐵/],
-  ['transport:tra', /台鐵|臺鐵/],
-  ['transport:mrt', /捷運/],
-  ['transport:youbike', /youbike|微笑單車/i],
-  ['transport:coach', /客運|國光|統聯|和欣/],
-  ['transport:taxi', /uber|計程車|大車隊|55688|yoxi/i],
-  ['car:fuel', /加油|中油|台塑石化/],
-  ['car:park', /停車/],
-  ['daily:stationery', /文具|文化用品/],
-  ['daily:grocery', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市/i],
+  ['transport:long', /高鐵|台鐵|臺鐵|客運|國光|統聯|和欣/],
+  ['transport:car', /加油|中油|台塑石化|停車|輪胎|機車行|保養|遠通電收|\betc\b/i],
+  ['transport:ride', /捷運|公車|youbike|微笑單車|uber|計程車|大車隊|55688|yoxi/i],
+  ['shop:daily', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市|寶雅|小北百貨|文具|文化用品|生活用品/i],
+  ['shop:style', /uniqlo|zara|h&m|\bgu\b|net服飾|服飾|美妝|化妝|屈臣氏|康是美|日藥本舖/i],
+  ['shop:tech', /3c|燦坤|全國電子|順發|apple store|小米|光華/i],
   ['digital:cloud', /cloudflare|github|aws|google cloud|gcp|azure|vercel|netlify|render\.com|fly\.io|heroku|digitalocean|linode|godaddy|namecheap|gandi|porkbun|網域|域名|domain|主機|hosting|tdx|\bapi\b/i],
   ['digital:ai', /anthropic|claude|openai|chatgpt|gemini|perplexity|midjourney|notion|adobe|microsoft 365|office 365|icloud|google one|dropbox|onedrive|雲端硬碟|app store|google play|apple\.com\/bill/i],
   ['digital:games', /steam|playstation|nintendo|xbox|epic games|遊戲|點數卡|mycard|gash/i],
   ['digital:subs', /netflix|spotify|youtube|disney|apple music|apple tv|kkbox|friday|catchplay|hbo|動畫瘋|愛奇藝|iqiyi/i],
-  ['fun:ktv', /ktv|錢櫃|好樂迪/i],
-  ['shop:online', /momo|蝦皮|shopee|pchome|博客來/i],
-  ['home:rent', /房租|租金/],
-  ['home:fee', /管理費/],
-  ['home:loan', /房貸/],
-  ['bills:power', /台灣電力|台電/],
-  ['bills:water', /自來水/],
-  ['bills:gas', /瓦斯|天然氣/]
+  ['fun:leisure', /ktv|錢櫃|好樂迪|影城|威秀|秀泰|電影|展覽|演唱會|kktix|拓元|年代售票/i],
+  ['fun:travel', /飯店|酒店|旅館|旅行社|民宿|航空|機場|booking|agoda|airbnb|機票/i],
+  ['fun:sport', /健身|運動中心|游泳|球場|\bgym\b/i],
+  ['home:rent', /房租|租金|房貸/],
+  ['home:fix', /管理費|修繕|水電行/],
+  ['home:bills', /台灣電力|台電|自來水|瓦斯|天然氣/],
+  ['home:net', /中華電信|台灣大哥大|遠傳|台灣之星|亞太電信|電信|寬頻/],
+  ['health:meds', /藥局|藥房|大樹藥|丁丁藥/],
+  ['health:clinic', /醫院|診所|牙醫/],
+  ['health:insure', /保險|保費|人壽|產險/],
+  ['learn:books', /書店|誠品|博客來|金石堂/],
+  ['learn:class', /補習|課程|學費/],
+  ['family:pet', /寵物|動物醫院|毛孩/],
+  ['family:parents', /孝親/]
 ];
-// A meal by the hour it's eaten (a new entry for today under 餐飲).
-const MEAL = h => (h < 4 ? 'late' : h < 10.5 ? 'breakfast' : h < 14.5 ? 'lunch' : h < 17 ? 'snack' : h < 21 ? 'dinner' : 'late');
+// A meal by the hour it's eaten (a new entry for today under 餐飲): the
+// afternoon's is 飲料點心, the rest 三餐.
+const MEAL = h => (h >= 14.5 && h < 17 ? 'drink' : 'meals');
 export function guessSub(cat, text = '', at = null) {
   const s = String(text || '');
   const hit = SUB_GUESS.find(([id, re]) => id.startsWith(`${cat}:`) && re.test(s))?.[0] || (cat === 'food' && at ? `food:${MEAL(at.getHours() + at.getMinutes() / 60)}` : '');
@@ -376,9 +295,107 @@ export function upgradeCats(books, now = Date.now()) {
     drop(books, 'cats', from, now);
     n++;
   }
+  n += broadCats(books, now);
   if (books.cats?.refund && !books.cats.refund.del) drop(books, 'cats', 'refund', now), n++;
   if (split) (books.opt ||= {}).dig2 = 1, n++;
   if (broad) (books.opt ||= {}).dig3 = 1, n++;
   if (n) useBooksCats(books);
   return n;
+}
+
+// ---- The twelve (2026-11-01) ------------------------------------------------------------
+// Jay picked one broad set for everyone: what was logged under the old 20
+// categories and 61 subs moves into the twelve, once (books.opt.cats12), in
+// the books themselves; amounts, days and notes stay as they were. Entries,
+// repeats, reminders and money back move; budgets of two that became one add
+// up; a sub the person made goes along with its category; the presets' hides
+// and orders on the built-ins are let go (one set, all of it shown).
+const OLD_TOP = { drink: 'food', daily: 'shop', bills: 'home', phone: 'home', car: 'transport', travel: 'fun', insure: 'health', pet: 'family', kids: 'family', prize: 'otherin' };
+// An old top logged with no sub lands on this sub.
+const OLD_TOP_SUB = { drink: 'food:drink', daily: 'shop:daily', bills: 'home:bills', phone: 'home:net', car: 'transport:car', travel: 'fun:travel', insure: 'health:insure', pet: 'family:pet', kids: 'family:kids' };
+// Old built-in subs: the new one ('' = just the category; 網購 by what the words say).
+const OLD_SUB = {
+  'food:breakfast': 'food:meals', 'food:lunch': 'food:meals', 'food:dinner': 'food:meals', 'food:late': 'food:meals', 'food:snack': 'food:drink',
+  'drink:coffee': 'food:drink', 'drink:tea': 'food:drink',
+  'transport:mrt': 'transport:ride', 'transport:bus': 'transport:ride', 'transport:youbike': 'transport:ride', 'transport:taxi': 'transport:ride',
+  'transport:thsr': 'transport:long', 'transport:tra': 'transport:long', 'transport:coach': 'transport:long',
+  'car:fuel': 'transport:car', 'car:park': 'transport:car', 'car:toll': 'transport:car', 'car:service': 'transport:car',
+  'shop:clothes': 'shop:style', 'shop:beauty': 'shop:style', 'shop:online': '',
+  'daily:grocery': 'shop:daily', 'daily:supplies': 'shop:daily', 'daily:stationery': 'shop:daily',
+  'home:loan': 'home:rent', 'home:fee': 'home:fix',
+  'bills:power': 'home:bills', 'bills:water': 'home:bills', 'bills:gas': 'home:bills',
+  'phone:mobile': 'home:net', 'phone:net': 'home:net',
+  'fun:movie': 'fun:leisure', 'fun:show': 'fun:leisure', 'fun:ktv': 'fun:leisure',
+  'travel:stay': 'fun:travel', 'travel:ticket': 'fun:travel', 'travel:tour': 'fun:travel',
+  'health:dental': 'health:clinic'
+};
+// Where one record's cat and sub go: null when they stay.
+export function movedCat(r, words = '') {
+  const cat = r.cat || '';
+  const sub = r.sub || '';
+  if (sub in OLD_SUB) {
+    let to = OLD_SUB[sub];
+    const top = sub.split(':')[0];
+    if (!to) {
+      const hit = SUB_GUESS.find(([id, re]) => id.startsWith('shop:') && re.test(words));
+      to = hit ? hit[0] : '';
+    }
+    return { cat: to ? to.split(':')[0] : OLD_TOP[top] || top, sub: to };
+  }
+  if (!OLD_TOP[cat]) return null;
+  // (A sub of the person's own goes along under the new category.)
+  if (sub && !sub.startsWith(`${cat}:`)) return { cat: OLD_TOP[cat], sub };
+  return { cat: OLD_TOP[cat], sub: OLD_TOP_SUB[cat] || '' };
+}
+function broadCats(books, now) {
+  if (books.opt?.cats12) return 0;
+  let n = 0;
+  const wordsOf = e => `${e.note || ''} ${e.name || ''} ${e.inv?.seller || ''} ${(e.inv?.items || []).map(x => x.name).join(' ')}`;
+  for (const col of ['entries', 'recur', 'renew'])
+    for (const e of live(books[col] || {})) {
+      const to = movedCat(e, wordsOf(e));
+      // (What 記一筆 had guessed moves the same way, so 智慧帶入's count holds.)
+      const [gc, gs, ...gr] = typeof e.g === 'string' ? e.g.split('|') : [];
+      const gt = gc != null && movedCat({ cat: gc, sub: gs }, wordsOf(e));
+      if (!to && !gt) continue;
+      put(books, col, { ...e, ...(to || {}), ...(gt ? { g: [gt.cat, gt.sub, ...gr].join('|') } : {}) }, now);
+      n++;
+    }
+  // Budgets: one per category, two that became one add up.
+  const kept = {};
+  for (const x of live(books.budgets || {})) {
+    if (!x.cat || !OLD_TOP[x.cat]) continue;
+    const to = OLD_TOP[x.cat];
+    const there = kept[to] || live(books.budgets).find(y => y.cat === to && y.id !== x.id && !y.del);
+    if (there) (kept[to] = put(books, 'budgets', { ...there, amt: (Number(there.amt) || 0) + (Number(x.amt) || 0) }, now)), drop(books, 'budgets', x.id, now);
+    else kept[to] = put(books, 'budgets', { ...x, cat: to }, now);
+    n++;
+  }
+  for (const r of Object.values(books.cats || {})) {
+    if (!r || r.del) continue;
+    // The person's own: a sub of a category that's gone goes with it.
+    const was = r.id in OLD_TOP || r.id in OLD_SUB;
+    if (!BUILT.has(r.id) && !was) {
+      if (r.parent && OLD_TOP[r.parent]) put(books, 'cats', { ...r, parent: OLD_TOP[r.parent] }, now), n++;
+      continue;
+    }
+    if (was) {
+      // An old built-in: its way to pay goes to where its entries went (not a
+      // per-unit price: YouBike's NT$5 isn't every ride's), then it's let go.
+      const to = OLD_SUB[r.id] || OLD_TOP_SUB[r.id] || '';
+      const there = to && books.cats[to] && !books.cats[to].del ? books.cats[to] : null;
+      if (to && r.pay?.a && !there?.pay?.a) put(books, 'cats', { ...(there || {}), id: to, pay: r.pay }, now);
+      drop(books, 'cats', r.id, now);
+      n++;
+      continue;
+    }
+    if (r.hidden || r.order != null) {
+      const { hidden, order, ...rest } = r;
+      put(books, 'cats', rest, now);
+      n++;
+    }
+  }
+  const { preset, ...opt } = books.opt || {};
+  books.opt = { ...opt, cats12: 1, picked: 1 };
+  return n + 1;
 }

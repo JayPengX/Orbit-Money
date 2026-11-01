@@ -22,7 +22,6 @@ import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
 import { renderMore } from './views/more.mjs';
 import { openEntry } from './views/entry.mjs';
-import { openPresets } from './views/cat-edit.mjs';
 
 document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
 const $ = id => document.getElementById(id);
@@ -140,10 +139,7 @@ const tabNav = tabBar({
   // 記一筆: the app's one main thing, its own button beside the tabs, on every tab.
   action: { icon: kitUI.icons.plus, label: W('記一筆', 'Add an entry'), onTap: () => {
     useBooksCats(state.books);
-    const add = () => openEntry({ day: state.tab === 'cal' ? state.day : today() });
-    // (Once: a set of categories for the kind of person first, Jay 2026-10-30.)
-    if (state.books.opt?.picked) add();
-    else openPresets({ first: true, done: add });
+    openEntry({ day: state.tab === 'cal' ? state.day : today() });
   } }
 });
 function showTab(tab) {

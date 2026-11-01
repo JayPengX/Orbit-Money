@@ -331,6 +331,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((touched = true), (f.sub = id), guessPayFor(), applyDefaults(), paintAmount(), paintPay(), paintSubs(), paintWhat()));
     subs.hidden = !list.length;
     subs.style.setProperty('--n', subCols(list.length));
+    subs.classList.toggle('few', list.length <= 4);
     subs.replaceChildren(...list);
   }
   let catsKind = '';

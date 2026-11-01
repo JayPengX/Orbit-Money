@@ -5,13 +5,13 @@
 // 統計), the accounts put away (when there are any), the books as a file.
 import { h, toast, sheet, toggle, tile } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
-import { catList, catName, subOf, catOf, glyph, presetOf } from '../lib/cats.mjs';
+import { catList, catName, subOf, catOf, glyph } from '../lib/cats.mjs';
 import { reminders } from '../lib/renew.mjs';
 import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
 import { state, W, today, acctName, card, allAccounts, saved, columnsHere } from '../shell.mjs';
 import { snap } from './photo.mjs';
-import { openCats, presetName } from './cat-edit.mjs';
+import { openCats } from './cat-edit.mjs';
 import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
 import { openBudgets } from './stats.mjs';
 
@@ -43,7 +43,7 @@ export function renderMore(box) {
     h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('工具', 'Tools') })]),
     h('div', { class: `q-rowcard${wide ? ' mn-tool-grid' : ''}` }, [
       wide ? snapRow : null,
-      tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W(`範本：${presetName(presetOf(state.books))}`, `Set: ${presetName(presetOf(state.books))}`), W(`${cats} 個`, `${cats}`), () => openCats()),
+      tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W('改名、排序、加細項', 'Rename, reorder, add subs'), W(`${cats} 個`, `${cats}`), () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
       tool(glyph('spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('照你的習慣先選好分類和付款', 'Picks what you usually log'), score.of >= 5 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
       // (TPASS, subscriptions, memberships: the soonest one.)

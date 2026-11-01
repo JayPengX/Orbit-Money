@@ -133,7 +133,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-part { display: contents; }
 .mn-entry .mn-part > .q-seg { margin-top: 2px; }
 .mn-amount { display: flex; align-items: center; gap: 8px; min-height: 68px; margin-top: var(--mn-gap); padding: 0 16px 0 12px; border-radius: var(--q-r-card); background: var(--q-surface); }
-.mn-amount-what { display: flex; align-items: center; gap: 10px; flex: none; max-width: 45%; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label-2); font: 500 15px/20px var(--q-font); }
+.mn-amount-what { display: flex; align-items: center; gap: 10px; flex: none; max-width: 52%; min-width: 0; padding: 0; border: 0; background: none; color: var(--q-label-2); font: 500 15px/20px var(--q-font); }
 .mn-amount-what .q-tile { flex: none; width: 44px; height: 44px; border-radius: 13px; }
 .mn-amount-cat { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* (NT$ and the digits on one baseline, the row's middle: line boxes the
@@ -153,6 +153,10 @@ h1, h2, h3, p { margin: 0; }
 .mn-cat { display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0; padding: 6px 0 5px; border: 0; border-radius: var(--q-r-cell); background: none; }
 .mn-subs { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .mn-subs[hidden] { display: none; }
+/* (Four or fewer in one line, each as wide as its name and the room left
+   shared: four-character subs like 飲料點心 or 專案維運 whole at 320.) */
+.mn-subs.few:not([hidden]) { display: flex; }
+.mn-subs.few .mn-subchip { flex: 1 1 auto; padding-inline: 2px; }
 .mn-subchip { min-width: 0; min-height: 32px; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; border: 0; border-radius: 999px; background: var(--q-fill); color: var(--q-label-2); font: 500 14px/32px var(--q-font); white-space: nowrap; }
 .mn-subchip[aria-pressed='true'] { background: color-mix(in srgb, var(--q-accent) 18%, transparent); color: var(--q-label); font-weight: 600; }
 .mn-subsplit { margin-bottom: 12px; }
@@ -516,9 +520,6 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-guess-sheet .mn-switch-row { margin: 0 0 18px; }
 .mn-guess-sheet .q-rowcard { margin: 0 0 16px; }
 /* 分類組合: the set in use lit, a check at its end. */
-.mn-preset-on { display: inline-flex; color: var(--q-accent); }
-.mn-preset-on svg { width: 20px; height: 20px; }
-.mn-presetsheet .mn-hint { margin: 12px 4px 4px; }
 /* 統計's categories: subs folded under their category until it's tapped (Jay 2026-10-31). */
 .mn-catfold::after { transform: rotate(135deg); margin-top: -4px; transition: transform 0.2s; }
 .mn-catfold[aria-expanded='true']::after { transform: rotate(-45deg); margin-top: 4px; }
