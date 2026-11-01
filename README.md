@@ -23,8 +23,7 @@ Your own books for real money: what you spend each day, what each account holds,
 
 <p align="center">
   <img src="docs/screenshots/money-4.webp" width="30%" alt="Where the money went">
-  <img src="docs/screenshots/money-5.webp" width="30%" alt="Every item on the receipt">
-  <img src="docs/screenshots/money-6.webp" width="30%" alt="Invoices checked for prizes">
+  <img src="docs/screenshots/money-5.webp" width="30%" alt="Twelve broad categories">
 </p>
 
 <p align="center"><sub>Screenshots use made-up sample books.</sub></p>
