@@ -61,6 +61,7 @@ export const IN = [
   { id: 'invest', zh: '投資', en: 'Investing', icon: 'chart', color: '#0d9488', subs: S('invest', [['dividend', '股利', 'Dividends'], ['interest', '利息', 'Interest'], ['gain', '買賣', 'Gains']]) },
   { id: 'allowance', zh: '零用錢', en: 'Allowance', icon: 'coin', color: '#65a30d', subs: [] },
   { id: 'redenv', zh: '紅包', en: 'Red envelope', icon: 'gift', color: '#dc2626', subs: [] },
+  { id: 'prize', zh: '中獎', en: 'Prize', icon: 'trophy', color: '#f59e0b', subs: [] },
   // (No 退款: money back comes off what it was for, Jay 2026-10-27.)
   { id: 'cashback', zh: '回饋', en: 'Cashback', icon: 'star', color: '#0891b2', subs: S('cashback', [['points', '點數', 'Points'], ['cash', '現金回饋', 'Cash back']]) },
   // A card's 自動加值 paid by nobody in the books (a parent's card): its own, not 其他 (Jay 2026-10-29).
@@ -311,7 +312,7 @@ export function upgradeCats(books, now = Date.now()) {
 // repeats, reminders and money back move; budgets of two that became one add
 // up; a sub the person made goes along with its category; the presets' hides
 // and orders on the built-ins are let go (one set, all of it shown).
-const OLD_TOP = { drink: 'food', daily: 'shop', bills: 'home', phone: 'home', car: 'transport', travel: 'fun', insure: 'health', pet: 'family', kids: 'family', prize: 'otherin' };
+const OLD_TOP = { drink: 'food', daily: 'shop', bills: 'home', phone: 'home', car: 'transport', travel: 'fun', insure: 'health', pet: 'family', kids: 'family' };
 // An old top logged with no sub lands on this sub.
 const OLD_TOP_SUB = { drink: 'food:drink', daily: 'shop:daily', bills: 'home:bills', phone: 'home:net', car: 'transport:car', travel: 'fun:travel', insure: 'health:insure', pet: 'family:pet', kids: 'family:kids' };
 // Old built-in subs: the new one ('' = just the category; 網購 by what the words say).

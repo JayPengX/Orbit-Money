@@ -38,11 +38,13 @@ export function acctTile(a, size = 40) {
 }
 
 // A sub with its own logo instead of its category's tile: TPASS 行政院通勤月票
-// (its wordmark from tpass.tw), on a white plate (YouBike's went with its sub
-// into 搭車, 2026-11-01). `size`: the tile's.
+// (its wordmark from tpass.tw), on a white plate. YouBike's sub went into 搭車
+// (2026-11-01), so a 搭車 whose note or store says YouBike keeps its wordmark
+// (`text`: the entry's note and store). `size`: the tile's.
 const SUB_LOGO = { 'transport:tpass': 'tpass' };
-export function whatTile(look, sub, size = 40) {
-  const id = SUB_LOGO[sub];
+const YOUBIKE = /youbike|微笑單車/i;
+export function whatTile(look, sub, size = 40, text = '') {
+  const id = SUB_LOGO[sub] || (sub === 'transport:ride' && YOUBIKE.test(text) ? 'youbike' : '');
   const plain = () => tile(glyph(look.icon), look.color);
   return id && LOGOS.has(id) ? img(`./img/brand/${id}.png`, size, plain) : plain();
 }

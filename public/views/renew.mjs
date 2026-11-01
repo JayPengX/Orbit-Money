@@ -17,7 +17,7 @@ const md = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`;
 const cycleName = (n, unit) => (unit === 'year' ? (n === 1 ? W('每年', 'Yearly') : W(`每 ${n} 年`, `Every ${n} years`)) : unit === 'month' ? (n === 1 ? W('每月', 'Monthly') : W(`每 ${n} 個月`, `Every ${n} months`)) : W(`${n} 天`, `${n} days`));
 const linkName = r => (r.sub && subOf(r.sub) ? `${catName(catOf(r.cat), lang)} › ${catName(subOf(r.sub), lang)}` : r.cat ? catName(catOf(r.cat), lang) : '');
 // Its tile: the category it follows (a TPASS its logo), else a bell.
-export const reminderTile = r => (r.cat ? whatTile(catOf(r.cat), r.sub) : tile(icons.bell, '#8e8e93'));
+export const reminderTile = r => (r.cat ? whatTile(catOf(r.cat), r.sub, 40, r.note || r.name || '') : tile(icons.bell, '#8e8e93'));
 
 // 「還有 28 天」 / 「就是今天」 / 「已到期」, and the date in words.
 export function leftText(s) {

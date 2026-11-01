@@ -45,7 +45,7 @@ export function entryRow(e, { day = false, inAcct = false, inCat = false, line =
   const cost = line ? line.amt : e.k === 'out' ? Math.max(0, e.amt - got) + fee : e.amt;
   const amt = e.k === 'in' ? money(e.amt, { sign: true }) : e.k === 'adj' ? money(e.amt, { sign: true }) : money(cost);
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openEntry({ entry: e }) }, [
-    whatTile(look, line?.fee ? '' : fine?.id),
+    whatTile(look, line?.fee ? '' : fine?.id, 40, `${e.note || ''} ${e.inv?.seller || ''}`),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: title }), h('small', {}, [sub, e.inv ? h('i', { class: 'mn-inv-mark', 'aria-label': W('有發票', 'Has invoice'), html: glyph('receipt') }) : null])]),
     h('span', { class: `q-ritem-value num mn-amt ${sign}`, text: amt })
   ]);

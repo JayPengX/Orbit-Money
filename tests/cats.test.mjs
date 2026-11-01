@@ -200,7 +200,7 @@ test('the twelve (Jay 2026-11-01): what was logged under the old set moves once,
   assert.equal(at('ins'), 'health health:insure');
   assert.equal(at('pet'), 'family family:pet');
   assert.equal(at('den'), 'health health:clinic');
-  assert.equal(b.entries.pz.cat, 'otherin');
+  assert.equal(b.entries.pz.cat, 'prize'); // 中獎 stays its own (restored 2026-11-01)
   assert.equal(b.recur.r.sub, 'home:net');
   assert.equal(b.entries.bf.amt, 100);
   // Budgets of two that became one add up; one alone just moves.
