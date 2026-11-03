@@ -1,12 +1,12 @@
 // 分類 (from 更多): the person's own categories. Spending's or income's, each
 // with its subs; a category opens to its name, look and subs. Anything can be
-// renamed, moved up or down, hidden, or merged into another (its history goes
+// renamed, put in order by its grip (the kit's reorder), hidden, or merged into another (its history goes
 // with it, and a merge can be undone); one never used can be deleted. The
 // built-ins are only ever hidden, never lost. One set for everyone (Jay
 // 2026-11-01): no presets.
-import { h, icons, tile, sheet, segmented, menu, toast, tick } from '#kit/ui.mjs';
+import { h, icons, tile, sheet, segmented, menu, toast, tick, grip, reorder } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { catList, catOf, subsOf, subOf, catName, glyph, usesOf, saveCat, addCat, moveCat, mergeCat, removeCat, isBuiltIn, catUndo, useBooksCats, CAT_ICONS, CAT_COLORS } from '../lib/cats.mjs';
+import { catList, catOf, subsOf, subOf, catName, glyph, usesOf, saveCat, addCat, orderCats, mergeCat, removeCat, isBuiltIn, catUndo, useBooksCats, CAT_ICONS, CAT_COLORS } from '../lib/cats.mjs';
 import { state, W, lang, saved, money, acct, card } from '../shell.mjs';
 import { payOptions } from './entry.mjs';
 
@@ -28,6 +28,12 @@ export function openCats(kind = 'out') {
   const s = sheet({ title: W('分類', 'Categories'), detent: 'large', cls: 'mn-catsheet', body: [box], foot });
   const title = s.el.querySelector('.q-sheet-head h2');
 
+  // A card of rows put in order by their grips: the order saved, the page drawn again.
+  const ordered = rows => {
+    const card = h('div', { class: 'q-rowcard' }, rows);
+    reorder(card, { onChange: ids => (orderCats(b, ids), changed(), paint()) });
+    return card;
+  };
   function paint() {
     useBooksCats(b);
     return open ? paintOne(open) : paintList();
@@ -44,13 +50,17 @@ export function openCats(kind = 'out') {
       ],
       { value: k, label: W('種類', 'Kind'), onChange: x => ((k = x), paint()) }
     );
+    // Each opens to its own page; its grip puts it in order (kit reorder).
     const rows = catList(k, { all: true }).map(c =>
-      h('button', { class: `q-ritem chevron mn-row${c.hidden ? ' mn-hiddencat' : ''}`, type: 'button', onclick: () => ((open = c.id), paint()) }, [
-        tile(glyph(c.icon), c.color),
-        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(c, lang) }), h('small', { text: c.hidden ? W('已隱藏', 'Hidden') : subLine(c) })])
+      h('div', { class: `q-ritem mn-row${c.hidden ? ' mn-hiddencat' : ''}`, 'data-q-key': c.id }, [
+        h('button', { class: 'q-row-open', type: 'button', onclick: () => ((open = c.id), paint()) }, [
+          tile(glyph(c.icon), c.color),
+          h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(c, lang) }), h('small', { text: c.hidden ? W('已隱藏', 'Hidden') : subLine(c) })])
+        ]),
+        grip(W(`拖曳排序：${catName(c, lang)}`, `Reorder ${catName(c, lang)}`))
       ])
     );
-    box.replaceChildren(kinds, h('div', { class: 'q-rowcard' }, rows), h('p', { class: 'mn-hint', text: W('細項讓統計分得更細，例如 交通 › TPASS、餐飲 › 午餐。', 'Subs split the stats finer, like Transport › TPASS or Food › Lunch.') }));
+    box.replaceChildren(kinds, ordered(rows), h('p', { class: 'mn-hint', text: W('細項讓統計分得更細，例如 交通 › TPASS、餐飲 › 午餐。', 'Subs split the stats finer, like Transport › TPASS or Food › Lunch.') }));
     foot.replaceChildren(h('button', { class: 'q-btn primary block', type: 'button', onclick: () => newCat() }, [h('span', { html: icons.plus }), W('新增分類', 'New category')]));
   }
   async function newCat() {
@@ -85,9 +95,12 @@ export function openCats(kind = 'out') {
     ]);
     const subs = subsOf(id, { all: true });
     const subRows = subs.map(x =>
-      h('button', { class: `q-ritem mn-row mn-subrow${x.hidden ? ' mn-hiddencat' : ''}`, type: 'button', onclick: e => actions(e.currentTarget, x) }, [
-        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(x, lang) }), x.hidden || defText(x) ? h('small', { text: x.hidden ? W('已隱藏', 'Hidden') : defText(x) }) : null]),
-        h('span', { class: 'mn-more', 'aria-hidden': 'true', text: '⋯' })
+      h('div', { class: `q-ritem mn-row mn-subrow${x.hidden ? ' mn-hiddencat' : ''}`, 'data-q-key': x.id }, [
+        h('button', { class: 'q-row-open', type: 'button', onclick: e => actions(e.currentTarget, x) }, [
+          h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: catName(x, lang) }), x.hidden || defText(x) ? h('small', { text: x.hidden ? W('已隱藏', 'Hidden') : defText(x) }) : null]),
+          h('span', { class: 'mn-more', 'aria-hidden': 'true', text: '⋯' })
+        ]),
+        subs.length > 1 ? grip(W(`拖曳排序：${catName(x, lang)}`, `Reorder ${catName(x, lang)}`)) : null
       ])
     );
     box.replaceChildren(
@@ -97,7 +110,7 @@ export function openCats(kind = 'out') {
       c.hidden ? h('div', { class: 'mn-closed-note' }, [h('span', { text: W('已隱藏：記帳時不會出現，紀錄還在', 'Hidden: off the picker, history kept') }), h('button', { class: 'q-btn tinted small', type: 'button', text: W('顯示', 'Show'), onclick: () => (saveCat(b, { id, hidden: false }), changed(), paint()) })]) : null,
       looks,
       h('div', { class: 'q-rowcard' }, [h('button', { class: 'q-ritem chevron mn-row mn-defrow', type: 'button', onclick: () => openDefaults(c, paint) }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('自動帶入', 'Fill in') }), h('small', { text: defText(c) || W('付款方式、金額', 'Way to pay, amount') })])])]),
-      h('section', { class: 'q-section' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: W('細項', 'Subs') })]), subs.length ? h('div', { class: 'q-rowcard' }, subRows) : h('p', { class: 'mn-hint', text: W('還沒有細項。', 'No subs yet.') })])
+      h('section', { class: 'q-section' }, [h('div', { class: 'q-section-head' }, [h('h2', { text: W('細項', 'Subs') })]), subs.length ? ordered(subRows) : h('p', { class: 'mn-hint', text: W('還沒有細項。', 'No subs yet.') })])
       ].filter(Boolean)
     );
     foot.replaceChildren(h('button', { class: 'q-btn tinted block', type: 'button', onclick: async () => {
@@ -106,11 +119,9 @@ export function openCats(kind = 'out') {
     } }, [h('span', { html: icons.plus }), W('新增細項', 'New sub')]));
   }
 
-  // A category's or a sub's menu: rename (a sub), move, hide or show, merge, delete.
+  // A category's or a sub's menu: rename (a sub), hide or show, merge, delete (the order: its grip).
   function actions(anchor, c) {
     const sub = Boolean(c.parent);
-    const sibs = sub ? subsOf(c.parent, { all: true }) : catList(c.k, { all: true });
-    const at = sibs.findIndex(x => x.id === c.id);
     const uses = usesOf(b, c.id);
     menu(anchor, [
       sub ? { label: W('改名', 'Rename'), onClick: async () => {
@@ -118,8 +129,6 @@ export function openCats(kind = 'out') {
         if (name && name !== c.zh) (saveCat(b, { id: c.id, zh: name }), changed(), paint());
       } } : null,
       sub ? { label: W('自動帶入⋯', 'Fill in…'), onClick: () => openDefaults(c, paint) } : null,
-      at > 0 ? { label: W('往前移', 'Move up'), onClick: () => (moveCat(b, c.id, -1), changed(), paint()) } : null,
-      at < sibs.length - 1 ? { label: W('往後移', 'Move down'), onClick: () => (moveCat(b, c.id, 1), changed(), paint()) } : null,
       { label: c.hidden ? W('顯示', 'Show') : W('隱藏', 'Hide'), onClick: () => (saveCat(b, { id: c.id, hidden: !c.hidden }), changed(), paint()) },
       { label: W('合併到⋯', 'Merge into…'), onClick: () => mergeMenu(anchor, c, uses) },
       !uses && !isBuiltIn(c.id) ? { label: W('刪除', 'Delete'), danger: true, onClick: () => {

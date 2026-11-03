@@ -325,3 +325,18 @@ test('no 聚餐 (Jay 2026-11-03): what was under it goes to its meal, nothing lo
   assert.ok(!C.subsOf('food').some(s => s.id === 'food:out'));
   assert.equal(C.upgradeCats(b, T + 2), 0, 'once moved, nothing more to do');
 });
+
+test('a dragged order (分類 grips) is saved as each one’s order, nothing else changed', () => {
+  const b = sample();
+  C.useCats(b.cats);
+  const ids = C.catList('out', { all: true }).map(c => c.id);
+  const moved = [ids[2], ...ids.filter(id => id !== ids[2])];
+  C.orderCats(b, moved, T);
+  C.useCats(b.cats);
+  assert.deepEqual(C.catList('out', { all: true }).map(c => c.id), moved);
+  const subs = C.subsOf('food', { all: true }).map(s => s.id).reverse();
+  C.orderCats(b, subs, T);
+  C.useCats(b.cats);
+  assert.deepEqual(C.subsOf('food', { all: true }).map(s => s.id), subs);
+  assert.equal(C.catOf('transport').zh, '交通', 'only the order changed');
+});

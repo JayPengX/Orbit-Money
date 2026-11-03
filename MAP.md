@@ -56,7 +56,8 @@ Live: https://orbit.jaypengx.com/money/
   and their subs move once (`books.opt.cats12`: entries, repeats, reminders,
   money back, the guess stamps; two budgets that became one add up; the
   person's own subs go with their category). The presets (學生/上班族/家庭)
-  and their picker are gone. 到期提醒 (`renew`, lib/renew.mjs): any pass, subscription,
+  and their picker are gone. 分類 (`views/cat-edit.mjs`): categories and subs
+  put in order by their grips (kit `reorder`, `orderCats`). 到期提醒 (`renew`, lib/renew.mjs): any pass, subscription,
   membership or card fee, each with its start, how long it lasts, whether it
   renews itself, the category whose spend restarts it, and when to be told;
   `upgradeRenew` turns the old TPASS setting into the first item. Due ones show

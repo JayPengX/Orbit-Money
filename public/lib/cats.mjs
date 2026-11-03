@@ -145,6 +145,13 @@ export function moveCat(books, id, dir, now = Date.now()) {
   sibs.forEach((x, n) => x.order !== n && saveCat(books, { id: x.id, order: n }, now));
   return true;
 }
+// Siblings put in the order given (ids: a category's subs, or one kind's
+// categories, as the person dragged them; kit reorder). Only `order` changes.
+export function orderCats(books, ids, now = Date.now()) {
+  useBooksCats(books);
+  ids.forEach((id, n) => table.get(id) && table.get(id).order !== n && saveCat(books, { id, order: n }, now));
+  return true;
+}
 // `from` folded into `into`: its entries, repeats and subs move there, its
 // budget goes; then it's gone (a built-in hidden). A sub into its own parent
 // is the sub let go (its entries just the category).
