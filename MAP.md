@@ -80,23 +80,42 @@ Live: https://orbit.jaypengx.com/money/
   was missed before: only the 載具 file was ever matched, never a scan.)
 - **記一筆's guesses** (`lib/guess.mjs`, tested; Jay 2026-10-30: "a guess
   of everything"): every spend and income of the last half year (not `r-`
-  repeats or automatic top-ups) is a clue, weighed by how close its logged
-  hour is (`t`, Taiwan time; only one logged on its own day, not an import),
-  weekday or weekend, where (`pl`, "lat,lon" to 3 decimals, only with 更多 ›
-  智慧帶入 › 用所在位置 on, `opt.geo`) and how recent (half-life 45 days).
-  Then today's own entries: a thing logged today counts by how often it
-  comes twice in a day (no second lunch), what usually follows the last
-  one logged counts more (`habitsOf`), and entries logged within minutes of
-  each other (an evening catch-up) don't count their hour.
-  A blank + picks the kind, category, sub and way to pay; a category tapped
-  gets its own likeliest sub and way to pay (until the person picks one; a
-  category's own 自動帶入 still wins). The amount is never filled from a
-  guess: the likeliest is first and ringed in 常用, a tap fills it. Each new
-  entry keeps what was guessed (`g`: "cat|sub|a|via|amt"); 智慧帶入 shows how
-  many of the last 50 were right, and until there are 10 of those, the
-  guesses replayed on the books (`guessReplay`: each entry guessed again from
-  what was logged before it). On simulated habits (an evening catch-up 3
-  days in 10) the today signals took category+sub from 49% to 61% right.
+  repeats or automatic top-ups) is a clue, weighed by how recent (half-life
+  45 days), weekday or weekend, where (`pl`, "lat,lon" to 3 decimals, only
+  with 更多 › 智慧帶入 › 用所在位置 on, `opt.geo`), and the hour it
+  happened: when it was logged if it was logged as it happened, else when
+  the person usually does that thing (the bus both ways counts at both),
+  else when most people do (`USUAL`: breakfast about 07:30). Logged as it
+  happens, the hour wanted is now; in a catch-up (within 15 minutes of the
+  last, or for an earlier day) it's soon after the last thing written down
+  for the day, as people go through a day in its order; late at night with
+  nothing yet for the day, partly the day's first, as often as the person's
+  days are written down at night. Then the day's own entries: a thing done
+  counts by how often it comes twice in a day (no second lunch), and what
+  usually follows the last one counts more (`habitsOf`). Once a month on
+  about this date (pay, rent: two months or more) counts ten times. With
+  little history what most people log at the hour comes in, worth about one
+  entry and fading as the person's own grow, so a first week isn't all one
+  category. `guessNew` is what a blank + starts on (kind, category, sub,
+  way to pay); a category tapped gets its own likeliest sub and way to pay
+  (until the person picks one; a category's own 自動帶入 still wins). The
+  amount is never filled from a guess: the likeliest is first and ringed in
+  常用, a tap fills it. Each new entry keeps what was guessed (`g`:
+  "cat|sub|a|via|amt|model"); 智慧帶入 shows how many of the last 50 guessed
+  the current way (`MODEL`) were right, and until there are 10 of those, the
+  same guesses replayed on the books from the first entry (`guessReplay`).
+  `TZ=Asia/Taipei node scripts/backtest-guess.mjs --against <ref>` replays
+  made-up people from their first entry, the way 智慧帶入 counts it
+  (2026-11-03, category and sub right in week one: a student 28→48%, an office
+  worker 47→58%, one who writes it all down at night 19→41%; over 60 days
+  50→58%, 67→70%, 42→53%). Run it before and after any change to the guessing.
+- **轉帳** (Jay 2026-11-03: "why so many other things from 收入/支出"): only
+  what a transfer has: the amount, one card with 從 over 到 (each account's
+  logo and balance, a round button between them turns it around; picking the
+  other side's account turns it around too), the day, 手續費 as its own pill,
+  a note. It opens on the two accounts the person usually moves between
+  (`guessMove`, not the automatic top-ups) with that pair's usual amounts as
+  常用 chips; else from a bank to another account, never from a card.
 - **Logos** (`img/brand/`, `lib/logos.mjs`): each bank's or wallet's own
   icon (`scripts/brand-logos.mjs`, a few from its App Store app); one with
   none uses its kind's icon.

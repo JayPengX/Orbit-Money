@@ -403,6 +403,14 @@ function broadCats(books, now) {
   return n + 1;
 }
 
+// What lib/guess.mjs guessNew needs of the set: whether a category shows,
+// the kind's first, and the meal by the hour for one with no history.
+export const guessCats = {
+  shown: (k, id) => Boolean(id) && catsFor(k).some(c => c.id === id),
+  first: k => shownCat(k),
+  mealSub: (cat, at) => guessSub(cat, '', at == null ? null : new Date(at))
+};
+
 // ---- Three meals again (2026-11-01) -----------------------------------------------------
 // The twelve put 早餐, 午餐, 晚餐 and 宵夜 into one 三餐; Jay wants them apart
 // again (統計 by meal). What sat under 三餐 goes back to the meal it was

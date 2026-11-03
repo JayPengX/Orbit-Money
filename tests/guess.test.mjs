@@ -91,14 +91,40 @@ test('repeats, automatic top-ups and old entries are no clues; imports carry no 
   assert.ok(inv.w < bf.w);
 });
 
-test('nothing logged: no guess; income only when it clearly outweighs spending', () => {
+test('nothing logged: what most people log at the hour; income on its own day of the month', () => {
   assert.equal(G.guessWhat([]), null);
-  const b = B.emptyBooks();
+  const fresh = G.cluesFor(B.emptyBooks(), { day: '2026-10-29', at: at('2026-10-29', '12:10') });
+  assert.deepEqual([G.guessWhat(fresh).cat, G.guessWhat(fresh).sub], ['food', 'food:lunch']);
+  assert.equal(G.guessWhat(G.cluesFor(B.emptyBooks(), { day: '2026-10-29', at: at('2026-10-29', '07:20') })).sub, 'food:breakfast');
+  const b = books();
   B.put(b, 'entries', { id: 's1', d: '2026-10-05', k: 'in', cat: 'salary', amt: 50000, a: 'bank', t: at('2026-10-05', '09:00') }, 0);
   B.put(b, 'entries', { id: 's2', d: '2026-09-05', k: 'in', cat: 'salary', amt: 50000, a: 'bank', t: at('2026-09-05', '09:00') }, 0);
-  const c = G.cluesFor(b, { day: '2026-10-29', at: at('2026-10-29', '09:00') });
-  assert.equal(G.guessWhat(c).k, 'in');
-  assert.equal(G.guessWhat(c, { k: 'out' }), null);
+  // Payday (the 5th): the pay, though most mornings are breakfast.
+  const pay = G.cluesFor(b, { day: '2026-11-05', at: at('2026-11-05', '09:00') });
+  assert.equal(G.guessWhat(pay).k, 'in');
+  assert.equal(G.guessWhat(pay).cat, 'salary');
+  // Any other morning: breakfast, and pay only when asked for income.
+  const other = G.cluesFor(b, { day: '2026-10-29', at: at('2026-10-29', '09:00') });
+  assert.equal(G.guessWhat(other).k, 'out');
+  assert.equal(G.guessWhat(other, { k: 'in' }).cat, 'salary');
+});
+
+test('a catch-up goes through the day in its order', () => {
+  const b = books();
+  const add = (id, d, hm, cat, sub) => B.put(b, 'entries', { id, d, k: 'out', cat, sub, amt: 60, a: 'cash', via: '', t: at(d, hm) }, 0);
+  // At night, nothing yet for the day, from a person who writes most days down at night: the day's first thing.
+  for (const d of ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09']) add(`n${d}`, d, '22:30', 'food', 'food:breakfast'), add(`m${d}`, d, '22:32', 'food', 'food:lunch');
+  assert.equal(G.guessWhat(G.cluesFor(b, { day: '2026-10-29', at: at('2026-10-29', '22:30') })).sub, 'food:breakfast');
+  // The morning after, for yesterday, lunch already in: what comes after lunch, not breakfast again.
+  add('y1', '2026-10-28', '12:15', 'food', 'food:lunch');
+  const g = G.guessWhat(G.cluesFor(b, { day: '2026-10-28', at: null }));
+  assert.notEqual(g.sub, 'food:breakfast');
+  assert.notEqual(g.sub, 'food:lunch');
+});
+
+test('guessNew: a first entry ever is the meal of the hour', () => {
+  const g = G.guessNew(G.cluesFor(B.emptyBooks(), { day: '2026-10-29', at: at('2026-10-29', '18:40') }), { first: () => 'food' });
+  assert.deepEqual([g.k, g.cat, g.sub], ['out', 'food', 'food:dinner']);
 });
 
 test('places: kept to about 100 m, and how far apart', () => {
@@ -114,6 +140,8 @@ test('how often the guesses were right', () => {
   B.put(b, 'entries', { id: 'a', d: '2026-10-29', k: 'out', cat: 'food', sub: 'food:lunch', amt: 120, a: 'cash', via: '', t: 3, g: G.guessStamp({ cat: 'food', sub: 'food:lunch', a: 'cash', amt: 120 }) }, 0);
   B.put(b, 'entries', { id: 'b', d: '2026-10-29', k: 'out', cat: 'drink', sub: '', amt: 55, a: 'cash', via: '', t: 2, g: G.guessStamp({ cat: 'food', sub: 'food:snack', a: 'cash', amt: 60 }) }, 0);
   B.put(b, 'entries', { id: 'c', d: '2026-10-29', k: 'out', cat: 'drink', amt: 55, a: 'cash', t: 1 }, 0);
+  // (One guessed the old way: not counted, the count is of the guesses made now.)
+  B.put(b, 'entries', { id: 'd', d: '2026-10-29', k: 'out', cat: 'drink', amt: 55, a: 'cash', t: 4, g: 'food|food:lunch|cash||0' }, 0);
   assert.deepEqual(G.guessScore(b), { of: 2, what: 1, pay: 2, amt: 1 });
 });
 
@@ -131,8 +159,24 @@ test('what was logged today counts: a second lunch is rare, and what usually com
 });
 
 test('guessReplay guesses each entry again from what came before it', () => {
-  const r = G.guessReplay(books(), { skip: 5 });
+  const r = G.guessReplay(books());
   assert.ok(r.of > 10);
   assert.ok(r.what / r.of > 0.5, JSON.stringify(r));
   assert.ok(r.chips >= r.amt);
+});
+
+test('a transfer: the accounts the person usually moves between, and that pair’s usual amounts', () => {
+  const b = B.emptyBooks();
+  const mv = (id, d, a, to, amt, more = {}) => B.put(b, 'entries', { id, d, k: 'move', a, to, amt, t: at(d, '09:00'), ...more }, 0);
+  mv('m1', '2026-10-01', 'bank', 'ez', 500);
+  mv('m2', '2026-10-10', 'bank', 'ez', 500);
+  mv('m3', '2026-10-20', 'bank', 'cash', 3000);
+  mv('m4', '2026-10-21', 'bank', 'ez', 300);
+  // (The card topping itself up isn't the person's own.)
+  mv('m5', '2026-10-22', 'cc', 'ez', 500, { auto: 'reload' }), mv('m6', '2026-10-23', 'cc', 'ez', 500, { auto: 'reload' });
+  const g = G.guessMove(b, { day: '2026-10-29' });
+  assert.deepEqual([g[0].a, g[0].to], ['bank', 'ez']);
+  assert.deepEqual(g[0].amts, [500]);
+  assert.deepEqual([g[1].a, g[1].to, g[1].amts.length], ['bank', 'cash', 0]);
+  assert.deepEqual(G.guessMove(B.emptyBooks(), { day: '2026-10-29' }), []);
 });

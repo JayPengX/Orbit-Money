@@ -10,6 +10,8 @@ To remove a feature on purpose, delete its line here in the same commit and say 
 - TPASS and YouBike show their own logos — `public/views/pics.mjs`: `'transport:tpass': 'tpass'`, `YOUBIKE`
 - 拍照記帳, a match offered to merge — `public/views/photo.mjs`: `拍照記帳`, `mergeInto`
 - 自動帶入 per category, guesses from your own entries — `public/lib/cats.mjs`, `public/views/more.mjs`: `智慧帶入`
+- 記一筆's first guess: the hour as most people live it in a first week, catch-ups in the day's order, payday on its date (Jay 11-03) — `public/lib/guess.mjs`: `USUAL`, `nightShare`, `monthly`, `guessNew`, `MODEL`
+- 轉帳 only a transfer's fields: 從 over 到 with logos and balances, a swap, 手續費, the usual pair guessed (Jay 11-03) — `public/views/entry.mjs`, `public/lib/guess.mjs`: `paintMove`, `mn-xfer-swap`, `mn-fee-pill`, `guessMove`
 - 自動加值 on stored-value cards — `public/lib/books.mjs`: `autoReload`
 - Money back, fees, 朋友分攤, LINE Points — `public/lib/books.mjs`, `public/views/entry.mjs`: `backsFor`, `feeOf`, `朋友分攤`, `LINE Points`
 - Card networks (卡別) — `public/views/accounts.mjs`, `public/views/pics.mjs`: `卡別`, `netTile`

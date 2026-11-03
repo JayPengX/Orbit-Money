@@ -5,7 +5,7 @@
 // 統計), the accounts put away (when there are any), the books as a file.
 import { h, toast, sheet, toggle, tile } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
-import { catList, catName, subOf, catOf, glyph } from '../lib/cats.mjs';
+import { catList, catName, subOf, catOf, glyph, guessCats } from '../lib/cats.mjs';
 import { reminders } from '../lib/renew.mjs';
 import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
@@ -30,7 +30,7 @@ export function renderMore(box) {
   const closed = allAccounts().filter(a => a.closed);
   const cats = catList('out').length + catList('in').length;
   const next = reminders(state.books, today())[0];
-  const score = guessScore(state.books);
+  const score = guessRate(state.books);
   // Each tool: its tile, what it is (or where it stands), and a number when there is one.
   const tool = (icon, color, label, sub, value, onclick) =>
     h('button', { class: 'q-ritem chevron mn-tool', type: 'button', onclick }, [
@@ -45,7 +45,7 @@ export function renderMore(box) {
       wide ? snapRow : null,
       tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W('改名、排序、加細項', 'Rename, reorder, add subs'), W(`${cats} 個`, `${cats}`), () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
-      tool(glyph('spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('照你的習慣先選好分類和付款', 'Picks what you usually log'), score.of >= 5 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
+      tool(glyph('spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Picks what you usually log'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
       // (TPASS, subscriptions, memberships: the soonest one.)
       tool(glyph('bell'), '#ff9500', W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : W('TPASS、訂閱、會員到期前提醒', 'TPASS, subscriptions, memberships'), dueIn == null ? '' : dueIn <= 0 ? W('今天', 'Today') : W(`${dueIn} 天後`, `in ${dueIn} d`), () => openRenewals()),
       // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
@@ -68,6 +68,18 @@ export function renderMore(box) {
 }
 
 const pct = (n, of) => `${Math.round((n / of) * 100)}%`;
+// How often 記一筆's guesses are right: the last 50 guessed the way it guesses
+// now, and until there are 10 of those, the same guesses replayed on what's
+// been logged (so a change to the guessing shows at once). Kept for the books as they are.
+let rated = { key: '', r: null };
+function guessRate(b) {
+  const key = `${b.st}|${Object.keys(b.entries).length}`;
+  if (rated.key === key) return rated.r;
+  const kept = guessScore(b);
+  const replayed = kept.of < 10 ? guessReplay(b, guessCats) : null;
+  rated = { key, r: replayed?.of >= 10 ? { ...replayed, replayed: true } : kept };
+  return rated.r;
+}
 
 // 智慧帶入 (Jay 2026-10-30): what 記一筆 guesses from, how often it's been
 // right lately, and whether it may use where the phone is (off until turned
@@ -75,9 +87,7 @@ const pct = (n, of) => `${Math.round((n / of) * 100)}%`;
 function openGuessing() {
   const b = state.books;
   // (Few live guesses yet: the same guesses replayed on what's been logged, so there's a number from day one.)
-  const kept = guessScore(b);
-  const replayed = kept.of < 10 ? guessReplay(b) : null;
-  const r = replayed?.of >= 10 ? replayed : kept;
+  const r = guessRate(b);
   const geo = toggle({
     checked: Boolean(b.opt?.geo),
     label: W('用所在位置', 'Use where I am'),
@@ -96,7 +106,7 @@ function openGuessing() {
     body: [
       h('p', { class: 'mn-hint', text: W('記一筆時，照你自己記過的帳：差不多這個時間、平日或週末、同一個地方常記的，先選好收支、分類和付款方式。金額放在「常用」第一個，點了才填。', 'New entries start as what you usually log at this time, on this kind of day and in this place: kind, category and way to pay picked for you. The amount waits first in Usual until you tap it.') }),
       h('div', { class: 'mn-switch-row' }, [h('span', {}, [h('b', { text: W('用所在位置', 'Use where I am') }), h('small', { text: W('只記到約 100 公尺，存在你自己的帳本裡', 'Kept to about 100 m, only in your own books') })]), geo]),
-      r.of >= 1 ? h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: r === replayed ? W(`用你記過的 ${r.of} 筆重猜`, `Replayed on your last ${r.of}`) : W(`最近 ${r.of} 筆猜中`, `Right in the last ${r.of}`) })]) : null,
+      r.of >= 1 ? h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: r.replayed ? W(`用你記過的 ${r.of} 筆重猜`, `Replayed on your last ${r.of}`) : W(`最近 ${r.of} 筆猜中`, `Right in the last ${r.of}`) })]) : null,
       r.of >= 1 ? h('div', { class: 'q-rowcard' }, [row(W('分類', 'Category'), r.what), row(W('付款方式', 'Way to pay'), r.pay), row(W('金額', 'Amount'), r.amt), ...(r.chips != null ? [row(W('金額在常用裡', 'Amount in Usual'), r.chips)] : [])]) : null
     ]
   });

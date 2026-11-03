@@ -6,11 +6,11 @@
 // offering to merge with the same payment already logged. A 退款 has its own small sheet.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE, sameAs } from '../lib/books.mjs';
-import { catsFor, shownCat, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat } from '../lib/cats.mjs';
+import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE, sameAs, balances } from '../lib/books.mjs';
+import { catsFor, shownCat, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, defaultsOf, saveCat, guessCats } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
-import { payPic, whatTile } from './pics.mjs';
-import { cluesFor, guessWhat, guessSubIn, guessPay, guessAmts, guessStamp, cellOf } from '../lib/guess.mjs';
+import { payPic, whatTile, acctTile } from './pics.mjs';
+import { cluesFor, guessWhat, guessNew, guessSubIn, guessPay, guessAmts, guessMove, guessStamp, cellOf } from '../lib/guess.mjs';
 import { snap, openReceipt, receiptLabel, mergeInto } from './photo.mjs';
 
 // ---- A row ----------------------------------------------------------------------
@@ -76,7 +76,8 @@ export function payOptions({ moving = false, keep = [], all = false } = {}) {
   for (const a of allAccounts()) {
     if (!shown(a)) continue;
     out.push({ a: a.id, via: '', label: a.name, sub: kindName(a.kind) });
-    if (!moving) for (const c of cardsOf(a.id).filter(shown)) out.push({ a: a.id, via: c.id, label: `${a.name} · ${c.name}${c.last4 ? ` •${c.last4}` : ''}`, sub: kindName(a.kind) });
+    // (`short`: the card alone, for the pill, where its bank's logo is beside it.)
+    if (!moving) for (const c of cardsOf(a.id).filter(shown)) out.push({ a: a.id, via: c.id, label: `${a.name} · ${c.name}${c.last4 ? ` •${c.last4}` : ''}`, short: c.name, sub: kindName(a.kind) });
   }
   return out;
 }
@@ -185,10 +186,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   let touched = false;
   let stamp = '';
   function guessAll() {
-    if (blank) {
-      const g = guessWhat(clues);
-      f.k = kind || (g && shown(g.k, g.cat) ? g.k : 'out');
-    }
+    if (blank) f.k = kind || guessNew(clues, { at: ctx.at, lastCat: opt.lastCat || {}, ...guessCats }).k;
     if (!was && !cat) f.cat = catFor(f.k);
     if (!was) f.sub = sub && subOf(sub)?.parent === f.cat ? sub : guess();
     if (!was) guessPayFor();
@@ -197,7 +195,21 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   }
   if (was) f.sub = was.sub || '';
   guessAll();
-  if (f.k === 'move' && !f.to) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
+  // A transfer: the two accounts the person usually moves money between
+  // (lib/guess.mjs guessMove), until they pick; else from a bank (not a card
+  // being paid with) to another account.
+  const moves = guessMove(b, { day: f.d });
+  let movePicked = Boolean(was || (from && to));
+  function guessPair() {
+    if (movePicked) return;
+    const open = id => acct(id) && !acct(id).closed;
+    const p = moves.find(x => open(x.a) && open(x.to));
+    if (p) return (f.a = p.a), (f.to = p.to), (f.via = '');
+    f.via = '';
+    if (!open(f.a) || acct(f.a).kind === 'credit') f.a = openAccounts().find(x => x.kind === 'bank')?.id || openAccounts()[0]?.id || f.a;
+    if (!f.to || f.to === f.a || !open(f.to)) f.to = openAccounts().find(x => x.id !== f.a && x.kind !== 'credit')?.id || openAccounts().find(x => x.id !== f.a)?.id || '';
+  }
+  if (f.k === 'move') guessPair();
 
   // The amount: tapped, the iPhone's number keys (Jay 2026-10-27: he taps
   // the number, as anyone would; no keypad of our own, RULEBOOK §2). The
@@ -258,7 +270,9 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
       } })
     );
   }
-  const pills = h('div', { class: 'mn-pills' }, [payBtn, dateBtn]);
+  // (A transfer's fee: its own pill beside the day, an ATM's NT$15.)
+  const feeBtn = h('button', { class: 'mn-pill mn-fee-pill', type: 'button', onclick: () => (tick(), (f.feeOn = true), paint(), focusLast('.mn-x-fee input')) }, [h('span', { html: icons.plus }), h('span', { class: 'mn-pill-t', text: W('手續費', 'Fee') })]);
+  const pills = h('div', { class: 'mn-pills' }, [payBtn, dateBtn, feeBtn]);
   // 手續費, 另付, 朋友分攤, 退款: one button beside the note, each a row under it once added.
   const moreBtn = h('button', { class: 'mn-pill mn-more', type: 'button', 'aria-label': W('手續費、分攤、退款', 'Fee, split, refund'), html: icons.plus, onclick: e => pickMore(e.currentTarget) });
   const noteRow = h('div', { class: 'mn-noterow q-kb-hide' }, [noteIn, moreBtn]);
@@ -277,10 +291,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
         f.k = k;
         touched = true;
         if (k !== 'move') (f.cat = catFor(k)), (f.sub = guess()), guessPayFor(), applyDefaults();
-        if (k === 'move') {
-          f.via = '';
-          if (!f.to || f.to === f.a) f.to = openAccounts().find(x => x.id !== f.a)?.id || '';
-        }
+        if (k === 'move') guessPair();
         paint();
       }
     }
@@ -306,7 +317,9 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     const unit = on ? defaultsOf(f.cat, f.sub).unit : 0;
     const key = `${f.k}|${f.cat}|${f.sub}`;
     if (on && !unit && key !== usualKey) (usualKey = key), (usual = guessAmts(clues, f));
-    const amts = !on || unit ? [] : usual || [];
+    // (A transfer: what that pair of accounts usually moves.)
+    const pair = f.k === 'move' ? moves.find(x => x.a === f.a && x.to === f.to)?.amts.map(amt => ({ amt })) || [] : null;
+    const amts = pair || (!on || unit ? [] : usual || []);
     unitRow.hidden = !unit && !amts.length;
     if (unitRow.hidden) return;
     const sum = Number(f.amt) || 0;
@@ -343,7 +356,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     cats.hidden = f.k === 'move' || f.k === 'adj';
     moveRow.hidden = f.k !== 'move';
     payBtn.hidden = f.k === 'move';
-    moreBtn.hidden = f.k !== 'out' && f.k !== 'move';
+    moreBtn.hidden = f.k !== 'out';
     noteRow.classList.toggle('solo', moreBtn.hidden);
     paintExtras();
     if (!cats.hidden && catsKind !== f.k) {
@@ -352,7 +365,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
       paintSubs();
     } else if (!cats.hidden) paintCat();
     else paintSubs();
-    if (!moveRow.hidden) moveRow.replaceChildren(acctPick('a', W('從', 'From')), h('span', { class: 'mn-move-arrow', html: icons.chevron }), acctPick('to', W('到', 'To')));
+    if (!moveRow.hidden) paintMove();
     paintPay();
     dateBtn.querySelector('.mn-date-t').textContent = f.d === today() ? W('今天', 'Today') : dayLabel(f.d, { week: false, year: f.d.slice(0, 4) !== today().slice(0, 4) });
     invRow.hidden = !f.inv;
@@ -360,14 +373,28 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   }
   function paintPay() {
     const p = payOf(f.a, f.via);
-    payBtn.replaceChildren(p ? payPic(p.a, p.via, 24) : h('span', { html: glyph('wallet') }), h('span', { class: 'mn-pill-t', text: p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
+    payBtn.replaceChildren(p ? payPic(p.a, p.via, 24) : h('span', { html: glyph('wallet') }), h('span', { class: 'mn-pill-t', text: p?.short || p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
   }
-  function acctPick(field, label) {
-    const a = acct(f[field]);
-    return h('button', { class: 'mn-pill mn-move-pick', type: 'button', onclick: e => pickAcct(e.currentTarget, field) }, [h('small', { text: label }), h('span', { class: 'mn-pill-t', text: a?.name || W('選帳戶', 'Choose') })]);
+  // A transfer: one card, 從 over 到, each account with its logo and what it
+  // holds now; the round button between them turns it around.
+  function paintMove() {
+    const bal = balances(b);
+    const side = (field, label) => {
+      const a = acct(f[field]);
+      return h('button', { class: 'mn-xfer-row', type: 'button', onclick: e => pickAcct(e.currentTarget, field) }, [
+        h('span', { class: 'mn-xfer-l', text: label }),
+        a ? acctTile(a, 32) : h('span', { class: 'mn-xfer-blank' }),
+        h('span', { class: 'mn-xfer-what' }, [h('span', { class: 'mn-xfer-name', text: a?.name || W('選帳戶', 'Choose') }), a ? h('small', { class: 'mn-xfer-bal num', text: W(`餘額 ${money(bal[a.id] || 0)}`, `Balance ${money(bal[a.id] || 0)}`) }) : null]),
+        h('i', { html: icons.chevron })
+      ]);
+    };
+    const swap = h('button', { class: 'mn-xfer-swap', type: 'button', 'aria-label': W('對調', 'Swap'), html: glyph('swap'), onclick: () => (tick(), ([f.a, f.to] = [f.to, f.a]), (movePicked = touched = true), paint()) });
+    moveRow.replaceChildren(side('a', W('從', 'From')), swap, side('to', W('到', 'To')));
   }
+  // (The other side's account picked: the two turn around.)
   function pickAcct(anchor, field) {
-    menu(anchor, payOptions({ moving: true, keep: [f.a, f.to] }).map(o => ({ label: o.label, lead: payPic(o.a, '', 28), icon: o.a === f[field] ? '✓' : '', onClick: () => ((f[field] = o.a), paint()) })));
+    const other = field === 'a' ? 'to' : 'a';
+    menu(anchor, payOptions({ moving: true, keep: [f.a, f.to] }).map(o => ({ label: o.label, lead: payPic(o.a, '', 28), icon: o.a === f[field] ? '✓' : '', onClick: () => ((movePicked = touched = true), o.a === f[other] && (f[other] = f[field]), (f[field] = o.a), paint()) })));
   }
   function pickPay(anchor) {
     menu(anchor, payOptions({ keep: [f.a, f.via] }).map(o => ({ label: o.label, lead: payPic(o.a, o.via, 28), icon: o.a === f.a && o.via === f.via ? '✓' : '', onClick: () => ((payPicked = touched = true), (f.a = o.a), (f.via = o.via), paint()) })));
@@ -402,6 +429,8 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   };
   const xBtn = (label, onTap) => h('button', { class: 'mn-x-del', type: 'button', 'aria-label': label, text: '✕', onclick: () => (tick(), onTap(), paintExtras()) });
   function paintExtras() {
+    feeBtn.hidden = f.k !== 'move' || f.feeOn;
+    pills.classList.toggle('solo', payBtn.hidden && feeBtn.hidden);
     const rows = [];
     const on = f.k === 'out' || f.k === 'move';
     if (on && f.feeOn) {
@@ -536,12 +565,13 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     lead,
     cls: 'mn-entry',
     // (Three runs, one column on a phone; on a phone on its side the
-    // categories stand beside the amount and the rest: money.css .mn-part.)
+    // categories, or a transfer's two accounts, stand beside the amount and
+    // the rest: money.css .mn-part.)
     body: [
       mergeRow,
       h('div', { class: 'mn-part mn-part-a' }, [f.k === 'adj' ? null : (kinds.classList.add('q-kb-hide'), kinds), amountRow]),
-      h('div', { class: 'mn-part mn-part-p' }, [cats, subs]),
-      h('div', { class: 'mn-part mn-part-b' }, [unitRow, moveRow, pills, noteRow, extras, invRow])
+      h('div', { class: 'mn-part mn-part-p' }, [cats, subs, moveRow]),
+      h('div', { class: 'mn-part mn-part-b' }, [unitRow, pills, noteRow, extras, invRow])
     ],
     foot: h('div', { class: 'q-sheet-foot' }, [save])
   });

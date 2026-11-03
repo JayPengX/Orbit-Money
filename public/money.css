@@ -14,7 +14,9 @@
 html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; background: var(--q-page); color: var(--q-text); line-height: 1.45; }
 button { font: inherit; color: inherit; cursor: pointer; }
-[hidden] { display: none; }
+/* (Hidden means hidden, whatever a class's own display says: 轉帳 showed the
+   支出 categories and the pay button, set hidden under a grid and a flex.) */
+[hidden] { display: none !important; }
 h1, h2, h3, p { margin: 0; }
 .num { font-variant-numeric: tabular-nums; }
 
@@ -167,12 +169,24 @@ h1, h2, h3, p { margin: 0; }
 .mn-cat[aria-checked='true'] .q-tile { opacity: 1; filter: none; }
 .mn-cat[aria-checked='true'] span:last-child { color: var(--q-label); font-weight: 600; }
 .mn-move[hidden] { display: none; }
-.mn-move { display: grid; grid-template-columns: 1fr 20px 1fr; align-items: center; gap: 6px; margin-top: var(--mn-gap); }
-.mn-move-arrow { display: grid; place-items: center; color: var(--q-label-3); }
-.mn-move-arrow svg { width: 18px; height: 18px; }
-.mn-move-pick { display: grid; justify-items: start; gap: 0 !important; min-height: 54px !important; padding: 6px 12px !important; }
-.mn-move-pick small { color: var(--q-label-2); font: 500 12px/14px var(--q-font); }
+/* 轉帳: one card, 從 over 到, a hairline between; the round swap button on
+   the line, under 從 and over 到. */
+.mn-move { position: relative; display: grid; margin-top: var(--mn-gap); border-radius: var(--q-r-card); background: var(--q-surface); }
+.mn-xfer-row { display: grid; grid-template-columns: 28px 32px minmax(0, 1fr) 14px; align-items: center; gap: 10px; min-height: 60px; padding: 0 14px 0 16px; border: 0; background: none; text-align: left; }
+.mn-xfer-swap + .mn-xfer-row { position: relative; }
+.mn-xfer-swap + .mn-xfer-row::before { position: absolute; top: 0; right: 0; left: 58px; height: 0.5px; background: var(--q-sep); content: ''; }
+.mn-xfer-l { color: var(--q-label-2); font: 500 14px/18px var(--q-font); }
+.mn-xfer-blank { width: 32px; height: 32px; border-radius: 10px; background: var(--q-fill); }
+.mn-xfer-what { display: grid; min-width: 0; }
+.mn-xfer-name { min-width: 0; overflow: hidden; color: var(--q-label); font: 600 16px/21px var(--q-font); text-overflow: ellipsis; white-space: nowrap; }
+.mn-xfer-bal { overflow: hidden; color: var(--q-label-2); font: 400 13px/17px var(--q-font); text-overflow: ellipsis; white-space: nowrap; }
+.mn-xfer-row > i { display: grid; width: 14px; height: 14px; color: var(--q-label-3); transform: rotate(90deg); }
+.mn-xfer-row > i svg { width: 14px; height: 14px; }
+.mn-xfer-swap { position: absolute; top: 50%; left: 30px; z-index: 1; display: grid; place-items: center; width: 32px; height: 32px; margin: -16px 0 0 -16px; padding: 0; border: 0; border-radius: 50%; background: var(--q-elevated, var(--q-page)); box-shadow: 0 0 0 0.5px var(--q-sep), 0 1px 3px rgb(0 0 0 / 0.12); color: var(--q-accent); }
+.mn-xfer-swap svg { width: 16px; height: 16px; transform: rotate(90deg); }
 .mn-pills { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 8px; margin-top: var(--mn-gap); }
+.mn-pills.solo { grid-template-columns: minmax(0, 1fr); }
+.mn-fee-pill { color: var(--q-label-2); }
 .mn-noterow { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; margin-top: var(--mn-gap); }
 .mn-noterow.solo { grid-template-columns: minmax(0, 1fr); }
 .mn-noterow .mn-note { margin-top: 0; }
@@ -619,6 +633,7 @@ html.q-tabrail:not(.q-float) .mn-entry > .mn-part-a { grid-column: 1; grid-row: 
 html.q-tabrail:not(.q-float) .mn-entry > .mn-part-b { grid-column: 1; grid-row: 5; }
 html.q-tabrail:not(.q-float) .mn-entry > .mn-part-p { grid-column: 2; grid-row: 4 / 7; }
 html.q-tabrail:not(.q-float) .mn-entry .mn-cats { grid-template-columns: repeat(7, minmax(0, 1fr)); margin-top: 0; }
+html.q-tabrail:not(.q-float) .mn-entry .mn-move { margin-top: 0; }
 html.q-tabrail:not(.q-float) .mn-entry .mn-cat { padding-block: 3px 2px; }
 html.q-tabrail:not(.q-float) .mn-entry .mn-cat .q-tile { width: 32px; height: 32px; border-radius: 10px; }
 /* A phone on its side: an account's balance on one line with its picture, so
