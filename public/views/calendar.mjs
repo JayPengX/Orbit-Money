@@ -178,7 +178,7 @@ function daySection(b, place) {
     h('span', { class: 'num mn-daysum' }, [dayIn ? h('em', { text: `+${money(dayIn)}` }) : null, dayOut ? h('b', { text: money(dayOut) }) : null])
   ]);
   // (One layout either way: a day with nothing has the same card, saying so.)
-  const addRow = h('button', { class: 'q-ritem mn-addrow', type: 'button', onclick: () => openEntry({ day: state.day }) }, [h('span', { class: 'mn-addrow-i', html: icons.plus }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: list.length ? W('再記一筆', 'Add another') : W('這天還沒記帳', 'Nothing yet this day') })])]);
+  const addRow = h('button', { class: 'q-ritem q-add mn-addrow', type: 'button', onclick: () => openEntry({ day: state.day }) }, [h('span', { class: 'q-add-i mn-addrow-i', html: icons.plus }), h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: list.length ? W('再記一筆', 'Add another') : W('這天還沒記帳', 'Nothing yet this day') })])]);
   const body = h('div', { class: 'q-rowcard mn-entries' }, [...list.map(e => entryRow(e)), addRow]);
 
   return h('section', { class: 'mn-day-sec' }, [head, body]);
