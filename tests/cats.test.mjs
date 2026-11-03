@@ -237,6 +237,20 @@ test('guesses in the twelve', () => {
   assert.equal(C.guessSub('home', '中華電信'), 'home:net');
 });
 
+test('what the words say, whatever the category: 星巴克 is 飲料點心 from the first entry; never a hidden one', () => {
+  C.useCats({});
+  assert.equal(C.subFromWords('星巴克 拿鐵'), 'food:drink');
+  assert.equal(C.subFromWords('全聯'), 'shop:daily');
+  assert.equal(C.subFromWords('台灣高鐵'), 'transport:long');
+  assert.equal(C.subFromWords('午餐'), '');
+  assert.equal(C.subFromWords(''), '');
+  const b = sample();
+  C.saveCat(b, { id: 'food:drink', hidden: true }, T);
+  C.useCats(b.cats);
+  assert.equal(C.subFromWords('星巴克'), '');
+  C.useCats({});
+});
+
 test('three meals again: what the twelve put under 三餐 goes back to the meal it was, nothing else changes', () => {
   C.useCats({});
   const T = Date.UTC(2026, 10, 1, 10);

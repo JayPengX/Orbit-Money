@@ -1,11 +1,15 @@
 // 記一筆's guesses (Jay 2026-10-30: "a guess of everything"): what a new
-// entry probably is, from the person's own entries only (nothing made up):
-// spend or income, the category and its sub, the way to pay, and the amounts
-// it's likely to be. Each past entry is a clue, weighed by how much it looks
-// like now: logged near this time of day, on the same kind of day (weekday or
-// weekend), near here (when the person lets the app use where they are), and
-// lately. The amount is never filled in from a guess, only offered: a tap
-// fills it. Pure, tested (tests/guess.test.mjs).
+// entry probably is, from the person's own entries (nothing of theirs made
+// up): spend or income, the category and its sub, the way to pay, and the
+// amounts it's likely to be. Each past entry is a clue, weighed by how much
+// it looks like now: logged near this time of day, on the same kind of day
+// (weekday or weekend), near here (when the person lets the app use where
+// they are), lately, and once an amount is typed, how near its amount is.
+// Until there's enough of their own (Jay 2026-11-03: "if we rely solely on
+// user behavior they need to use like months"), what most people log at
+// that hour, on that kind of day and for that amount (`COMMON`) comes in
+// too, fading as their own entries grow. The amount is never filled in from
+// a guess, only offered: a tap fills it. Pure, tested (tests/guess.test.mjs).
 import { addDays, twDay } from '#kit/format.mjs';
 import { live } from './books.mjs';
 
@@ -26,11 +30,51 @@ export function placeGap(p, q) {
 }
 
 const DAYS = 180;
-// When most people do these (the hour): a new person's first guesses, and
-// when a thing written down later probably happened.
-const USUAL = { 'food:breakfast': 7.5, 'food:lunch': 12.4, 'food:dinner': 18.8, 'food:drink': 15.5 };
-// How much those count against the person's own entries (about one entry's worth: their own soon outweigh it).
-const PRIOR = 1.5;
+// What most people here log, for a new person's first guesses: how often
+// (a week), the hours on a weekday and at the weekend (when a thing written
+// down later probably happened too), and its usual amount with how far
+// amounts stray from it (log-normal: 0.4 is about ×1.5 either way). Not
+// anyone's books: a person's own entries soon outweigh it (`PRIOR`).
+// [kind, sub (or the category, for one without subs), a week, weekday hours, weekend hours, amount, spread]
+const C = (k, what, week, wd, we, amt, spread) => [what, { k, cat: what.split(':')[0], sub: what.includes(':') ? what : '', week, wd, we, amt, spread }];
+export const COMMON = Object.fromEntries([
+  C('out', 'food:breakfast', 5, [7.5], [9.5], 60, 0.4),
+  C('out', 'food:lunch', 5.5, [12.4], [12.8], 110, 0.4),
+  C('out', 'food:dinner', 5, [18.8], [18.8], 130, 0.5),
+  C('out', 'food:drink', 4, [15.5, 10.5], [15], 55, 0.4),
+  C('out', 'food:out', 0.5, [19.2], [12.5, 19], 550, 0.6),
+  C('out', 'transport:ride', 4, [8.2, 18.2], [], 25, 0.5),
+  C('out', 'transport:car', 0.5, [8, 18], [11, 17], 300, 0.7),
+  C('out', 'transport:long', 0.15, [17], [10, 17], 700, 0.6),
+  C('out', 'transport:tpass', 0.23, [9], [11], 1000, 0.35),
+  C('out', 'shop:daily', 1.3, [19.5], [11, 16], 220, 0.9),
+  C('out', 'shop:style', 0.25, [20], [15], 800, 0.7),
+  C('out', 'shop:tech', 0.07, [20], [15], 2500, 1),
+  C('out', 'fun:leisure', 0.35, [20], [15, 20], 350, 0.7),
+  C('out', 'fun:sport', 0.15, [19], [10], 150, 0.8),
+  C('out', 'home:rent', 0.23, [10], [11], 10000, 0.5),
+  C('out', 'home:bills', 0.25, [20], [11], 800, 0.6),
+  C('out', 'home:net', 0.23, [20], [11], 600, 0.5),
+  C('out', 'digital:subs', 0.25, [21], [21], 300, 0.6),
+  C('out', 'health:clinic', 0.15, [10, 15, 19], [10], 200, 0.6),
+  C('out', 'health:meds', 0.15, [12, 19], [15], 200, 0.7),
+  C('out', 'social:gift', 0.08, [20], [15], 800, 0.8),
+  C('in', 'salary', 0.23, [10], [11], 40000, 0.5),
+  C('in', 'allowance', 0.25, [20], [20], 1000, 0.8),
+  C('in', 'side', 0.08, [20], [20], 3000, 1)
+]);
+// The hour most people have a meal, for one written down later (weekday's).
+// (Meals only: their order through a day is everyone's; replayed, the rest's hours did worse.)
+const USUAL = Object.fromEntries(Object.entries(COMMON).filter(([k]) => k.startsWith('food:')).map(([k, x]) => [k, x.wd[0]]));
+// How much what most people do counts in all, before the person has any of
+// their own (about a few entries' worth: their own soon outweigh it).
+const PRIOR = 10;
+const WEEK = Object.values(COMMON).reduce((n, x) => n + x.week, 0);
+// How likely an amount is for a thing usually `amt`, `spread` apart (1 at it,
+// never quite 0: people pay odd amounts).
+const amtNear = (a, amt, spread) => (a > 0 && amt > 0 ? 0.01 + 0.99 * Math.exp(-(Math.log(a / amt) ** 2) / (2 * spread * spread)) : 1);
+// One of the person's own: an amount this near theirs (the same, 1; double, about a tenth).
+const OWN_SPREAD = 0.3;
 
 // What an entry is, for counting habits: its kind, category and sub.
 const what = e => `${e.k}|${e.cat}|${e.sub || ''}`;
@@ -119,7 +163,7 @@ function nightShare(timed, day) {
 // it usually comes twice, and what usually follows the last one counts more.
 // With little history, what most people log at the hour comes in too, worth
 // about one entry (`PRIOR`), so a first week isn't all one category.
-export function cluesFor(books, { day, at = null, pl = '' }) {
+export function cluesFor(books, { day, at = null, pl = '', amt = 0 }) {
   const from = addDays(day, -DAYS);
   const list = live(books.entries).filter(e => (e.k === 'out' || e.k === 'in') && e.cat && e.d >= from && e.d <= day && !e.auto && !String(e.id).startsWith('r-'));
   // (Logged together with another of its day: its hour says little.)
@@ -170,11 +214,20 @@ export function cluesFor(books, { day, at = null, pl = '' }) {
     }
     return w;
   };
-  const clues = list.map(e => ({ e, w: end(e) * near(hourIs(e), want) }));
-  for (const [sub, h] of Object.entries(USUAL)) {
-    const e = { k: 'out', cat: sub.split(':')[0], sub, d: day, id: `usual:${sub}` };
+  // (An amount typed: the clues of about that amount count most.)
+  const byAmt = e => (amt > 0 ? amtNear(amt, e.amt, OWN_SPREAD) : 1);
+  const clues = list.map(e => ({ e, w: end(e) * near(hourIs(e), want) * byAmt(e) }));
+  // What most people log: at this hour, on this kind of day, for this amount,
+  // worth less the more the person has of their own.
+  const fade = PRIOR / (1 + list.length / 8);
+  const we = weekend(day);
+  for (const [key, x] of Object.entries(COMMON)) {
+    const e = { k: x.k, cat: x.cat, sub: x.sub, d: day, id: `usual:${key}` };
     if (doneSet.has(what(e))) continue;
-    clues.push({ e, w: (PRIOR * 8 * near([h], want)) / (8 + list.length) });
+    const hs = we ? x.we : x.wd;
+    // (Not done on that kind of day at all, a weekend's commute: a trace.)
+    const when = hs.length ? near(hs, want) : 0.1;
+    clues.push({ e, w: fade * (x.week / WEEK) * when * (amt > 0 ? amtNear(amt, x.amt, x.spread) : 1), usual: true });
   }
   return clues;
 }
@@ -264,7 +317,7 @@ export function guessNew(clues, { at = null, lastCat = {}, shown = () => true, f
 // What was guessed for an entry when it was opened, kept on it (`g`) to see how
 // often the guesses are right: "cat|sub|a|via|amt|model". `MODEL` goes up when
 // the way of guessing changes, so the count is of the guesses made now.
-export const MODEL = '2';
+export const MODEL = '3';
 export const guessStamp = ({ cat = '', sub = '', a = '', via = '', amt = 0 }) => `${cat}|${sub}|${a}|${via}|${amt || 0}|${MODEL}`;
 // How the last `n` guessed entries went: { of, what, pay, amt } (each how many were right).
 export function guessScore(books, n = 50) {

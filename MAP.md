@@ -94,9 +94,18 @@ Live: https://orbit.jaypengx.com/money/
   counts by how often it comes twice in a day (no second lunch), and what
   usually follows the last one counts more (`habitsOf`). Once a month on
   about this date (pay, rent: two months or more) counts ten times. With
-  little history what most people log at the hour comes in, worth about one
-  entry and fading as the person's own grow, so a first week isn't all one
-  category. `guessNew` is what a blank + starts on (kind, category, sub,
+  little history what most people log comes in (`COMMON`: about two dozen
+  things, each with how often a week, its weekday and weekend hours, and its
+  usual amount and how far amounts stray), worth a few entries of the
+  person's own at first and fading as theirs grow (`PRIOR`), so a first week
+  starts on the meal, the bus or the drink of the hour (Jay 2026-11-03: "if
+  we rely solely on user behavior they need to use like months"). Once an
+  amount is typed, or a note naming a store (`subFromWords` in
+  `lib/cats.mjs`), and no category or sub picked yet, 記一筆 guesses again
+  (`guessAgain` in `views/entry.mjs`, the `amt` of `cluesFor`): each clue
+  counts by how near its amount is (the person's own: NT$25 at 08:00 is the
+  bus, NT$60 breakfast; most people's: NT$10,000 in the morning is the rent).
+  `guessNew` is what a blank + starts on (kind, category, sub,
   way to pay); a category tapped gets its own likeliest sub and way to pay
   (until the person picks one; a category's own 自動帶入 still wins). The
   amount is never filled from a guess: the likeliest is first and ringed in
@@ -108,7 +117,9 @@ Live: https://orbit.jaypengx.com/money/
   made-up people from their first entry, the way 智慧帶入 counts it
   (2026-11-03, category and sub right in week one: a student 28→48%, an office
   worker 47→58%, one who writes it all down at night 19→41%; over 60 days
-  50→58%, 67→70%, 42→53%). Run it before and after any change to the guessing.
+  50→58%, 67→70%, 42→53%; then with the amount typed, `--typed`, `MODEL` 3:
+  week one 48→77%, 58→87%, 41→74%, a nurse 40→54%, a parent 41→48%; over 60
+  days 58→88%, 70→92%, 53→85%). Run it before and after any change to the guessing.
 - **轉帳** (Jay 2026-11-03: "why so many other things from 收入/支出"): only
   what a transfer has: the amount, one card with 從 over 到 (each account's
   logo and balance, a round button between them turns it around; picking the

@@ -8,6 +8,7 @@
 //   TZ=Asia/Taipei node scripts/backtest-guess.mjs                 # this tree
 //   TZ=Asia/Taipei node scripts/backtest-guess.mjs --against HEAD  # that commit's guess.mjs too
 //   … --why                                                        # the commonest misses
+//   … --typed                                                      # once the amount is typed
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -43,6 +44,22 @@ const PEOPLE = {
     weekday: [H(0.6, 7.8, 8.4, 'food', 'food:breakfast', [65, 85], 'linepay'), H(0.9, 8.2, 8.6, 'transport', 'transport:ride', [25, 30], 'ez'), H(0.6, 9.5, 10.5, 'food', 'food:drink', [55, 65], 'linepay'), H(0.95, 12.0, 12.8, 'food', 'food:lunch', [120, 150, 180], 'linepay'), H(0.9, 18.3, 19.0, 'transport', 'transport:ride', [25, 30], 'ez'), H(0.7, 19.0, 20.5, 'food', 'food:dinner', [100, 160], 'cash'), H(0.12, 20, 23, 'shop', 'shop:daily', [199, 399], 'cc')],
     weekendDay: [H(0.6, 10, 12, 'shop', 'shop:daily', [600, 900, 1200], 'cc'), H(0.6, 12, 14, 'food', 'food:lunch', [180, 250], 'cc'), H(0.4, 14, 20, 'fun', 'fun:leisure', [300, 600], 'cc'), H(0.4, 18, 20.5, 'food', 'food:out', [500, 800], 'cc'), H(0.3, 15, 17, 'food', 'food:drink', [60, 80], 'linepay')],
     monthly: [[5, 10.0, 'salary', '', 52000, 'bank', 'in'], [10, 21.0, 'home', 'home:bills', 800, 'bank'], [15, 21.0, 'digital', 'digital:subs', 390, 'cc']],
+    weekly: []
+  },
+  // A nurse on night shifts in 台中: meals at odd hours, a taxi home, the convenience store, a scooter.
+  nurse: {
+    live: 0.7, night: 0.1,
+    weekday: [H(0.7, 17.5, 18.5, 'food', 'food:breakfast', [70, 90], 'cash'), H(0.6, 18.5, 19.2, 'transport', 'transport:car', [100, 150], 'cash'), H(0.75, 0.5, 1.5, 'food', 'food:lunch', [100, 130], 'linepay'), H(0.6, 3, 4.5, 'food', 'food:drink', [45, 65], 'linepay'), H(0.5, 7.5, 8.5, 'food', 'food:dinner', [90, 140], 'cash'), H(0.35, 8, 9, 'shop', 'shop:daily', [89, 159, 239], 'linepay')],
+    weekendDay: [H(0.6, 11, 13, 'food', 'food:lunch', [150, 220], 'cc'), H(0.3, 14, 18, 'shop', 'shop:style', [690, 990], 'cc'), H(0.5, 18, 20, 'food', 'food:dinner', [200, 350], 'cc'), H(0.3, 10, 17, 'health', 'health:meds', [180, 260], 'cash')],
+    monthly: [[25, 9.5, 'salary', '', 48000, 'bank', 'in'], [5, 20.0, 'home', 'home:rent', 9500, 'bank']],
+    weekly: []
+  },
+  // A parent in 高雄: groceries most days, the kids' things, the car, nothing on a bus.
+  parent: {
+    live: 0.5, night: 0.4,
+    weekday: [H(0.5, 7.0, 7.6, 'food', 'food:breakfast', [120, 160, 200], 'cash'), H(0.7, 9.5, 11, 'shop', 'shop:daily', [180, 350, 520], 'cc'), H(0.5, 12, 13, 'food', 'food:lunch', [90, 120], 'cash'), H(0.4, 16, 17.5, 'family', 'family:kids', [150, 300, 600], 'cc'), H(0.3, 17, 18, 'transport', 'transport:car', [600, 900], 'cc'), H(0.5, 18, 19.5, 'food', 'food:dinner', [250, 400], 'cash')],
+    weekendDay: [H(0.6, 10, 12, 'shop', 'shop:daily', [1200, 1800, 2500], 'cc'), H(0.5, 12, 14, 'food', 'food:out', [800, 1200], 'cc'), H(0.4, 14, 18, 'fun', 'fun:leisure', [300, 600], 'cc'), H(0.3, 15, 17, 'family', 'family:kids', [300, 500], 'cc')],
+    monthly: [[10, 21.0, 'home', 'home:bills', 1600, 'bank'], [10, 21.1, 'home', 'home:net', 999, 'cc'], [5, 10.0, 'salary', '', 56000, 'bank', 'in']],
     weekly: []
   },
   // The student's habits, written down mostly at night or the next morning.
@@ -95,7 +112,8 @@ const newOf = G =>
   });
 
 // Each entry guessed as its sheet opened, from what came before it.
-function score(G, b, misses = null) {
+// `typed`: the guess once the amount is typed (as 記一筆 guesses again then), else as the sheet opens.
+function score(G, b, misses = null, typed = false) {
   const mine = live(b.entries).sort((x, y) => x.t - y.t);
   const first = mine[0] ? Date.parse(`${mine[0].d}T00:00:00+08:00`) : 0;
   const out = { week1: { of: 0, what: 0, cat: 0, pay: 0 }, weeks2to4: { of: 0, what: 0, cat: 0, pay: 0 }, after: { of: 0, what: 0, cat: 0, pay: 0 }, all: { of: 0, what: 0, cat: 0, pay: 0 } };
@@ -103,7 +121,7 @@ function score(G, b, misses = null) {
   const before = { entries: {} };
   for (const e of mine) {
     const sameDay = new Date(e.t + 8 * 3_600_000).toISOString().slice(0, 10) === e.d;
-    const ctx = { day: e.d, at: sameDay ? e.t : null, pl: '' };
+    const ctx = { day: e.d, at: sameDay ? e.t : null, pl: '', ...(typed ? { amt: e.amt } : {}) };
     const clues = G.cluesFor(before, ctx);
     const g = newOf(G)(clues, { at: ctx.at, lastCat, first: k => (k === 'in' ? 'salary' : 'food'), mealSub: (cat, t) => guessSub(cat, '', t == null ? null : new Date(t)) });
     const week = Math.floor((Date.parse(`${e.d}T00:00:00+08:00`) - first) / (7 * DAY));
@@ -139,17 +157,19 @@ async function load(ref) {
 
 const args = process.argv.slice(2);
 const why = args.includes('--why');
+// --typed: each guess once its amount is typed (an older guess.mjs ignores it: the same as opening).
+const typed = args.includes('--typed');
 const against = args.includes('--against') ? args[args.indexOf('--against') + 1] : null;
 const runs = [['now', await load(null)], ...(against ? [[against, await load(against)]] : [])];
 const seeds = [7, 11, 23, 42, 99];
-console.log('category + sub right (category alone, way to pay), averaged over 5 runs of 60 days each');
+console.log(`category + sub right (category alone, way to pay), ${typed ? 'once the amount is typed' : 'as 記一筆 opens'}, averaged over 5 runs of 60 days each`);
 for (const who of Object.keys(PEOPLE)) {
   console.log(`\n${who}`);
   for (const [name, G] of runs.reverse()) {
     const sum = {};
     const misses = why ? new Map() : null;
     for (const seed of seeds) {
-      const r = score(G, booksOf(who, { seed }), misses);
+      const r = score(G, booksOf(who, { seed }), misses, typed);
       for (const [k, v] of Object.entries(r)) for (const [m, n] of Object.entries(v)) ((sum[k] ||= {})[m] = (sum[k][m] || 0) + n);
     }
     const line = ['week1', 'weeks2to4', 'after', 'all'].map(k => `${k} ${pct(sum[k].what, sum[k].of)} (${pct(sum[k].cat, sum[k].of)}, ${pct(sum[k].pay, sum[k].of)})`).join(' · ');

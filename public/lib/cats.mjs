@@ -253,6 +253,17 @@ const SUB_GUESS = [
 // afternoon's is 飲料點心; late at night is 晚餐 (no 宵夜 of its own: three
 // meals, Jay 2026-11-01).
 const MEAL = h => (h < 4 ? 'dinner' : h < 10.5 ? 'breakfast' : h < 14.5 ? 'lunch' : h < 17 ? 'drink' : 'dinner');
+// What the words say it is, whatever the category (a store, a brand: 星巴克 is
+// 飲料點心 from the first entry): a spend's sub id, '' when they don't say or it's hidden.
+export function subFromWords(text = '') {
+  const s = String(text || '');
+  if (!s.trim()) return '';
+  for (const [id, re] of SUB_GUESS) {
+    const x = re.test(s) && table.get(id);
+    if (x && !x.hidden && !table.get(x.parent)?.hidden) return id;
+  }
+  return '';
+}
 export function guessSub(cat, text = '', at = null) {
   const s = String(text || '');
   const hit = SUB_GUESS.find(([id, re]) => id.startsWith(`${cat}:`) && re.test(s))?.[0] || (cat === 'food' && at ? `food:${MEAL(at.getHours() + at.getMinutes() / 60)}` : '');

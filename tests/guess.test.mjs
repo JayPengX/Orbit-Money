@@ -127,6 +127,29 @@ test('guessNew: a first entry ever is the meal of the hour', () => {
   assert.deepEqual([g.k, g.cat, g.sub], ['out', 'food', 'food:dinner']);
 });
 
+test('a first week: what most people log at the hour, told apart by the amount typed', () => {
+  const g = (day, hm, amt = 0) => G.guessWhat(G.cluesFor(B.emptyBooks(), { day, at: at(day, hm), amt })).sub;
+  // A Wednesday at 8: breakfast, unless it's a bus fare.
+  assert.equal(g('2026-11-04', '08:00'), 'food:breakfast');
+  assert.equal(g('2026-11-04', '08:00', 60), 'food:breakfast');
+  assert.equal(g('2026-11-04', '08:00', 25), 'transport:ride');
+  // NT$600 at noon is a meal out with others; NT$10,000 in the morning, the rent.
+  assert.equal(g('2026-11-04', '12:20', 110), 'food:lunch');
+  assert.equal(g('2026-11-04', '12:20', 600), 'food:out');
+  assert.equal(g('2026-11-04', '10:00', 10000), 'home:rent');
+  assert.equal(g('2026-11-04', '15:30'), 'food:drink');
+});
+
+test('what most people do gives way to the person\'s own within days: their noon is the gym', () => {
+  const b = B.emptyBooks();
+  const gym = d => B.put(b, 'entries', { id: `g${d}`, d, k: 'out', cat: 'fun', sub: 'fun:sport', amt: 150, a: 'cash', via: '', t: at(d, '12:10') }, at(d, '12:10'));
+  const noon = () => G.guessWhat(G.cluesFor(b, { day: '2026-10-30', at: at('2026-10-30', '12:10') })).sub;
+  gym('2026-10-26');
+  assert.equal(noon(), 'food:lunch', 'once is no habit');
+  for (const d of ['2026-10-27', '2026-10-28', '2026-10-29']) gym(d);
+  assert.equal(noon(), 'fun:sport');
+});
+
 test('places: kept to about 100 m, and how far apart', () => {
   assert.equal(G.cellOf(24.80437, 120.96812), '24.804,120.968');
   assert.equal(G.cellOf(NaN, 1), '');
