@@ -181,9 +181,10 @@ export const firstDay = books => live(books.entries).reduce((m, e) => (e.d && (!
 export const total = (books, kind, from, to) => sum(of(books, kind, from, to));
 
 // 趨勢 (Jay 2026-10-30: "no way to see trend of months, year"): a scale's
-// periods (unit 'week': keys are the Monday, 'month': 'YYYY-MM', 'year':
+// periods (unit 'day': the day, 'week': the Monday, 'month': 'YYYY-MM', 'year':
 // 'YYYY') and the period a day falls in.
 export function periodKey(unit, d) {
+  if (unit === 'day') return d;
   if (unit === 'year') return d.slice(0, 4);
   if (unit === 'month') return d.slice(0, 7);
   return addDays(d, -((new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7));
@@ -192,6 +193,7 @@ export function periodKeys(unit, from, to) {
   const keys = [];
   if (unit === 'year') for (let y = Number(from.slice(0, 4)); y <= Number(to.slice(0, 4)); y++) keys.push(String(y));
   else if (unit === 'month') for (let ym = from.slice(0, 7); ym <= to.slice(0, 7); ym = shiftMonth(ym, 1)) keys.push(ym);
+  else if (unit === 'day') for (let d = from; d <= to; d = addDays(d, 1)) keys.push(d);
   else for (let d = periodKey('week', from); d <= to; d = addDays(d, 7)) keys.push(d);
   return keys;
 }

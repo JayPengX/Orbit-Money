@@ -34,8 +34,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-sec-note { color: var(--q-label-2); font: var(--q-t-footnote); white-space: nowrap; }
 .mn-hint { color: var(--q-label-2); font: var(--q-t-subhead); text-wrap: pretty; }
 
-/* Every primary button wears the same gold, dark text (white on gold is unreadable). */
-.q-btn.primary { background: linear-gradient(180deg, #f8cf64, #e6a321); color: #241a08; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45); }
+/* Every primary button is the kit's: the app's gold, flat (Jay 2026-11-03: the glossy one looked out of place). */
 .q-btn.primary:disabled { opacity: 0.45; }
 /* ---- The focus card (kit .q-focus) as money's black card with gold in it:
    the same in light and dark, never a white plate (the look before 0fc68be). ---- */
@@ -365,8 +364,12 @@ h1, h2, h3, p { margin: 0; }
 .mn-legend { display: flex; justify-content: center; gap: 16px; color: var(--q-label-2); font: var(--q-t-caption); }
 .mn-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .mn-legend i { width: 8px; height: 8px; border-radius: 2px; }
-.mn-dates { margin-bottom: 16px; }
-.mn-dates .q-field { flex: none; width: 160px; min-height: 38px; }
+.mn-dates { margin-bottom: 8px; }
+/* 自訂期間's two days: our own text, centred, the phone's picker unseen on top. */
+.mn-dayrow { min-height: 52px; }
+.mn-date-box { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 136px; height: 34px; padding: 0 12px; border-radius: 8px; background: var(--q-fill-3); color: var(--q-label); font: 400 17px/22px var(--q-font); }
+.mn-date-in { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.mn-dates-note { display: block; padding: 0 16px 8px; color: var(--q-label-2); font: 400 13px/18px var(--q-font); }
 .mn-budget-edit { margin: 0 0 16px; }
 .mn-budget-edit .q-field { flex: none; width: 112px; min-height: 38px; text-align: right; font-size: 16px; }
 
@@ -504,26 +507,11 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-filter i { display: grid; width: 18px; height: 18px; }
 .mn-filter svg { width: 18px; height: 18px; }
 .mn-filter.on { background: color-mix(in srgb, var(--q-accent) 18%, transparent); color: var(--q-accent); }
-.q-focus.mn-hero { row-gap: 2px; padding: 12px 16px 8px; }
-.mn-hero .mn-sum-figs { padding-bottom: 2px; }
-.mn-hero .mn-pbars-box { grid-column: 1 / -1; margin: 6px -12px 0; }
-.mn-hero-pick { display: inline-flex; align-items: center; gap: 4px; justify-self: start; padding: 0; border: 0; background: none; }
-.mn-hero-pick i { display: grid; width: 12px; height: 12px; transform: rotate(90deg); }
-.mn-hero-pick svg { width: 12px; height: 12px; stroke-width: 3; }
-.mn-pbars-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 22px; align-items: center; }
-.mn-pbars-step { display: grid; place-items: center; width: 22px; height: 76px; padding: 0; border: 0; background: none; color: rgba(255, 255, 255, 0.7); }
-.mn-pbars-step svg { width: 13px; height: 13px; stroke-width: 2.6; }
-.mn-pbars-step.back svg { transform: scaleX(-1); }
-.mn-pbars-step:disabled { visibility: hidden; }
-.mn-pbars { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); align-items: end; height: 76px; touch-action: pan-y; }
-.mn-pbar { display: grid; grid-template-rows: 1fr 16px; height: 100%; min-width: 0; padding: 0; border: 0; background: none; -webkit-tap-highlight-color: transparent; }
 .mn-pbar-col { display: flex; align-items: flex-end; justify-content: center; min-height: 0; }
 .mn-pbar-col i { display: block; width: min(20px, 70%); border-radius: 5px 5px 2px 2px; background: rgba(246, 196, 83, 0.32); transition: background 0.15s; }
 .mn-pbar.on .mn-pbar-col i { background: linear-gradient(180deg, #f8cf64, #e6a321); }
-.mn-pbar small { align-self: end; color: rgba(255, 255, 255, 0.55); font: 400 11px/14px var(--q-font-rounded); white-space: nowrap; }
 .mn-pbar.on small { color: #fff; font-weight: 600; }
 .mn-pbar-avg { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed rgba(255, 255, 255, 0.4); pointer-events: none; }
-.mn-pbar-avg small { position: absolute; right: 2px; bottom: 1px; padding: 0 3px; border-radius: 4px; background: rgba(21, 17, 11, 0.7); color: rgba(255, 255, 255, 0.6); font: 500 10px/13px var(--q-font-rounded); }
 .mn-filter-group.off .mn-skip-sub { opacity: 0.4; }
 .mn-filter-all { margin-left: 8px; }
 .mn-filter-group + .mn-filter-group { border-top: 0.5px solid var(--q-sep); }
@@ -544,21 +532,42 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 /* ---- 統計, one scale (Jay 2026-10-31: "some are big some are small",
    "can't view much from one glance"). Four sizes on the whole page: the
    total (28), a section's name (17), a line (15) and a note (12); one row
-   height (44), one tile (28). Every control sits on one row. ---- */
+   height (44), one tile (28). ---- */
 .mn-st { display: grid; gap: 12px; }
-.mn-st .mn-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto 36px; gap: 6px; margin: 0; }
-.mn-st .mn-toolbar .q-seg { min-height: 32px; margin: 0; }
-.mn-st .mn-toolbar .q-seg button { min-height: 28px; padding-inline: 4px; font: 500 13px/18px var(--q-font); }
-.mn-st .mn-kind { width: 92px; }
-.mn-st .mn-filter { position: relative; justify-content: center; width: 36px; min-height: 32px; padding: 0; }
-.mn-st .mn-filter b { position: absolute; top: -4px; right: -4px; display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--q-accent); color: #241a08; font: 700 11px/16px var(--q-font-rounded); }
+/* The controls (Jay 2026-11-03, "super densed"): 支出/收入 and the filter on
+   one row, the scale's four parts even on the next, each at full size. */
+.mn-st .mn-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; gap: 10px; margin: 0; }
+.mn-toolbar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mn-st .mn-toolbar .q-seg { margin: 0; }
+.mn-st .mn-kind { width: 168px; }
+.mn-st .mn-filter { position: relative; justify-content: center; width: 44px; min-height: 36px; padding: 0; }
+.mn-range.free::before { opacity: 0; }
+/* The card: rows that keep their height whatever is picked (a pick or a step
+   changes words and bars, never the card's size). */
+.q-focus.mn-hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 4px 8px 12px 16px; }
+.mn-hero-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.mn-hero-pick { min-width: 0; color: inherit; }
+.mn-hero-pick > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mn-hero .mn-cal-steps { flex: none; gap: 4px; }
+.mn-hero .mn-step { width: 40px; height: 40px; color: var(--q-label); }
+.mn-hero .mn-step:disabled { color: var(--q-label-4, var(--q-label-3)); opacity: 0.45; }
+.mn-hero-main { display: grid; gap: 0; min-width: 0; margin: 2px 8px 0 0; }
 .mn-st .mn-hero .q-focus-label { font: 500 13px/18px var(--q-font); }
-.mn-st .mn-hero .q-focus-value { font-size: clamp(24px, 7.5vw, 28px); line-height: 34px; }
-.mn-st .mn-hero .mn-sum-figs small { font: 400 12px/16px var(--q-font); }
-.mn-st .mn-hero .mn-sum-figs b { font: 600 15px/20px var(--q-font-rounded); }
-.mn-st .mn-pbars { height: 64px; }
-.mn-st .mn-pbars-step { height: 64px; }
-.mn-st .mn-pbar small { font: 400 12px/16px var(--q-font-rounded); }
+.mn-st .mn-hero .q-focus-value { font-size: clamp(28px, 9vw, 34px); line-height: 40px; }
+.q-focus .mn-hero-figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 8px 0 0; padding-top: 12px; border-top: 0.5px solid var(--q-sep); }
+.mn-hero-figs > div { display: grid; gap: 2px; min-width: 0; }
+.mn-st .mn-hero-figs small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px/16px var(--q-font); }
+.mn-st .mn-hero-figs b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 17px/22px var(--q-font-rounded); }
+/* The bars: their own room under the figures, the average's name under them
+   (never on the line, where it sat on the figures). */
+.mn-chart { display: grid; gap: 6px; margin: 16px 8px 0 0; }
+.mn-pbars { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); align-items: end; height: 96px; touch-action: pan-y; }
+.mn-pbar { display: grid; grid-template-rows: 1fr 20px; height: 100%; min-width: 0; padding: 0; border: 0; background: none; -webkit-tap-highlight-color: transparent; }
+.mn-pbar small { align-self: end; color: var(--q-label-2); font: 400 12px/16px var(--q-font-rounded); white-space: nowrap; }
+.mn-chart-key { display: flex; align-items: center; gap: 6px; min-height: 16px; }
+.mn-chart-key i { flex: none; width: 14px; border-top: 1.5px dashed var(--q-label-3); }
+.mn-chart-key small { overflow: hidden; color: var(--q-label-2); text-overflow: ellipsis; white-space: nowrap; font: 400 12px/16px var(--q-font); }
+.mn-st .mn-filter b { position: absolute; top: -4px; right: -4px; display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--q-accent); color: #241a08; font: 700 11px/16px var(--q-font-rounded); }
 .mn-st .q-section { gap: 6px; margin: 4px 0 0; }
 .mn-st .q-section-head h2 { font: 600 17px/22px var(--q-font); }
 .mn-st .mn-sec-note { font: 400 12px/16px var(--q-font); }

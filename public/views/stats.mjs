@@ -10,7 +10,7 @@ import { addDays } from '#kit/format.mjs';
 import { lines, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
 import { catList, catOf, catName, subOf, glyph } from '../lib/cats.mjs';
 import { byCat, byAccount, shape, largest, places, sameplace, placeOf, daysIn, weekdays, pace, months, kept, firstDay, total, trendOf, periodKey } from '../lib/stats.mjs';
-import { state, W, en, lang, money, plain, short, monthLabel, dayLabel, today, saved, acct, acctName, card, flow } from '../shell.mjs';
+import { state, hooks, W, en, lang, money, plain, short, monthLabel, dayLabel, today, saved, acct, acctName, card, flow } from '../shell.mjs';
 import { entryRow, openEntry } from './entry.mjs';
 import { acctTile } from './pics.mjs';
 
@@ -18,6 +18,10 @@ const span = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 86_4
 
 // The period around state.at: { from, to, label, step(n) → its `at`, unit ('day' | 'month'), prevName }.
 export function periodOf(range, at, custom = state.custom) {
+  if (range === 'day') {
+    const year = at.slice(0, 4) !== today().slice(0, 4);
+    return { from: at, to: at, label: dayLabel(at, { year }), step: n => addDays(at, n), unit: 'day', prevName: W('前一天', 'The day before') };
+  }
   if (range === 'week') {
     const wd = (new Date(`${at}T12:00:00Z`).getUTCDay() + 6) % 7;
     const from = addDays(at, -wd);
@@ -50,6 +54,17 @@ const B = () => (skip.size ? { ...state.books, skip } : state.books);
 const offKey = s => s.sub || `${s.cat}/-`;
 
 // ---- The page --------------------------------------------------------------------------
+const SCALES = ['day', 'week', 'month', 'year'];
+// A new scale keeps the moment: today when the period picked holds it, else
+// the period's first day.
+function setScale(r, redraw) {
+  const now = today();
+  const was = periodOf(state.range, state.at);
+  state.at = was.from <= now && now <= was.to ? now : was.from > now ? now : was.from;
+  state.range = r;
+  state.barEnd = null;
+  redraw();
+}
 // One page that reads top down (Jay 2026-10-30: the five kinds felt "weird
 // and forced"; good money apps do it this way): the scale (週 月 年 自訂) is
 // the main control; the card shows the period picked, its total and how it
@@ -61,22 +76,17 @@ const offKey = s => s.sub || `${s.cat}/-`;
 export function renderStats(box) {
   const now = today();
   const kind = state.kind === 'in' ? 'in' : 'out';
-  if (!['week', 'month', 'year', 'custom'].includes(state.range) || (state.range === 'custom' && !state.custom)) state.range = 'month';
+  if (![...SCALES, 'custom'].includes(state.range) || (state.range === 'custom' && !state.custom)) state.range = 'month';
   const p = periodOf(state.range, state.at);
   const prev = periodOf(state.range, p.step(-1));
-  const redraw = () => renderStats(box);
+  // (Through the app, which draws the tab's title too: drawn here alone, a tap on
+  // a month left the page without its 統計 and everything rose under the
+  // finger, Jay 2026-11-03 "clicking months the UI jump".)
+  const redraw = () => hooks.render();
 
-  const scale = pickSeg(
-    [
-      ['week', W('週', 'Week')],
-      ['month', W('月', 'Month')],
-      ['year', W('年', 'Year')],
-      ['custom', W('自訂', 'Dates')]
-    ],
-    state.range,
-    r => (r === 'custom' ? openCustom(redraw) : ((state.range = r), (state.barEnd = null), (state.at = state.at > now ? now : state.at), redraw())),
-    { cls: 'mn-range', label: W('期間', 'Period') }
-  );
+  // (Two rows with room, Jay 2026-11-03 "super dense": what's counted and the
+  // filter, then the scale on a row of its own, its four parts even. 自訂 is
+  // in the period's own menu on the card; while it's on, no part is lit.)
   const kinds = pickSeg(
     [
       ['out', W('支出', 'Out')],
@@ -90,8 +100,18 @@ export function renderStats(box) {
     h('i', { html: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg>' }),
     skip.size ? h('b', { class: 'num', text: String(skip.size) }) : null
   ]);
-  // (Every control on one row, Jay 2026-10-31: more of the page is the numbers.)
-  const bar = h('div', { class: 'mn-toolbar' }, [scale, kinds, filter]);
+  const scale = pickSeg(
+    [
+      ['day', W('日', 'Day')],
+      ['week', W('週', 'Week')],
+      ['month', W('月', 'Month')],
+      ['year', W('年', 'Year')]
+    ],
+    state.range,
+    r => setScale(r, redraw),
+    { cls: `mn-range${state.range === 'custom' ? ' free' : ''}`, label: W('期間', 'Period') }
+  );
+  const bar = h('div', { class: 'mn-toolbar' }, [h('div', { class: 'mn-toolbar-top' }, [kinds, filter]), scale]);
 
   const amt = total(B(), kind, p.from, p.to);
   const parts = [bar, hero(kind, p, prev, amt, now, redraw)];
@@ -141,138 +161,209 @@ function factsOf(kind, p, amt, cats, was) {
   ].filter(Boolean).slice(0, 4);
 }
 
-// Any dates: from and to (to never before from). Closed without picking,
-// the page goes back to the scale it had.
+// 自訂期間: any two days, from and to (to never before from). Each is a row
+// whose day is our own text, centred, with the phone's own date picker laid
+// unseen over it (Jay 2026-11-03: iPhone drew a date field's text high in a
+// box too big). Opened from the period's menu; closed without 看這段, nothing
+// changes.
 function openCustom(redraw) {
   const now = today();
-  const c = state.custom?.from ? state.custom : { from: `${now.slice(0, 7)}-01`, to: now };
-  const fromIn = h('input', { class: 'q-field', type: 'date', value: c.from, max: now, 'aria-label': W('從', 'From') });
-  const toIn = h('input', { class: 'q-field', type: 'date', value: c.to, max: '2099-12-31', 'aria-label': W('到', 'To') });
-  const row = (label, input) => h('label', { class: 'q-ritem' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), input]);
+  const p = periodOf(state.range, state.at);
+  const c = state.range === 'custom' && state.custom?.from ? { ...state.custom } : { from: p.from, to: p.to > now ? now : p.to };
+  const days = h('small', { class: 'mn-dates-note num' });
+  const note = () => {
+    const [a, b] = c.from <= c.to ? [c.from, c.to] : [c.to, c.from];
+    days.textContent = W(`共 ${span(a, b)} 天`, `${span(a, b)} days`);
+  };
+  const field = (label, key) => {
+    const shown = h('span', { class: 'mn-date-val num' });
+    const input = h('input', { class: 'mn-date-in', type: 'date', value: c[key], max: now, 'aria-label': label });
+    const paint = () => (shown.textContent = dayLabel(c[key], { year: c[key].slice(0, 4) !== now.slice(0, 4) }));
+    const take = () => {
+      if (!input.value) return;
+      c[key] = input.value;
+      paint();
+      note();
+    };
+    input.addEventListener('input', take);
+    input.addEventListener('change', take);
+    // (A computer's browser opens its picker only from its own icon: asked here.)
+    input.addEventListener('click', () => {
+      try {
+        input.showPicker?.();
+      } catch {}
+    });
+    paint();
+    return h('label', { class: 'q-ritem mn-dayrow' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), h('span', { class: 'mn-date-box' }, [shown, input])]);
+  };
+  note();
   const s = sheet({
     title: W('自訂期間', 'Custom period'),
-    onClose: redraw,
-    body: [h('div', { class: 'q-rowcard mn-dates' }, [row(W('從', 'From'), fromIn), row(W('到', 'To'), toIn)])],
+    body: [h('div', { class: 'q-rowcard mn-dates' }, [field(W('從', 'From'), 'from'), field(W('到', 'To'), 'to')]), days],
     foot: h('div', { class: 'q-sheet-foot' }, [
       h('button', {
         class: 'q-btn primary block',
         type: 'button',
         text: W('看這段', 'Show'),
         onclick: () => {
-          let [from, to] = [fromIn.value, toIn.value];
-          if (!from || !to) return toast(W('選兩個日期', 'Pick both dates'), { tone: 'bad' });
-          if (to < from) [from, to] = [to, from];
+          const [from, to] = c.from <= c.to ? [c.from, c.to] : [c.to, c.from];
           state.custom = { from, to };
           state.range = 'custom';
           state.at = from;
+          state.barEnd = null;
           s.close();
+          redraw();
         }
       })
     ])
   });
 }
 
-// The scale's periods for the card's bars: twelve (fewer when the books are
-// newer, but six at least), ending now unless moved back with ‹ or a swipe,
-// and always holding the period picked. { unit, from, to, older, newer }.
+// The period's menu (its name on the card): the scale's latest periods to
+// jump to, the one shown ticked, and 自訂期間 for any two days.
+function pickPeriod(anchor, p, now, redraw) {
+  const r = state.range === 'custom' ? 'month' : state.range;
+  const first = firstDay(state.books) || now;
+  const list = [];
+  for (let at = now; list.length < (r === 'day' ? 7 : 8); ) {
+    const q = periodOf(r, at);
+    list.push(q);
+    if (q.from <= first) break;
+    at = addDays(q.from, -1);
+  }
+  menu(anchor, [
+    ...list.map((q, i) => ({
+      label: q.label,
+      icon: state.range === r && q.from === p.from ? '✓' : '',
+      onClick: () => {
+        state.range = r;
+        state.at = i === 0 ? now : q.from;
+        state.barEnd = null;
+        redraw();
+      }
+    })),
+    'divider',
+    { label: W('自訂期間…', 'Custom period…'), icon: state.range === 'custom' ? '✓' : '', onClick: () => openCustom(redraw) }
+  ]);
+}
+
+// The scale's periods for the card's bars: a week of days, else twelve
+// (fewer when the books are newer, but six at least), ending now. They stay
+// put while one is picked or stepped to inside them; a step past either end
+// turns the page: back, the one picked is the newest of the older bars; on,
+// the oldest of the newer ones. { unit, from, to, start, end, older, newer }.
+const UNIT = { day: 'day', week: 'week', month: 'month', year: 'year' };
+const SIZE = { day: 7, week: 12, month: 12, year: 12 };
 const keyStart = (unit, k) => (unit === 'year' ? `${k}-01-01` : unit === 'month' ? `${k}-01` : k);
-const keyStep = (unit, k, n) => (unit === 'year' ? String(Number(k) + n) : unit === 'month' ? shiftMonth(k, n) : addDays(k, 7 * n));
+const keyStep = (unit, k, n) => (unit === 'year' ? String(Number(k) + n) : unit === 'month' ? shiftMonth(k, n) : addDays(k, (unit === 'week' ? 7 : 1) * n));
 function windowOf(range, p, now) {
-  const unit = range === 'week' ? 'week' : range === 'year' ? 'year' : 'month';
+  const unit = UNIT[range] || 'month';
+  const n = SIZE[unit];
   const nowKey = periodKey(unit, now);
   const firstKey = periodKey(unit, firstDay(state.books) || now);
   const on = periodKey(unit, p.from);
   let end = periodKey(unit, state.barEnd && state.barEnd < now ? state.barEnd : now);
-  if (on > end) end = on > nowKey ? nowKey : on;
-  if (on < keyStep(unit, end, -11)) end = keyStep(unit, on, 11) > nowKey ? nowKey : keyStep(unit, on, 11);
-  let start = keyStep(unit, end, -11);
-  const least = keyStep(unit, end, -5);
+  if (on > end) end = keyStep(unit, on, n - 1) > nowKey ? nowKey : keyStep(unit, on, n - 1);
+  else if (on <= keyStep(unit, end, -n)) end = on;
+  let start = keyStep(unit, end, 1 - n);
+  const least = keyStep(unit, end, 1 - Math.min(n, unit === 'day' ? 7 : 6));
   if (start < firstKey) start = firstKey < least ? firstKey : least;
   const to = keyStep(unit, end, 1) > nowKey ? now : addDays(keyStart(unit, keyStep(unit, end, 1)), -1);
   return { unit, from: keyStart(unit, start), to, start, end, older: firstKey < start, newer: end < nowKey };
 }
 
-// The card: the period, its total, against the one before and (a month that's
-// running) where it's heading; under it the bars of the periods, the picked
-// one lit, the average of the finished ones as a dashed line.
+// The card (Jay 2026-11-03: "super densed", the 平均 tag on the figures, a
+// tap on a month moved things): rows with room, each always there and the
+// same height, so a pick or a step changes words and bars, never the card.
+// The period's name (its menu) with ‹ › beside it; the total; two figures,
+// even, a dash where there's none; the bars of the periods, the picked one
+// lit, the finished ones' average a dashed line named under the bars.
 function hero(kind, p, prev, amt, now, redraw) {
   const b = B();
   const before = total(b, kind, prev.from, prev.to);
   const gone = daysIn(p.from, p.to, now);
   const start = firstDay(state.books);
-  const name = kind === 'in' ? W('收入', 'income') : W('支出', 'spent');
-  // (Beside the total, as 月曆's card: against the period before, a day's
-  // average and where a running month is heading; the value is the line's
-  // own, so it reads at a glance, Jay 2026-10-31.)
-  const figs = [];
-  if (before || (start && start <= prev.to)) {
-    const diff = before ? Math.round(((amt - before) / before) * 100) : null;
-    figs.push(diff == null ? fig(W(`比${p.prevName}`, `vs ${p.prevName.toLowerCase()}`), W('新', 'New')) : fig(W(`比${p.prevName}`, `vs ${p.prevName.toLowerCase()}`), `${diff >= 0 ? '▲' : '▼'}${Math.abs(diff)}%`));
-  }
+  const vs = W(`比${p.prevName}`, `vs ${p.prevName.toLowerCase()}`);
+  let one = fig(vs, '—');
+  if (before) {
+    const diff = Math.round(((amt - before) / before) * 100);
+    one = fig(vs, `${diff >= 0 ? '▲' : '▼'}${Math.abs(diff)}%`);
+  } else if (start && start <= prev.to && amt) one = fig(vs, W('新', 'New'));
+  let two = null;
   if (kind === 'out') {
     // (A running month's heading first; else a day's average.)
     const end = state.range === 'month' ? pace(b, p.from.slice(0, 7), now) : null;
-    if (end != null && end !== amt) figs.push(fig(W('照這速度月底', 'By month end'), money(end)));
-    else if (gone > 1) figs.push(fig(W('平均每天', 'A day'), money(Math.round(amt / gone))));
+    if (end != null && end !== amt) two = fig(W('照這速度月底', 'By month end'), money(end));
+    else if (gone > 1) two = fig(W('平均每天', 'A day'), money(Math.round(amt / gone)));
   } else {
     const k = kept(amt, total(b, 'out', p.from, p.to));
-    if (k != null) figs.push(fig(W('存下', 'Kept'), k >= 0 ? `${Math.round(k * 100)}%` : W('花超過', 'Over'), k >= 0 ? 'in' : ''));
+    if (k != null) two = fig(W('存下', 'Kept'), k >= 0 ? `${Math.round(k * 100)}%` : W('花超過', 'Over'), k >= 0 ? 'in' : '');
   }
-  const label = state.range === 'custom'
-    ? h('button', { class: 'q-focus-label mn-hero-pick', type: 'button', onclick: () => openCustom(redraw) }, [`${p.label} ${name}`, h('i', { html: icons.chevron })])
-    : h('span', { class: 'q-focus-label', text: W(`${p.label}${name}`, `${p.label} · ${name}`) });
-  return h('section', { class: 'q-focus mn-focus mn-sum mn-hero' }, [
-    h('div', { class: 'mn-sum-main' }, [label, h('b', { class: 'q-focus-value q-fit', text: money(amt) })]),
-    figs.length ? h('div', { class: 'q-focus-figs mn-sum-figs' }, figs.slice(0, 2)) : null,
-    state.range === 'custom' ? null : periodBars(kind, p, now, redraw)
+  if (!two) {
+    const n = new Set(lines(b, p.from, p.to).filter(l => l.k === kind && !l.fee && l.amt > 0).map(l => l.e.id)).size;
+    two = fig(W('筆數', 'Entries'), W(`${n} 筆`, String(n)));
+  }
+  const next = periodOf(state.range, p.step(1));
+  const back = periodOf(state.range, p.step(-1));
+  const go = n => {
+    const q = n < 0 ? back : next;
+    if (n > 0 ? q.from > now : q.to < (start || now)) return;
+    state.at = q.from <= now && now <= q.to && state.range !== 'custom' ? now : q.from;
+    redraw();
+  };
+  const step = (n, ok, label) => h('button', { class: 'mn-step', type: 'button', 'aria-label': label, disabled: ok ? null : true, html: icons.chevron, onclick: () => go(n) });
+  const head = h('div', { class: 'mn-hero-head' }, [
+    h('button', { class: 'mn-month mn-hero-pick', type: 'button', 'aria-haspopup': 'menu', onclick: e => pickPeriod(e.currentTarget, p, now, redraw) }, [h('span', { class: 'q-fit', text: p.label }), h('i', { html: icons.chevron })]),
+    h('span', { class: 'mn-cal-steps' }, [step(-1, back.to >= (start || now), W('更早', 'Earlier')), step(1, next.from <= now, W('較近', 'Later'))])
+  ]);
+  return h('section', { class: 'q-focus mn-focus mn-hero' }, [
+    head,
+    h('div', { class: 'mn-hero-main' }, [h('span', { class: 'q-focus-label', text: kind === 'in' ? W('收入', 'Income') : W('支出', 'Spent') }), h('b', { class: 'q-focus-value q-fit num', text: money(amt) })]),
+    h('div', { class: 'q-focus-figs mn-hero-figs' }, [one, two]),
+    state.range === 'custom' ? null : periodBars(kind, p, now, redraw, go)
   ]);
 }
 
-// The periods as bars in the card, the newest at the right; a tap picks one.
-function periodBars(kind, p, now, redraw) {
+// The periods as bars in the card, the newest at the right; a tap picks one,
+// a swipe across them steps as ‹ and › do.
+const MONTHS3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function periodBars(kind, p, now, redraw, go) {
   const w = windowOf(state.range, p, now);
+  // (Books of one period compare with nothing: no chart, Jay 2026-10-31. Asked
+  // of the books, not of the bars in view, so it never comes and goes on a step.)
+  if (periodKey(w.unit, firstDay(state.books) || now) >= periodKey(w.unit, now)) return null;
+  state.barEnd = keyStart(w.unit, w.end);
   const list = trendOf(B(), kind, w.from, w.to, w.unit);
-  // (One period with anything in it compares with nothing: no chart, Jay 2026-10-31.)
-  if (list.filter(x => x.amt > 0).length < 2 && !w.older) return null;
   const cur = periodKey(w.unit, now);
   const on = periodKey(w.unit, p.from);
   const max = Math.max(1, ...list.map(x => x.amt));
   const done = list.filter(x => x.key < cur && x.key >= periodKey(w.unit, firstDay(state.books) || now));
   const avg = done.length ? done.reduce((n, x) => n + x.amt, 0) / done.length : 0;
-  const tick = k => (w.unit === 'year' ? k : w.unit === 'month' ? (en ? MONTHS3[Number(k.slice(5)) - 1] : `${Number(k.slice(5))}月`) : `${Number(k.slice(5, 7))}/${Number(k.slice(8))}`);
-  const say = x => `${w.unit === 'year' ? (en ? x.key : `${x.key}年`) : w.unit === 'month' ? monthLabel(x.key) : W(`${dayLabel(x.key, { week: false })}那週`, `Week of ${dayLabel(x.key, { week: false })}`)} · ${money(x.amt)}`;
+  const md = k => `${Number(k.slice(5, 7))}/${Number(k.slice(8))}`;
+  // (Days by their number, the month only on the first bar and a 1st: seven
+  // dates fit at 320.)
+  const tick = (k, i) => (w.unit === 'year' ? k : w.unit === 'month' ? (en ? MONTHS3[Number(k.slice(5)) - 1] : `${Number(k.slice(5))}月`) : w.unit === 'day' && i && k.slice(8) !== '01' ? String(Number(k.slice(8))) : md(k));
+  const say = x => `${w.unit === 'year' ? (en ? x.key : `${x.key}年`) : w.unit === 'month' ? monthLabel(x.key) : w.unit === 'day' ? dayLabel(x.key) : W(`${dayLabel(x.key, { week: false })}那週`, `Week of ${dayLabel(x.key, { week: false })}`)} · ${money(x.amt)}`;
   // (Every label when they fit; else every other month, every third week.)
   const every = list.length <= 7 ? 1 : w.unit === 'week' ? 3 : w.unit === 'month' ? 2 : 1;
   const cols = list.map((x, i) =>
     h('button', { class: `mn-pbar${x.key === on ? ' on' : ''}${x.key === cur ? ' now' : ''}`, type: 'button', 'aria-label': say(x), 'aria-pressed': String(x.key === on), onclick: () => {
+      if (x.key === on) return;
       state.at = x.key === cur ? now : keyStart(w.unit, x.key);
-      state.barEnd = keyStart(w.unit, w.end);
       redraw();
-    } }, [h('span', { class: 'mn-pbar-col' }, [h('i', { style: `height:${x.amt > 0 ? Math.max(4, (x.amt / max) * 100) : 0}%` })]), h('small', { text: (list.length - 1 - i) % every ? '' : tick(x.key) })])
+    } }, [h('span', { class: 'mn-pbar-col' }, [h('i', { style: `height:${x.amt > 0 ? Math.max(4, (x.amt / max) * 100) : 0}%` })]), h('small', { class: 'num', text: (list.length - 1 - i) % every ? '' : tick(x.key, i) })])
   );
-  const row = h('div', { class: 'mn-pbars', style: `--n:${list.length}` }, [
-    ...cols,
-    avg ? h('span', { class: 'mn-pbar-avg', style: `bottom:calc(16px + (100% - 16px) * ${(avg / max).toFixed(3)})` }, [h('small', { class: 'num', text: W(`平均 ${short(Math.round(avg))}`, `avg ${short(Math.round(avg))}`) })]) : null
-  ]);
-  // (Older ones: ‹ or a swipe to the right moves the bars back six and picks the
-  // newest of them; › forward.)
-  const move = n => {
-    if ((n < 0 && !w.older) || (n > 0 && !w.newer)) return;
-    // (The newest of the moved bars is picked, so the page shows what's in view.)
-    const end = keyStep(w.unit, w.end, n * 6);
-    state.at = end === periodKey(w.unit, now) ? now : keyStart(w.unit, end);
-    state.barEnd = state.at;
-    redraw();
-  };
+  const row = h('div', { class: 'mn-pbars', style: `--n:${list.length}` }, [...cols, avg ? h('span', { class: 'mn-pbar-avg', style: `bottom:calc(20px + (100% - 20px) * ${(avg / max).toFixed(3)})` }) : null]);
   let x0 = null;
   row.addEventListener('touchstart', e => (x0 = e.touches[0].clientX), { passive: true });
   row.addEventListener('touchend', e => {
     const dx = x0 == null ? 0 : e.changedTouches[0].clientX - x0;
     x0 = null;
-    if (Math.abs(dx) > 50) move(dx > 0 ? -1 : 1);
+    if (Math.abs(dx) > 50) go(dx > 0 ? -1 : 1);
   });
-  const arrow = (n, ok, label) => h('button', { class: `mn-pbars-step${n < 0 ? ' back' : ''}`, type: 'button', 'aria-label': label, disabled: ok ? null : true, html: icons.chevron, onclick: () => move(n) });
-  return h('div', { class: 'mn-pbars-box' }, [h('div', { class: 'mn-pbars-row' }, [arrow(-1, w.older, W('更早', 'Earlier')), row, arrow(1, w.newer, W('較近', 'Later'))])]);
+  const per = { day: W('每天', 'a day'), week: W('每週', 'a week'), month: W('每月', 'a month'), year: W('每年', 'a year') }[w.unit];
+  const key = h('div', { class: 'mn-chart-key' }, avg ? [h('i'), h('small', { class: 'num', text: W(`${per}平均 ${money(Math.round(avg))}`, `${money(Math.round(avg))} ${per} on average`) })] : []);
+  return h('div', { class: 'mn-chart' }, [row, key]);
 }
 
 // 篩選: every category of the card's span and its subs, each with a switch;
@@ -412,7 +503,6 @@ const monthKeys = (from, to) => {
   for (let ym = from.slice(0, 7); ym <= to.slice(0, 7); ym = shiftMonth(ym, 1)) out.push(ym);
   return out;
 };
-const MONTHS3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const monthTick = ym => (en ? 'JFMAMJJASOND'[Number(ym.slice(5)) - 1] : String(Number(ym.slice(5))));
 
 // Inside the period: each day (each month of a year or a long span).
@@ -730,8 +820,8 @@ function openCat(kind, cat, sub, p) {
     const cur = periodKey(w.unit, now);
     const done = list.filter(x => x.key < cur);
     const avg = done.length ? Math.round(done.reduce((n, x) => n + x.amt, 0) / done.length) : 0;
-    const name = k => (w.unit === 'year' ? (en ? k : `${k}年`) : w.unit === 'month' ? monthLabel(k) : W(`${dayLabel(k, { week: false })}那週`, `Week of ${dayLabel(k, { week: false })}`));
-    const unitName = { week: W('每週', 'a week'), month: W('每月', 'a month'), year: W('每年', 'a year') }[w.unit];
+    const name = k => (w.unit === 'year' ? (en ? k : `${k}年`) : w.unit === 'month' ? monthLabel(k) : w.unit === 'day' ? dayLabel(k) : W(`${dayLabel(k, { week: false })}那週`, `Week of ${dayLabel(k, { week: false })}`));
+    const unitName = { day: W('每天', 'a day'), week: W('每週', 'a week'), month: W('每月', 'a month'), year: W('每年', 'a year') }[w.unit];
     if (list.filter(x => x.amt).length > 1)
       chart = bars(list.slice(-12).map(x => ({ key: x.key, a: x.amt, label: w.unit === 'year' ? x.key : w.unit === 'month' ? monthTick(x.key) : `${Number(x.key.slice(8))}`, say: `${name(x.key)} · ${money(x.amt)}` })), { now: periodKey(w.unit, p.from), top: avg ? W(`${unitName}平均 ${money(avg)}`, `${money(avg)} ${unitName} on average`) : '', cls: 'short mn-in-sheet' });
   }

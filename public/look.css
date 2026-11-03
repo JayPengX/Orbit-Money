@@ -57,13 +57,6 @@ html[data-look='native'] .mn-pbar.on .mn-pbar-col i {
 html[data-look='native'] .mn-pbar-avg {
   border-top-color: color-mix(in srgb, var(--q-label) 28%, transparent);
 }
-html[data-look='native'] .mn-pbar-avg small {
-  background: var(--q-fill-3);
-  color: var(--q-label-2);
-}
-html[data-look='native'] .mn-pbars-step {
-  color: var(--q-label-2);
-}
 
 /* (The usual amounts are a quarter of the row each at 320: their digits as
    before, never the look's even-width ones, or 「1,290」 is cut.) */

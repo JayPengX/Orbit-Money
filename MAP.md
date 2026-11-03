@@ -19,9 +19,14 @@ Live: https://orbit.jaypengx.com/money/
   on open); each day's spending in its square, days off from `#kit/dayoff.mjs`; a
   day's entries below) · 帳戶 (總資產, accounts by kind, 固定收支) · 統計
   (支出 and 收入 as two views, never netted, Jay 2026-10-27; one page, Jay
-  2026-10-30: the scale 週 / 月 / 年 / 自訂 on top, the card with the period
-  picked and up to twelve periods as bars (tap one to pick it, ‹ or a swipe
-  for older; `trendOf`, `periodKey`), then everything about that period; 篩選
+  2026-10-30; roomy and still, Jay 2026-11-03: 支出/收入 and 篩選 on one row,
+  the scale 日 / 週 / 月 / 年 on the next, then the card: the period's name
+  (its menu: recent periods and 自訂期間, `pickPeriod`, `openCustom`) with ‹ ›,
+  the total, two figures always, and the periods as bars (a week of days, else
+  up to twelve; tap one to pick it, a swipe steps; they turn a page only when
+  a step leaves them, `windowOf`, `trendOf`, `periodKey`), the average named
+  under them; a redraw goes through `hooks.render` so the title stays and
+  nothing moves), then everything about that period; 篩選
   is one sheet with a switch for every category and sub, and every figure is
   counted again without what's off (books `skip` in `lines`); numbers in `lib/stats.mjs`,
   tested: each category with its subs and their share of the whole (a donut on

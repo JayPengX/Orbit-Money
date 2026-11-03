@@ -17,5 +17,6 @@ To remove a feature on purpose, delete its line here in the same commit and say 
 - Card networks (卡別) — `public/views/accounts.mjs`, `public/views/pics.mjs`: `卡別`, `netTile`
 - 到期提醒 and the TPASS countdown — `public/views/renew.mjs`: `reminderTile`
 - Budgets — `public/views/stats.mjs`: `budget`
+- 統計 by 日, 週, 月, 年 or any two days, ‹ › and a menu on the card (Jay 11-03) — `public/views/stats.mjs`: `['day', W('日', 'Day')]`, `pickPeriod`, `openCustom`
 - 不計入 — `public/lib/stats.mjs`: `不計入`
 - 月曆's card with a budget: what's left to spend first, a day's worth and the days to go, the month's mark on the bar — `public/lib/books.mjs`, `public/views/calendar.mjs`: `monthLeft`, `leftCard`, `mn-pace`

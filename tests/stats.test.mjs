@@ -151,3 +151,20 @@ test('periods: weeks start on Monday, months and years by their key', () => {
   const w = S.trendOf(books(), 'out', '2026-10-26', '2026-11-08', 'week', l => l.cat === 'food');
   assert.deepEqual(w.map(x => x.amt), [0, 400]);
 });
+
+// 統計's 日 scale (2026-11-03): a day is its own period.
+test('periodKey and periodKeys by the day', () => {
+  assert.equal(S.periodKey('day', '2026-11-03'), '2026-11-03');
+  assert.deepEqual(S.periodKeys('day', '2026-10-30', '2026-11-02'), ['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-02']);
+  assert.deepEqual(S.periodKeys('week', '2026-11-03', '2026-11-10'), ['2026-11-02', '2026-11-09']);
+});
+
+// A tap on the card (a month, a step, a scale) redraws through the app, which
+// draws the tab's title too: drawn by the view alone, the title went and the
+// page rose under the finger (Jay 2026-11-03).
+test('統計 redraws through the app, keeping its title', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(new URL('../public/views/stats.mjs', import.meta.url), 'utf8');
+  assert.match(src, /const redraw = \(\) => hooks\.render\(\);/);
+  assert.doesNotMatch(src.replace(/export function renderStats\(box\)/, ''), /renderStats\(box\)/);
+});
