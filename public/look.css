@@ -1,0 +1,72 @@
+/* Orbit Money in Orbit's own look (Jay 2026-11-03, Orbit-Core DESIGN §11),
+   linked after money.css on a page with <html data-look="native">. The kit draws the month's card
+   graphite (no gold fill: the gold is only the budget's bar and the + button)
+   and each entry's category as its colour on its glyph. Here, only Money's own:
+   the card's divider in the page's hairline, the day picked on a quiet plate. */
+
+html[data-look='native'] .q-focus .mn-sum-figs {
+  border-left-color: var(--q-sep);
+}
+html[data-look='native'] .mn-day.on b {
+  background: var(--q-fill-3);
+  color: var(--q-label);
+}
+html[data-look='native'] .mn-day.on.today b {
+  color: var(--q-accent);
+}
+
+/* 月曆's card with a budget (views/calendar.mjs nvLeft): what's left as the
+   big number, over budget in the red; the bar of what's spent and, over it,
+   the mark of where the month is today. */
+html[data-look='native'] .mn-left .q-focus-value.over {
+  color: var(--q-red);
+}
+html[data-look='native'] .mn-meter {
+  position: relative;
+  grid-column: 1 / -1;
+  margin: 10px 0 6px;
+}
+html[data-look='native'] .mn-meter .q-focus-bar {
+  height: 6px;
+  margin: 0;
+}
+html[data-look='native'] .mn-pace {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--q-label);
+}
+
+/* 統計's card: its bars and their months drawn for a graphite or white card
+   (today's are white, for the gold one). */
+html[data-look='native'] .mn-pbar small {
+  color: var(--q-label-2);
+}
+html[data-look='native'] .mn-pbar.on small {
+  color: var(--q-label);
+}
+html[data-look='native'] .mn-pbar-col i {
+  background: color-mix(in srgb, var(--q-accent) 30%, transparent);
+}
+html[data-look='native'] .mn-pbar.on .mn-pbar-col i {
+  background: var(--q-accent);
+}
+html[data-look='native'] .mn-pbar-avg {
+  border-top-color: color-mix(in srgb, var(--q-label) 28%, transparent);
+}
+html[data-look='native'] .mn-pbar-avg small {
+  background: var(--q-fill-3);
+  color: var(--q-label-2);
+}
+html[data-look='native'] .mn-pbars-step {
+  color: var(--q-label-2);
+}
+
+/* (The usual amounts are a quarter of the row each at 320: their digits as
+   before, never the look's even-width ones, or 「1,290」 is cut.) */
+html[data-look='native'] .mn-units .mn-subchip.num {
+  font-variant-numeric: normal;
+}

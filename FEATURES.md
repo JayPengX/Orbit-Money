@@ -18,3 +18,4 @@ To remove a feature on purpose, delete its line here in the same commit and say 
 - 到期提醒 and the TPASS countdown — `public/views/renew.mjs`: `reminderTile`
 - Budgets — `public/views/stats.mjs`: `budget`
 - 不計入 — `public/lib/stats.mjs`: `不計入`
+- 月曆's card with a budget: what's left to spend first, a day's worth and the days to go, the month's mark on the bar — `public/lib/books.mjs`, `public/views/calendar.mjs`: `monthLeft`, `leftCard`, `mn-pace`

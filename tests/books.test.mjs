@@ -352,3 +352,30 @@ test('the same amount twice near the day: its own day first, then the store name
   assert.equal(B.sameAs(b, { k: 'out', day: '2026-10-30', total: 50, store: '全家' })?.id, 'c');
   assert.equal(B.sameAs(b, { k: 'out', day: '2026-10-30', total: 50, store: '7-ELEVEN 7-11' })?.id, 'a');
 });
+
+test("月曆's card with a budget, this month: the big number is what's left (or how far over), a day's worth and the days to go; none otherwise", () => {
+  const b = sample();
+  B.put(b, 'budgets', { id: 'all', cat: '', amt: 10000 }, T);
+  const all = B.budgetState(b, '2026-10', '2026-10-16').find(x => !x.cat);
+  const l = B.monthLeft(all, '2026-10', '2026-10-16');
+  assert.deepEqual([l.over, l.big, l.daysLeft, l.perDay], [false, 10000 - 3620, 16, Math.floor((10000 - 3620) / 16)]);
+  assert.ok(Math.abs(l.spent - 0.362) < 1e-9 && Math.abs(l.month - 16 / 31) < 1e-9);
+  // Over: how far over, said so.
+  const o = sample();
+  B.put(o, 'budgets', { id: 'all', cat: '', amt: 3000 }, T);
+  const ol = B.monthLeft(B.budgetState(o, '2026-10', '2026-10-16').find(x => !x.cat), '2026-10', '2026-10-16');
+  assert.deepEqual([ol.over, ol.big], [true, 620]);
+  // Another month, or no budget: the card says what was spent.
+  assert.equal(B.monthLeft(all, '2026-09', '2026-10-16'), null);
+  assert.equal(B.monthLeft(undefined, '2026-10', '2026-10-16'), null);
+});
+
+test("月曆's card draws monthLeft's number as its focal one, and the page carries the look (no switch)", async () => {
+  const { readFileSync } = await import('node:fs');
+  const read = f => readFileSync(new URL(`../public/${f}`, import.meta.url), 'utf8');
+  assert.match(read('views/calendar.mjs'), /const hero = leftCard\(t, budget, ym, now\) \|\|/);
+  assert.match(read('views/calendar.mjs'), /class: `q-focus-value q-fit\$\{l\.over \? ' over' : ''\}`, text: money\(l\.big\)/);
+  assert.match(read('index.html'), /<html [^>]*data-look="native"/);
+  assert.ok(read('index.html').indexOf('href="./money.css"') < read('index.html').indexOf('href="./look.css"'));
+  assert.doesNotMatch(read('app.mjs'), /orbit\.look/);
+});

@@ -345,6 +345,19 @@ export function budgetState(books, ym, today) {
     .sort((a, b) => (a.cat ? 1 : 0) - (b.cat ? 1 : 0) || b.share - a.share);
 }
 
+// 月曆's card with a budget, this month (Orbit's own look, Jay 2026-11-03):
+// what it's opened for is how much can still be spent. The big number is
+// what's left (or how far over), with what that is a day and the days it has
+// to last; `spent` is the bar (the budget's share spent), `month` its mark
+// (the share of the month gone: past it, spending is ahead of the month).
+// null without a budget or for another month: the card says what was spent.
+export function monthLeft(budget, ym, today) {
+  if (!budget || !today?.startsWith(ym)) return null;
+  const days = monthDays(ym);
+  const gone = Number(today.slice(8, 10));
+  return { over: budget.left < 0, big: Math.abs(budget.left), perDay: budget.perDay, daysLeft: days - gone + 1, spent: budget.share, month: gone / days };
+}
+
 // ---- Repeats -----------------------------------------------------------------------
 
 // The days a repeat falls on from `from` to `to` (both 'YYYY-MM-DD', inclusive).

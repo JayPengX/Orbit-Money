@@ -2,14 +2,19 @@
 
 Your own books: what you spend each day and what each account holds,
 any receipt or screenshot logged from a photo. Real money, kept apart from Orbit's play money.
-Signs in with the Orbit Pass; the books sync on it.
+Signs in with the Orbit Pass; the books sync on it. In Orbit's own look (Jay
+2026-11-03, Orbit-Core DESIGN §11): `data-look="native"` on the page, `look.css`
+after `money.css`; the kit draws the month's card graphite, the gold only on
+the budget's bar and the +.
 
 Live: https://orbit.jaypengx.com/money/
 
 ## How it works
 
-- **Tabs:** 月曆 (one short card: the month's spent / income / left and the
-  total budget; the picked day's week, opened to the whole month by the handle
+- **Tabs:** 月曆 (one short card: with a budget this month, what's left to
+  spend is the big number, what it is a day and the days it has to last under
+  it, spent beside it, the bar's mark where the month is today (`monthLeft`,
+  `leftCard`); otherwise the month's spent / income / left; the picked day's week, opened to the whole month by the handle
   under it and kept so on the phone (Jay 2026-10-30: today's entries must show
   on open); each day's spending in its square, days off from `#kit/dayoff.mjs`; a
   day's entries below) · 帳戶 (總資產, accounts by kind, 固定收支) · 統計

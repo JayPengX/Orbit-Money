@@ -7,7 +7,7 @@
 import { h, icons, menu, tile } from '#kit/ui.mjs';
 import { notifyOn } from '#kit/orbit.mjs';
 import { dayOffAt, myPlace } from '#kit/dayoff.mjs';
-import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState, lines } from '../lib/books.mjs';
+import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState, monthLeft, lines } from '../lib/books.mjs';
 import { reminders } from '../lib/renew.mjs';
 import { openReminder, renewNow, reminderTile, leftText, dueText } from './renew.mjs';
 import { addDays } from '#kit/format.mjs';
@@ -45,10 +45,11 @@ export function renderCal(box) {
   const open = roomy || calOpen();
 
   // The month's figures, on one short card (Jay 2026-10-30: the big card
-  // and the whole month pushed the day's entries off the screen): spent
-  // as the focal number, income and what's left beside it, the budget's
+  // and the whole month pushed the day's entries off the screen). With a
+  // budget this month, what's left to spend is the focal number (leftCard);
+  // otherwise what was spent, income and what's left beside it, the budget's
   // thin bar and one line under them.
-  const hero = h('section', { class: 'q-focus mn-focus mn-sum' }, [
+  const hero = leftCard(t, budget, ym, now) || h('section', { class: 'q-focus mn-focus mn-sum' }, [
     h('div', { class: 'mn-sum-main' }, [
       h('span', { class: 'q-focus-label', text: W(`${monthLabel(ym, { year: false })}支出`, `Spent in ${monthLabel(ym, { year: false })}`) }),
       h('b', { class: 'q-focus-value q-fit', text: money(t.out) })
@@ -184,6 +185,32 @@ function daySection(b, place) {
 }
 
 const fig = (label, value, cls = '') => h('div', null, [h('small', { text: label }), h('b', { class: `num ${cls}`.trim(), text: value })]);
+
+// With a budget, this month's card answers what it's opened for, how much
+// can still be spent (Orbit's own look, Jay 2026-11-03; Orbit-Core DESIGN
+// §11): that's the big number, what it is a day and how many days it has to
+// last under it, and what's spent beside it (with income when there is any,
+// else the budget). The bar is what's spent, its mark where the month is
+// today: past the mark, spending is ahead of the month (books.mjs monthLeft).
+function leftCard(t, budget, ym, now) {
+  const l = monthLeft(budget, ym, now);
+  if (!l) return null;
+  const month = monthLabel(ym, { year: false });
+  const spent = Math.round(l.spent * 100);
+  const gone = Math.round(l.month * 100);
+  return h('section', { class: 'q-focus mn-focus mn-sum mn-left' }, [
+    h('div', { class: 'mn-sum-main' }, [
+      h('span', { class: 'q-focus-label', text: l.over ? W(`${month}超出預算`, `Over budget in ${month}`) : W(`${month}還能花`, `Left to spend in ${month}`) }),
+      h('b', { class: `q-focus-value q-fit${l.over ? ' over' : ''}`, text: money(l.big) })
+    ]),
+    h('div', { class: 'q-focus-figs mn-sum-figs' }, [fig(W('已花', 'Spent'), money(t.out)), t.in > 0 ? fig(W('收入', 'Income'), money(t.in)) : fig(W('預算', 'Budget'), money(budget.amt))]),
+    h('div', { class: 'mn-meter', role: 'progressbar', 'aria-valuenow': String(spent), 'aria-label': W(`已花預算 ${spent}%，這個月過了 ${gone}%`, `${spent}% of the budget spent, ${gone}% of the month gone`) }, [
+      h('div', { class: `q-focus-bar${l.over ? ' over' : ''}` }, [h('i', { style: `width:${Math.min(100, l.spent * 100)}%` })]),
+      h('i', { class: 'mn-pace', style: `left:${l.month * 100}%` })
+    ]),
+    h('span', { class: 'q-focus-sub', text: l.over ? W(`預算 ${money(budget.amt)}，還有 ${l.daysLeft} 天`, `Budget ${money(budget.amt)}, ${l.daysLeft} days to go`) : W(`每天 ${money(l.perDay)}，還有 ${l.daysLeft} 天`, `${money(l.perDay)} a day for ${l.daysLeft} days`) })
+  ]);
+}
 
 // A finger across the calendar: the next week or month (left) or the last (right).
 function swipe(el, go) {
