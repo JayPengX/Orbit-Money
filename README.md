@@ -18,13 +18,31 @@ Your own books for real money: what you spend each day, what each account holds,
 <p align="center">
   <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month on a calendar">
   <img src="docs/screenshots/money-2.webp" width="30%" alt="Log spending in seconds">
-  <img src="docs/screenshots/money-3.webp" width="30%" alt="EasyCard tops itself up">
+  <img src="docs/screenshots/money-3.webp" width="30%" alt="Where the money went">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/money-4.webp" width="30%" alt="Where the money went">
+  <img src="docs/screenshots/money-4.webp" width="30%" alt="Every account, EasyCard too">
   <img src="docs/screenshots/money-5.webp" width="30%" alt="Twelve broad categories">
+  <img src="docs/screenshots/money-6.webp" width="30%" alt="It learns your habits">
 </p>
+
+<details>
+<summary>中文畫面</summary>
+
+<p align="center">
+  <img src="docs/screenshots/money-1.zh.webp" width="30%" alt="一整個月的收支">
+  <img src="docs/screenshots/money-2.zh.webp" width="30%" alt="幾秒就記一筆">
+  <img src="docs/screenshots/money-3.zh.webp" width="30%" alt="錢花到哪裡，一圈看懂">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/money-4.zh.webp" width="30%" alt="每個帳戶與悠遊卡">
+  <img src="docs/screenshots/money-5.zh.webp" width="30%" alt="十二大類，一眼分好">
+  <img src="docs/screenshots/money-6.zh.webp" width="30%" alt="越用越懂你的習慣">
+</p>
+
+</details>
 
 <p align="center"><sub>Screenshots use made-up sample books.</sub></p>
 
