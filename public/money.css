@@ -30,7 +30,7 @@ h1, h2, h3, p { margin: 0; }
 .tab-panel .q-section > .q-list-head { margin: 0 16px 6px; }
 .tab-panel .q-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .q-section-head h2 { font: 600 20px/25px var(--q-font); }
-.q-section-head button { border: 0; background: none; color: var(--q-accent); font: 600 15px/20px var(--q-font); padding: 4px 0 4px 8px; }
+.q-section-head button { border: 0; background: none; color: var(--q-text-2); font: 500 15px/20px var(--q-font); padding: 4px 0 4px 8px; }
 .mn-sec-note { color: var(--q-label-2); font: var(--q-t-footnote); white-space: nowrap; }
 .mn-hint { color: var(--q-label-2); font: var(--q-t-subhead); text-wrap: pretty; }
 
@@ -109,8 +109,9 @@ h1, h2, h3, p { margin: 0; }
 .mn-daysum { display: flex; gap: 10px; color: var(--q-label-2); font: 500 17px/22px var(--q-font-rounded); white-space: nowrap; }
 .mn-daysum b { font-weight: inherit; }
 .mn-daysum em { color: var(--mn-in); font-style: normal; }
-.mn-addrow { min-height: 48px; color: var(--q-accent); }
-.mn-addrow .q-ritem-title { color: var(--q-accent); font-weight: 400; }
+/* (Words in the label's colour, never accent text; the + carries the colour.) */
+.mn-addrow { min-height: 48px; }
+.mn-addrow .q-ritem-title { color: var(--q-label); font-weight: 400; }
 .mn-addrow-i { display: grid; place-items: center; flex: none; width: 40px; height: 24px; color: var(--q-accent); }
 .mn-addrow-i svg { width: 20px; height: 20px; stroke-width: 2.2; }
 
@@ -148,9 +149,9 @@ h1, h2, h3, p { margin: 0; }
 .mn-amount .mn-amount-in::placeholder { font: inherit; color: var(--q-label-3); opacity: 1; }
 .mn-amount.in .mn-amount-in { color: var(--mn-in); }
 .mn-amount:focus-within { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--q-accent) 70%, transparent); }
-/* Every category in view, five across (Jay 2026-10-27: pages to swipe hid
-   half of them and cut their names). */
-.mn-cats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px 4px; margin-top: var(--mn-gap); }
+/* Every category in view (Jay 2026-10-27: pages to swipe hid half of them
+   and cut their names), every row full where the count allows (the kit's fullRows, none left out). */
+.mn-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 2px 4px; margin-top: var(--mn-gap); }
 .mn-cat { display: grid; justify-items: center; align-content: start; gap: 4px; min-width: 0; padding: 6px 0 5px; border: 0; border-radius: var(--q-r-cell); background: none; }
 .mn-subs { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .mn-subs[hidden] { display: none; }
@@ -441,7 +442,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-iconpick[aria-checked='true'] { background: var(--q-accent); color: #1a1408; }
 .mn-subrow .mn-more { color: var(--q-label-3); font: 600 18px/1 var(--q-font); }
 .mn-catedit .q-section { margin-top: 0; }
-.mn-backlink { display: inline-flex; align-items: center; gap: 2px; justify-self: start; min-height: 32px; padding: 0; border: 0; background: none; color: var(--q-accent); font: 500 16px/22px var(--q-font); }
+.mn-backlink { display: inline-flex; align-items: center; gap: 2px; justify-self: start; min-height: 32px; padding: 0; border: 0; background: none; color: var(--q-text-2); font: 500 15px/22px var(--q-font); }
 .mn-backlink span { display: grid; width: 18px; height: 18px; }
 .mn-backlink svg { width: 18px; height: 18px; transform: rotate(180deg); }
 /* A sheet's one button spans its foot. */
@@ -490,7 +491,7 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-rm-check { display: grid; flex: none; place-items: center; width: 22px; height: 22px; color: var(--q-accent); }
 .mn-rm-check svg { width: 20px; height: 20px; stroke-width: 2.6; }
 .mn-rm-at[aria-checked='false'] .q-ritem-title, .mn-rm-at[aria-checked='false'] .q-ritem-value { color: var(--q-label-3); }
-.mn-rm-allow .q-ritem-title { color: var(--q-accent); font-weight: 600; }
+.mn-rm-allow .q-ritem-title { color: var(--q-label); font-weight: 600; }
 .mn-rm-left { font-weight: 600; }
 .mn-rm-left.soon, .mn-renew.soon .q-ritem-title { color: var(--q-red); }
 .mn-rm-empty { padding: 8px 4px 16px; text-align: center; }
@@ -527,7 +528,7 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
 .mn-catfold[aria-expanded='true']::after { transform: rotate(-45deg); margin-top: 4px; }
 .mn-catsubs { display: grid; }
 .mn-catsubs[hidden] { display: none; }
-.mn-catall .mn-subname { color: var(--q-accent); }
+.mn-catall .mn-subname { color: var(--q-label-2); }
 
 /* ---- 統計, one scale (Jay 2026-10-31: "some are big some are small",
    "can't view much from one glance"). Four sizes on the whole page: the
@@ -641,7 +642,7 @@ html.q-tabrail:not(.q-float) .mn-entry > .mn-part { display: grid; align-content
 html.q-tabrail:not(.q-float) .mn-entry > .mn-part-a { grid-column: 1; grid-row: 4; }
 html.q-tabrail:not(.q-float) .mn-entry > .mn-part-b { grid-column: 1; grid-row: 5; }
 html.q-tabrail:not(.q-float) .mn-entry > .mn-part-p { grid-column: 2; grid-row: 4 / 7; }
-html.q-tabrail:not(.q-float) .mn-entry .mn-cats { grid-template-columns: repeat(7, minmax(0, 1fr)); margin-top: 0; }
+html.q-tabrail:not(.q-float) .mn-entry .mn-cats { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); margin-top: 0; }
 html.q-tabrail:not(.q-float) .mn-entry .mn-move { margin-top: 0; }
 html.q-tabrail:not(.q-float) .mn-entry .mn-cat { padding-block: 3px 2px; }
 html.q-tabrail:not(.q-float) .mn-entry .mn-cat .q-tile { width: 32px; height: 32px; border-radius: 10px; }

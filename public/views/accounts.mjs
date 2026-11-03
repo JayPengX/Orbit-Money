@@ -547,7 +547,7 @@ export function openRepeat(r) {
         field(W('金額', 'Amount'), amtIn),
         f.k !== 'move'
           ? (() => {
-              const grid = h('div', { class: 'mn-cats all', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())));
+              const grid = h('div', { class: 'mn-cats all q-rows-full q-rows-keep', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())));
               return field(W('分類', 'Category'), grid);
             })()
           : null,

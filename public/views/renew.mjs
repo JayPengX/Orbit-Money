@@ -140,7 +140,7 @@ export function openReminder(id, done = () => {}) {
         ]);
       }),
       // (This phone hasn't allowed notices: asked from here.)
-      ...(f.on && !notifyOn() && 'Notification' in globalThis ? [h('button', { class: 'q-ritem mn-rm-row mn-rm-allow', type: 'button', onclick: async () => ((await hooks.notices?.()) ? paint() : toast(W('請到系統設定允許通知', 'Allow notices in system settings'), { tone: 'bad' })) }, [text(W('允許這支手機通知', 'Allow notices on this phone'))])] : [])
+      ...(f.on && !notifyOn() && 'Notification' in globalThis ? [h('button', { class: 'q-ritem chevron mn-rm-row mn-rm-allow', type: 'button', onclick: async () => ((await hooks.notices?.()) ? paint() : toast(W('請到系統設定允許通知', 'Allow notices in system settings'), { tone: 'bad' })) }, [text(W('允許這支手機通知', 'Allow notices on this phone'))])] : [])
     );
   }
 

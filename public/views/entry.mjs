@@ -271,7 +271,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     h('label', { class: 'mn-amount-n' }, [h('span', { class: 'mn-amount-cur', text: 'NT$' }), h('span', { class: 'mn-amount-box' }, [sizer, amountIn])])
   ]);
   // (.q-kb-hide: behind the keys while the note is typed, so the sheet fits above them.)
-  const cats = h('div', { class: 'mn-cats q-kb-hide', role: 'radiogroup', 'aria-label': W('分類', 'Category') });
+  const cats = h('div', { class: 'mn-cats q-rows-full q-rows-keep q-kb-hide', role: 'radiogroup', 'aria-label': W('分類', 'Category') });
   const subs = h('div', { class: 'mn-subs q-kb-hide', role: 'group', 'aria-label': W('細項', 'Sub-category') });
   // NT$5 × 1–6: a category priced by the unit (YouBike's half hours); with the
   // amount's keys up too, a tap instead of typing.
