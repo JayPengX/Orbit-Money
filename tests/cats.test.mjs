@@ -17,7 +17,7 @@ function sample() {
 test('the defaults: TPASS under 交通, meals under 餐飲', () => {
   C.useCats({});
   assert.ok(C.subsOf('transport').some(s => s.zh === 'TPASS'));
-  assert.deepEqual(C.subsOf('food').map(s => s.zh), ['早餐', '午餐', '晚餐', '飲料點心', '聚餐']);
+  assert.deepEqual(C.subsOf('food').map(s => s.zh), ['早餐', '午餐', '晚餐', '飲料點心']);
   assert.equal(C.catList('out').length, 12);
   assert.equal(C.subOf('transport:tpass').parent, 'transport');
   assert.equal(C.catOf('nope').id, 'other');
@@ -302,4 +302,26 @@ test('three meals again: what the twelve put under 三餐 goes back to the meal 
   C.splitMeals(c, null, T + 1);
   assert.equal(c.entries.y.sub, 'food:breakfast');
   C.useCats({});
+});
+
+test('no 聚餐 (Jay 2026-11-03): what was under it goes to its meal, nothing lost', () => {
+  const b = B.emptyBooks();
+  const tw = (d, hm) => Date.parse(`${d}T${hm}:00+08:00`);
+  B.put(b, 'entries', { id: 'l', d: '2026-11-02', k: 'out', amt: 600, cat: 'food', sub: 'food:out', a: 'cash', note: '同學', t: tw('2026-11-02', '12:30'), g: 'food|food:out|cash||0' }, T);
+  B.put(b, 'entries', { id: 'n', d: '2026-11-02', k: 'out', amt: 900, cat: 'food', sub: 'food:out', a: 'cash', t: tw('2026-11-02', '19:40') }, T);
+  // Written down the next day: the hour says nothing, so 晚餐.
+  B.put(b, 'entries', { id: 'x', d: '2026-11-01', k: 'out', amt: 500, cat: 'food', sub: 'food:out', a: 'cash', t: tw('2026-11-02', '09:00') }, T);
+  B.put(b, 'cats', { id: 'food:out', pay: { a: 'card1', via: '' } }, T);
+  B.put(b, 'cats', { id: 'food:lunch', pay: { a: 'cash', via: '' } }, T);
+  C.upgradeCats(b, T + 1);
+  const e = id => b.entries[id];
+  assert.deepEqual(['l', 'n', 'x'].map(id => e(id).sub), ['food:lunch', 'food:dinner', 'food:dinner']);
+  assert.equal(e('l').g, 'food|food:lunch|cash||0');
+  assert.deepEqual(['l', 'n', 'x'].map(id => [e(id).amt, e(id).d, e(id).cat]), [[600, '2026-11-02', 'food'], [900, '2026-11-02', 'food'], [500, '2026-11-01', 'food']]);
+  assert.equal(e('l').note, '同學');
+  assert.ok(b.cats['food:out'].del);
+  assert.equal(b.cats['food:lunch'].pay.a, 'cash');
+  assert.equal(b.cats['food:dinner'].pay.a, 'card1');
+  assert.ok(!C.subsOf('food').some(s => s.id === 'food:out'));
+  assert.equal(C.upgradeCats(b, T + 2), 0, 'once moved, nothing more to do');
 });

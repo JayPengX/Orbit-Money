@@ -36,7 +36,7 @@ const icon = name => GLYPHS[name] || kitIcons[name] || kitIcons.grid;
 // what was logged under them). The person can still add their own.
 const S = (cat, list) => list.map(([key, zh, en]) => ({ id: `${cat}:${key}`, zh, en, parent: cat }));
 export const OUT = [
-  { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['breakfast', '早餐', 'Breakfast'], ['lunch', '午餐', 'Lunch'], ['dinner', '晚餐', 'Dinner'], ['drink', '飲料點心', 'Drinks & snacks'], ['out', '聚餐', 'Eating out']]) },
+  { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['breakfast', '早餐', 'Breakfast'], ['lunch', '午餐', 'Lunch'], ['dinner', '晚餐', 'Dinner'], ['drink', '飲料點心', 'Drinks & snacks']]) },
   // (The family's Orbit Transit: TPASS on its own, Jay 2026-10-27.)
   { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['ride', '搭車', 'Rides'], ['long', '長途', 'Long trips'], ['car', '汽機車', 'Car & scooter']]) },
   { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55', subs: S('shop', [['style', '服飾美妝', 'Clothes & beauty'], ['tech', '3C 家電', 'Tech'], ['daily', '日用品', 'Household']]) },
@@ -309,6 +309,7 @@ export function upgradeCats(books, now = Date.now()) {
     n++;
   }
   n += broadCats(books, now);
+  n += outMeals(books, now);
   if (books.cats?.refund && !books.cats.refund.del) drop(books, 'cats', 'refund', now), n++;
   if (split) (books.opt ||= {}).dig2 = 1, n++;
   if (broad) (books.opt ||= {}).dig3 = 1, n++;
@@ -484,4 +485,40 @@ export function splitMeals(books, past = null, now = Date.now()) {
   }
   useBooksCats(books);
   return out;
+}
+
+// ---- No 聚餐 (2026-11-03) ---------------------------------------------------------------
+// Jay: 聚餐 was a useless sub (a meal out is still a breakfast, lunch or
+// dinner, and 統計 counts meals). What sat under it goes to the meal by the
+// hour it was logged, when that was on its own day; else 晚餐 (when most
+// meals out are). Its own settings: a way to pay goes to each meal that has
+// none; then it goes. Amounts, days, notes and everything else stay. No flag:
+// whatever still turns up under it (a phone that was away) goes the same way.
+function outMeals(books, now) {
+  let n = 0;
+  const to = e => mealOf(e) || 'food:dinner';
+  for (const col of MEAL_COLS)
+    for (const e of live(books[col] || {})) {
+      const next = { ...e };
+      if (e.sub === 'food:out') next.sub = to(e);
+      if (gSub(e) === 'food:out') {
+        const parts = e.g.split('|');
+        parts[1] = to(e);
+        next.g = parts.join('|');
+      }
+      if (next.sub === e.sub && next.g === e.g) continue;
+      put(books, col, next, now);
+      n++;
+    }
+  const mine = books.cats?.['food:out'];
+  if (mine && !mine.del) {
+    if (mine.pay?.a)
+      for (const id of ['food:breakfast', 'food:lunch', 'food:dinner']) {
+        const there = books.cats[id] && !books.cats[id].del ? books.cats[id] : null;
+        if (!there?.pay?.a) put(books, 'cats', { ...(there || {}), id, pay: mine.pay }, now);
+      }
+    drop(books, 'cats', 'food:out', now);
+    n++;
+  }
+  return n;
 }

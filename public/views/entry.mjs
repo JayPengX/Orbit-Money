@@ -382,7 +382,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((touched = chose = true), (f.sub = id), guessPayFor(), applyDefaults(), paintAmount(), paintPay(), paintSubs(), paintWhat()));
     subs.hidden = !list.length;
     subs.style.setProperty('--n', subCols(list.length));
-    // (Five short ones fit one line too: 早餐 午餐 晚餐 飲料點心 聚餐 at 320.)
+    // (Four short ones fit one line too: 早餐 午餐 晚餐 飲料點心 at 320.)
     subs.classList.toggle('few', list.length <= 4 || (list.length <= 5 && list.reduce((n, x) => n + x.textContent.length, 0) <= 12));
     subs.replaceChildren(...list);
   }

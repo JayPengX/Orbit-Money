@@ -133,9 +133,9 @@ test('a first week: what most people log at the hour, told apart by the amount t
   assert.equal(g('2026-11-04', '08:00'), 'food:breakfast');
   assert.equal(g('2026-11-04', '08:00', 60), 'food:breakfast');
   assert.equal(g('2026-11-04', '08:00', 25), 'transport:ride');
-  // NT$600 at noon is a meal out with others; NT$10,000 in the morning, the rent.
+  // Noon is lunch (no 聚餐 of its own, Jay 2026-11-03); NT$10,000 in the morning, the rent.
   assert.equal(g('2026-11-04', '12:20', 110), 'food:lunch');
-  assert.equal(g('2026-11-04', '12:20', 600), 'food:out');
+  assert.notEqual(g('2026-11-04', '12:20', 600), 'food:out');
   assert.equal(g('2026-11-04', '10:00', 10000), 'home:rent');
   assert.equal(g('2026-11-04', '15:30'), 'food:drink');
 });
