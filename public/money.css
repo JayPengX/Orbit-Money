@@ -609,7 +609,7 @@ html.q-kb .mn-entry:has(.mn-note:focus) .mn-units { display: none; }
    A phone upright: one column, as always. A phone on its side or a tablet:
    two columns of phone width; a computer: up to three (shell.mjs columns,
    flow). Each column is laid out as on a phone. */
-:root.q-wide { --q-page-max: 1180px; }
+:root.q-wide { --q-page-max: var(--q-wide-max, 1180px); }
 .mn-cols { display: grid; gap: 14px var(--q-s-5); align-items: start; }
 .mn-cols.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .mn-cols.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
