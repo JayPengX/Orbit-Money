@@ -10,12 +10,19 @@
 // that hour, on that kind of day and for that amount (`COMMON`) comes in
 // too, fading as their own entries grow. The amount is never filled in from
 // a guess, only offered: a tap fills it. Pure, tested (tests/guess.test.mjs).
-import { addDays, twDay } from '#kit/format.mjs';
+import * as fmt from '#kit/format.mjs';
 import { live } from './books.mjs';
 
-const H = 3_600_000;
-// Taiwan's hour of a moment (0–24, minutes as a fraction), as the books' days are Taiwan's.
-export const hourOf = t => (((t / H + 8) % 24) + 24) % 24;
+const { addDays } = fmt;
+// The books' days are the phone's own (wherever it is: 2026-11-06, a coffee at
+// 8 pm in California is today's, not Taiwan's tomorrow's); a phone on an older
+// kit, Taiwan's as before.
+const dayOf = t => (fmt.localDay || fmt.twDay)(t);
+// The phone's hour of a moment (0–24, minutes as a fraction).
+export const hourOf = t => {
+  const d = new Date(t);
+  return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600 + d.getMilliseconds() / 3_600_000;
+};
 const weekend = day => [0, 6].includes(new Date(`${day}T00:00:00Z`).getUTCDay());
 
 // Where: "lat,lon" to 3 decimals (about 100 m), never finer; '' when unknown.
@@ -145,7 +152,7 @@ function nightShare(timed, day) {
   const first = new Map();
   for (const e of timed) if (e.d < day && !first.has(e.d)) first.set(e.d, e.t);
   let n = 0;
-  for (const [d, t] of first) if (twDay(t) !== d || hourOf(t) >= 20) n++;
+  for (const [d, t] of first) if (dayOf(t) !== d || hourOf(t) >= 20) n++;
   return (n + 0.5) / (first.size + 2);
 }
 
@@ -170,7 +177,7 @@ export function cluesFor(books, { day, at = null, pl = '', amt = 0 }) {
   const together = new Set();
   for (let i = 1; i < timed.length; i++) if (timed[i].d === timed[i - 1].d && timed[i].t - timed[i - 1].t < TOGETHER) together.add(timed[i].id).add(timed[i - 1].id);
   // When each happened: logged as it happened, else when the person (or most people) usually does it.
-  const asIt = e => e.t && !together.has(e.id) && twDay(e.t) === e.d && !String(e.id).startsWith('inv-');
+  const asIt = e => e.t && !together.has(e.id) && dayOf(e.t) === e.d && !String(e.id).startsWith('inv-');
   const hours = new Map();
   for (const e of list) if (asIt(e)) hours.set(what(e), [...(hours.get(what(e)) || []), hourOf(e.t)]);
   const usual = k => (hours.get(k)?.length >= 2 ? hours.get(k) : USUAL[k.split('|')[2]] ? [USUAL[k.split('|')[2]]] : null);
@@ -350,7 +357,7 @@ export function guessReplay(books, { last = 300, ...opts } = {}) {
     if (i >= from) {
       const before = {};
       for (const x of all) if (x.id !== e.id && (x.t || 0) < e.t) before[x.id] = x;
-      const at = twDay(e.t) === e.d ? e.t : null;
+      const at = dayOf(e.t) === e.d ? e.t : null;
       const clues = cluesFor({ entries: before }, { day: e.d, at, pl: e.pl || '' });
       const g = guessNew(clues, { ...opts, at, lastCat });
       r.of++;

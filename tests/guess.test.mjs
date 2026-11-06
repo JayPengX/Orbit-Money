@@ -4,6 +4,9 @@ import assert from 'node:assert/strict';
 import * as B from '../public/lib/books.mjs';
 import * as G from '../public/lib/guess.mjs';
 
+// The books' days and hours are the phone's own (2026-11-06): these run on a phone in Taiwan.
+process.env.TZ = 'Asia/Taipei';
+
 // A Taiwan time on a day, as ms.
 const at = (d, hm) => Date.parse(`${d}T${hm}:00+08:00`);
 const HOME = '24.804,120.968';
@@ -202,4 +205,16 @@ test('a transfer: the accounts the person usually moves between, and that pairâ€
   assert.deepEqual(g[0].amts, [500]);
   assert.deepEqual([g[1].a, g[1].to, g[1].amts.length], ['bank', 'cash', 0]);
   assert.deepEqual(G.guessMove(B.emptyBooks(), { day: '2026-10-29' }), []);
+});
+
+// Outside Taiwan (2026-11-06): the hour and the day are the phone's own, never Taiwan's.
+test('abroad: the hour and the day are where the phone is', () => {
+  const was = process.env.TZ;
+  process.env.TZ = 'America/Los_Angeles';
+  try {
+    const t = Date.parse('2026-11-06T20:00:00-08:00');
+    assert.equal(G.hourOf(t), 20);
+  } finally {
+    process.env.TZ = was;
+  }
 });

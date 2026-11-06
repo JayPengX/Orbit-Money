@@ -1,7 +1,8 @@
 // What every screen shares: the state, the words, the money format, and the
 // hooks app.mjs fills in (save, redraw). Screens (views/*.mjs) draw from here.
 import { lang, W } from '#kit/lang.mjs';
-import { money as kitMoney, num, compact, setFormatLocale, twDay } from '#kit/format.mjs';
+import * as fmt from '#kit/format.mjs';
+import { money as kitMoney, num, compact, setFormatLocale } from '#kit/format.mjs';
 import { emptyBooks, accounts, live } from './lib/books.mjs';
 import { brandOf, logoOf } from './lib/brands.mjs';
 import * as orbitKit from '#kit/orbit.mjs';
@@ -11,7 +12,8 @@ export { lang, W };
 setFormatLocale(lang);
 export const en = lang === 'en';
 
-export const today = () => twDay(Date.now());
+// The phone's own day (wherever it is; kit localDay), Taiwan's on an older kit.
+export const today = () => (fmt.localDay || fmt.twDay)(Date.now());
 export const state = {
   tab: 'cal',
   books: emptyBooks(),

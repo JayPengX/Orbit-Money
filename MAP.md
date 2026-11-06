@@ -11,6 +11,8 @@ Live: https://orbit.jaypengx.com/money/
 
 ## How it works
 
+- **Days are the phone's** (2026-11-06, users outside Taiwan): today and the guesses' hours follow the phone's clock (`shell.mjs today`, `lib/guess.mjs hourOf`, kit `localDay`); in Taiwan nothing changed. NT$ only.
+
 - **Tabs:** 月曆 (one short card: with a budget this month, what's left to
   spend is the big number, what it is a day and the days it has to last under
   it, spent beside it, the bar's mark where the month is today (`monthLeft`,
