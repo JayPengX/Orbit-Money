@@ -189,7 +189,7 @@ function reviewCard(b, now) {
   const tipBox = h('div', { class: 'mn-review-tip', 'aria-live': 'polite' });
   const saved = kept(REVIEW(ym));
   // (The AI writes the figures as given, 12169: shown as the app writes money, 12,169.)
-  const showTip = tip => tipBox.replaceChildren(h('span', { class: 'q-ai-mark', 'aria-hidden': 'true', html: icons.spark || '' }), h('span', { text: tip.replace(/\d{4,}/g, n => (/^(19|20)\d\d$/.test(n) ? n : Number(n).toLocaleString('en-US'))) }));
+  const showTip = tip => tipBox.replaceChildren(h('span', { class: 'q-ai-mark', 'aria-hidden': 'true', html: icons.ai || icons.spark || '' }), h('span', { text: tip.replace(/\d{4,}/g, n => (/^(19|20)\d\d$/.test(n) ? n : Number(n).toLocaleString('en-US'))) }));
   if (saved?.tip) showTip(saved.tip);
   else if (askingTip !== ym) {
     askingTip = ym;
