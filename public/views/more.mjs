@@ -11,6 +11,8 @@ import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
 import { state, W, today, acctName, card, allAccounts, saved, columnsHere } from '../shell.mjs';
 import { snap } from './photo.mjs';
+import { openSay } from './say.mjs';
+import { openAsk } from './ask.mjs';
 import { openCats } from './cat-edit.mjs';
 import { openRepeats, openClosed, repeatsOf } from './accounts.mjs';
 import { openBudgets } from './stats.mjs';
@@ -22,9 +24,19 @@ export function renderMore(box) {
     tile(glyph('camera'), 'var(--q-accent)'),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('拍照記帳', 'Add from a photo') }), h('small', { text: W('收據、帳單、截圖，AI 幫你填好', 'Receipts, bills, screenshots: AI fills it in') })])
   ]);
+  // 用說的記帳 beside it (Jay 11-10): type or dictate, the phone reads plain lines itself.
+  const sayRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => openSay() }, [
+    tile(glyph('spark'), '#af52de'),
+    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('用說的記帳', 'Say what you spent') }), h('small', { text: W('「早餐 45 午餐 120」，一次記好幾筆', '“Breakfast 45, lunch 120”: several at once') })])
+  ]);
+  // 問我的帳 (Jay 11-10): ask about your own books; the phone adds up, AI answers.
+  const askRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => openAsk() }, [
+    tile(glyph('chat'), '#5856d6'),
+    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('問我的帳', 'Ask my books') }), h('small', { text: W('「這個月吃飯花多少」，用你的帳回答', '“How much on food this month?”, from your books') })])
+  ]);
   // (Wide: every tool a card in one grid, 拍照記帳 the first of them.)
   const wide = columnsHere() > 1;
-  const ways = wide ? null : h('section', { class: 'q-section' }, [h('div', { class: 'q-rowcard' }, [snapRow])]);
+  const ways = wide ? null : h('section', { class: 'q-section' }, [h('div', { class: 'q-rowcard' }, [snapRow, sayRow, askRow])]);
 
   const reps = repeatsOf();
   const closed = allAccounts().filter(a => a.closed);
@@ -43,6 +55,8 @@ export function renderMore(box) {
     h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('工具', 'Tools') })]),
     h('div', { class: `q-rowcard${wide ? ' mn-tool-grid' : ''}` }, [
       wide ? snapRow : null,
+      wide ? sayRow : null,
+      wide ? askRow : null,
       tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W('改名、排序、加細項', 'Rename, reorder, add subs'), W(`${cats} 個`, `${cats}`), () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
       tool(glyph('spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Picks what you usually log'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),

@@ -13,6 +13,8 @@ import { openReminder, renewNow, reminderTile, leftText, dueText } from './renew
 import { addDays } from '#kit/format.mjs';
 import { state, hooks, W, en, lang, money, short, monthLabel, dayLabel, today, columns, columnsHere } from '../shell.mjs';
 import { entryRow, openEntry } from './entry.mjs';
+import { reviewMonth, reviewOf, reviewFacts } from '../lib/month.mjs';
+import { catName, catOf, subOf } from '../lib/cats.mjs';
 
 const WEEK = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -121,7 +123,65 @@ export function renderCal(box) {
   // (Wide: the month on the left, the day it opens on the right, a list
   // beside what it opens.)
   const calCard = h('div', { class: `mn-cal-card${open ? '' : ' week'}${roomy ? ' roomy' : ''}` }, [calHead, grid, fold]);
-  box.replaceChildren(...columns([[hero, calCard], [daySec, renewals(b, now)]]));
+  box.replaceChildren(...columns([[hero, calCard], [daySec, reviewCard(b, now), renewals(b, now)]]));
+}
+
+// 每月回顧 (Jay 11-10): in a month's first week, on this month's page, last
+// month in a few of the phone's own figures and one suggestion the AI writes
+// from them (money-month, asked once a month and kept on this phone); ✕ puts
+// it away until next month.
+const REVIEW = ym => `money:review.v1:${ym}`;
+const kept = key => {
+  try {
+    return JSON.parse(localStorage.getItem(key) || 'null');
+  } catch {
+    return null;
+  }
+};
+const keep = (key, v) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(v));
+  } catch {}
+};
+let askingTip = '';
+function reviewCard(b, now) {
+  const ym = reviewMonth(now);
+  if (!ym || state.month !== now.slice(0, 7) || kept(`${REVIEW(ym)}:x`)) return null;
+  const v = reviewOf(b, ym);
+  if (!v) return null;
+  const name = id => catName(catOf(id) || subOf(id) || { zh: id }, lang);
+  const prev = monthLabel(shiftMonth(ym, -1), { year: false });
+  const row = (label, value, sub = '') => h('div', { class: 'q-ritem mn-review-row' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label }), sub ? h('small', { text: sub }) : null]), h('span', { class: 'q-ritem-value num', text: value })]);
+  const tipBox = h('div', { class: 'mn-review-tip', 'aria-live': 'polite' });
+  const saved = kept(REVIEW(ym));
+  // (The AI writes the figures as given, 12169: shown as the app writes money, 12,169.)
+  const showTip = tip => tipBox.replaceChildren(h('span', { class: 'q-ai-mark', 'aria-hidden': 'true', html: icons.spark || '' }), h('span', { text: tip.replace(/\d{4,}/g, n => (/^(19|20)\d\d$/.test(n) ? n : Number(n).toLocaleString('en-US'))) }));
+  if (saved?.tip) showTip(saved.tip);
+  else if (askingTip !== ym) {
+    askingTip = ym;
+    import('#kit/ai.mjs')
+      .then(ai => ai.aiCall('money-month', { facts: reviewFacts(v, lang), lang: en ? 'en' : 'zh' }))
+      .then(r => {
+        if (!r?.out?.tip) return void (askingTip = '');
+        keep(REVIEW(ym), { tip: r.out.tip, at: Date.now() });
+        if (tipBox.isConnected) showTip(r.out.tip);
+      })
+      .catch(() => (askingTip = ''));
+  }
+  const diff = v.before != null ? v.spent - v.before : null;
+  return h('section', { class: 'q-section mn-review' }, [
+    h('div', { class: 'q-section-head q-shd' }, [
+      h('h2', { text: W(`${monthLabel(ym, { year: false })}回顧`, `${monthLabel(ym, { year: false })} in review`) }),
+      h('button', { class: 'q-sh-more mn-review-x', type: 'button', text: W('收起', 'Hide'), onclick: () => (keep(`${REVIEW(ym)}:x`, 1), render()) })
+    ]),
+    h('div', { class: 'q-rowcard' }, [
+      row(W('支出', 'Spent'), money(v.spent), diff == null || !diff ? '' : diff > 0 ? W(`比${prev}多 ${money(diff)}`, `${money(diff)} more than ${prev}`) : W(`比${prev}少 ${money(-diff)}`, `${money(-diff)} less than ${prev}`)),
+      v.top ? row(W('花最多', 'Most on'), money(v.top.amt), name(v.top.cat)) : null,
+      v.up ? row(W('漲最多', 'Up most'), `+${money(v.up.diff)}`, name(v.up.cat)) : null,
+      v.income ? row(W('收入', 'Income'), money(v.income), v.kept != null && v.kept > 0 ? W(`存下 ${v.kept}%`, `${v.kept}% kept`) : '') : null,
+      tipBox
+    ])
+  ]);
 }
 
 // The calendar opened or folded, kept on this phone.

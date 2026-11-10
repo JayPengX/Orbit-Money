@@ -79,7 +79,7 @@ function read(f) {
 
 // What the read is told about the person: their categories (subs by their
 // parent's name) and their ways to pay, so it picks from their own.
-function lists() {
+export function lists() {
   const cats = [];
   for (const k of ['out', 'in'])
     for (const c of catsFor(k)) {
@@ -157,8 +157,9 @@ function asBuy(r) {
   };
 }
 
-function use(read) {
-  if (!read.length) return toast(W('照片裡沒有看到金額', 'No payment in that picture'), { tone: 'bad' });
+// (Also 用說的記帳's, views/say.mjs: the same reads, said instead of photographed.)
+export function use(read, { none = W('照片裡沒有看到金額', 'No payment in that picture') } = {}) {
+  if (!read.length) return toast(none, { tone: 'bad' });
   const buys = read.map(asBuy);
   if (buys.length === 1) {
     const [x] = buys;
@@ -210,7 +211,15 @@ function review(buys) {
     menu(anchor, [
       { label: W('記一筆', 'Add it'), icon: r.act === 'add' ? '✓' : '', onClick: () => ((r.act = 'add'), paint()) },
       r.e ? { label: W(`併入 ${dayLabel(r.e.d, { week: false })} ${titleOf(r.e)} ${money(r.e.amt)}`, `Merge into ${titleOf(r.e)} ${money(r.e.amt)}`), icon: r.act === 'merge' ? '✓' : '', onClick: () => ((r.act = 'merge'), paint()) } : null,
-      { label: W('不記', 'Leave out'), icon: r.act === 'skip' ? '✓' : '', onClick: () => ((r.act = 'skip'), paint()) }
+      { label: W('不記', 'Leave out'), icon: r.act === 'skip' ? '✓' : '', onClick: () => ((r.act = 'skip'), paint()) },
+      // (Every field still the person's: this one opens 記一筆 filled in, and leaves the list.)
+      { label: W('修改後記下…', 'Edit, then save…'), onClick: () => {
+        rows.splice(rows.indexOf(r), 1);
+        paint();
+        if (!rows.length) s.close();
+        const x = r.x;
+        openEntry({ day: x.day, kind: x.k, amt: x.total, note: x.store || x.inv.items[0]?.name || '', cat: x.cat, sub: x.sub, pay: x.pay, inv: x.inv });
+      } }
     ].filter(Boolean));
   }
   function commit() {

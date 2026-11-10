@@ -423,6 +423,24 @@ h1, h2, h3, p { margin: 0; }
 /* 記一筆's 拍照, where the close button would be. */
 .mn-snap { display: grid; place-items: center; }
 .mn-snap svg { width: 20px; height: 20px; }
+/* 記一筆's two ways in, side by side where the delete would be: 拍照 and 用說的. */
+.mn-leads { display: inline-flex; gap: 8px; }
+.mn-say-btn { display: grid; place-items: center; color: var(--q-accent); }
+.mn-say-btn svg { width: 20px; height: 20px; }
+/* 用說的記帳 (views/say.mjs): what was said, the AI's question if any, the box at the foot. */
+.mn-say .mn-hint { margin: 0 0 12px; }
+.mn-say-said:empty { display: none; }
+.mn-say-you { margin: 0 0 8px auto; width: fit-content; max-width: 85%; padding: 8px 12px; border-radius: 18px 18px 6px 18px; background: var(--q-fill-3); font: 400 var(--q-t-body) / 1.35 var(--q-font); overflow-wrap: anywhere; }
+.mn-say-flow:empty { display: none; }
+.mn-say-err { color: var(--q-red, #ff3b30); }
+.mn-say .q-ai-bar { margin-top: 8px; }
+/* 問我的帳 (views/ask.mjs): the starters, then each question and its answer. */
+.mn-ask-starters { margin: 0 0 12px; }
+.mn-ask-talk { display: grid; gap: 8px; }
+.mn-ask-talk:empty { display: none; }
+.mn-ask-a { justify-self: start; max-width: 92%; padding: 10px 14px; border-radius: 18px 18px 18px 6px; background: var(--nv-card, var(--q-grouped-2, var(--q-fill-4))); }
+.mn-ask-a p { margin: 0 0 6px; font: 400 var(--q-t-body) / 1.45 var(--q-font); overflow-wrap: anywhere; }
+.mn-ask-a .q-ai-note { margin: 0; }
 /* 分類. */
 .mn-catedit { display: grid; gap: 12px; }
 .mn-catedit > .q-rowcard { margin: 0; }
@@ -656,3 +674,10 @@ html.q-tabrail:not(.q-float) .mn-entry .mn-cat .q-tile { width: 32px; height: 32
 }
 /* (The smallest phones: a row's line keeps two more pixels: 玉山 薪轉 → 現金 whole.) */
 @media (max-width: 340px) { .mn-row.q-ritem { gap: 10px; } }
+/* 每月回顧 (views/calendar.mjs reviewCard): last month's figures, the AI's one suggestion last. */
+.mn-review .q-section-head { display: flex; align-items: center; }
+.mn-review .mn-review-x { margin-left: auto; }
+.mn-review-tip { display: flex; gap: 8px; align-items: flex-start; padding: 12px 16px; font: 400 var(--q-t-subhead) / 1.45 var(--q-font); color: var(--q-label); }
+.mn-review-tip:empty { display: none; }
+.mn-review-tip .q-ai-mark { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--q-accent); }
+.mn-review-tip .q-ai-mark svg { width: 100%; height: 100%; fill: currentColor; }
