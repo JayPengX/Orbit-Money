@@ -84,6 +84,12 @@ Live: https://orbit.jaypengx.com/money/
   button is in its top corner, and 更多's gold button); several (a list on a
   screenshot) are looked over in one sheet, each row added, merged or left out.
   The store and items are kept on the entry (`inv`, shown as a receipt).
+  A paper 電子發票 is read on the phone first (Jay 2026-11-10, `lib/receipt-qr.mjs`):
+  its two QR codes (ZXing in WebAssembly, `vendor/zxing`, loaded only here;
+  Safari has no barcode reader) give the number, day, total and items exactly,
+  with no AI read used; the seller's name comes from 經濟部's register by its
+  統編 (the data proxy, kept a month), said as on its sign (統一超商 → 7-ELEVEN).
+  A picture without them goes to the AI as before.
 - **Never twice** (`lib/books.mjs sameAs` / `matchBuys`, tested; Jay
   2026-10-31, a NT$68 全家 typed in and then its receipt): a picture's entry
   that is the same kind and amount as one logged on its day or a day either

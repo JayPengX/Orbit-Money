@@ -8,7 +8,8 @@
 // already logged: lib/books.mjs sameAs); several (a list on a screenshot) are
 // looked over together, each matched the same way.
 import { h, icons, sheet, toast, menu } from '#kit/ui.mjs';
-import { workerJson } from '#kit/orbit.mjs';
+import { workerJson, proxyJson } from '#kit/orbit.mjs';
+import { readInvoices, shortSeller } from '../lib/receipt-qr.mjs';
 import { put, autoReload, matchBuys } from '../lib/books.mjs';
 import { catsFor, subsOf, catName, catOf, subOf, guessCat, guessSub, shownCat } from '../lib/cats.mjs';
 import { state, W, lang, money, dayLabel, today, saved, acct, card } from '../shell.mjs';
@@ -50,6 +51,15 @@ function read(f) {
   });
   async function go() {
     again.hidden = true;
+    status.replaceChildren(h('span', { class: 'spinner', 'aria-hidden': 'true' }), W('讀取中⋯', 'Reading…'));
+    note.textContent = '';
+    // A paper 電子發票's QR codes first, on the phone: exact, at once, no AI read used.
+    const own = await fromQr(f);
+    if (!open) return;
+    if (own.length) {
+      s.close();
+      return use(own);
+    }
     status.replaceChildren(h('span', { class: 'spinner', 'aria-hidden': 'true' }), W('AI 讀取中⋯', 'Reading…'));
     note.textContent = state.readLeft != null ? W(`今天還可以讀 ${state.readLeft} 張`, `${state.readLeft} left today`) : '';
     const r = await send(f);
@@ -78,6 +88,36 @@ function lists() {
     }
   const pays = payOptions().map(o => ({ id: `${o.a}|${o.via}`, name: o.label }));
   return { cats, pays };
+}
+
+// The invoices whose QR codes the picture shows, as the AI's reads are
+// shaped (asBuy): the seller's name from 經濟部's register (through the data
+// proxy, kept a month on the phone), the category from its name and items.
+const QR_SIDE = 2400;
+const GCIS = 'https://data.gcis.nat.gov.tw/od/data/api/';
+const REGISTERS = [['5F64D864-61CB-4D0D-8AD9-492047CC1EA6', 'Business_Accounting_NO', 'Company_Name'], ['7E6AFA72-AD6A-46D3-8681-ED77951D912D', 'President_No', 'Business_Name']];
+async function sellerName(sid) {
+  for (const [set, field, name] of REGISTERS) {
+    try {
+      const rows = await proxyJson(`${GCIS}${set}?$format=json&$filter=${encodeURIComponent(`${field} eq ${sid}`)}&$skip=0&$top=1`, { ttl: 30 * 86_400_000, timeout: 6000 });
+      if (rows?.[0]?.[name]) return shortSeller(rows[0][name]);
+    } catch {}
+  }
+  return '';
+}
+async function fromQr(f) {
+  try {
+    const img = await createImageBitmap(f, { imageOrientation: 'from-image' });
+    const k = Math.min(1, QR_SIDE / Math.max(img.width, img.height));
+    const c = Object.assign(document.createElement('canvas'), { width: Math.round(img.width * k), height: Math.round(img.height * k) });
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0, c.width, c.height);
+    const invs = (await readInvoices(g.getImageData(0, 0, c.width, c.height))).filter(i => i.total > 0);
+    const names = await Promise.all(invs.map(i => sellerName(i.sid)));
+    return invs.map((i, n) => ({ k: 'out', day: i.day, total: i.total, store: names[n], invoice: i.no, items: i.items.map(x => ({ name: x.name, amt: Math.round(x.qty * x.price) })), cat: '', pay: '' }));
+  } catch {
+    return [];
+  }
 }
 
 async function send(f) {
