@@ -681,3 +681,8 @@ html.q-tabrail:not(.q-float) .mn-entry .mn-cat .q-tile { width: 32px; height: 32
 .mn-review-tip:empty { display: none; }
 .mn-review-tip .q-ai-mark { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--q-accent); }
 .mn-review-tip .q-ai-mark svg { width: 100%; height: 100%; fill: currentColor; }
+
+/* 車資記帳: a ride Orbit Transit planned, offered (never saved on its own). */
+.mn-ride-row { gap: 12px; }
+.mn-ride-acts { display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px 14px; }
+.mn-ride-no { background: none; color: var(--q-label-2); }

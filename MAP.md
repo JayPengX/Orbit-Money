@@ -160,3 +160,5 @@ Live: https://orbit.jaypengx.com/money/
   set. Shown in the corner of the bank's or wallet's logo (36 px and up), or
   alone where the card has no other picture (`views/pics.mjs`). Marks from
   payment-icons (MPL-2.0, `img/network/LICENSE.txt`).
+
+- **車資記帳** (the family's notebook, Jay 11-10): a trip Orbit Transit planned with its fare (`transit.ride`) shows on 月曆 for 12 hours as 剛剛的車資，記一筆？ (`lib/ride.mjs` `rideOffer`, `views/calendar.mjs` `rideCard`); 記一筆 opens 記一筆 filled in (交通 › 搭車, or 長途 for a train), 不用 passes it; never saved on its own.

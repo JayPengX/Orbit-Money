@@ -14,7 +14,8 @@ import { addDays } from '#kit/format.mjs';
 import { state, hooks, W, en, lang, money, short, monthLabel, dayLabel, today, columns, columnsHere } from '../shell.mjs';
 import { entryRow, openEntry } from './entry.mjs';
 import { reviewMonth, reviewOf, reviewFacts } from '../lib/month.mjs';
-import { catName, catOf, subOf } from '../lib/cats.mjs';
+import { rideOffer } from '../lib/ride.mjs';
+import { catName, catOf, subOf, glyph } from '../lib/cats.mjs';
 
 const WEEK = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -123,7 +124,7 @@ export function renderCal(box) {
   // (Wide: the month on the left, the day it opens on the right, a list
   // beside what it opens.)
   const calCard = h('div', { class: `mn-cal-card${open ? '' : ' week'}${roomy ? ' roomy' : ''}` }, [calHead, grid, fold]);
-  box.replaceChildren(...columns([[hero, calCard], [daySec, reviewCard(b, now), renewals(b, now)]]));
+  box.replaceChildren(...columns([[hero, calCard], [rideCard(), daySec, reviewCard(b, now), renewals(b, now)]]));
 }
 
 // 每月回顧 (Jay 11-10): in a month's first week, on this month's page, last
@@ -143,6 +144,39 @@ const keep = (key, v) => {
     localStorage.setItem(key, JSON.stringify(v));
   } catch {}
 };
+// 車資記帳 (Jay 11-10, Money and Transit): a trip Orbit Transit planned with
+// its fare (the family's notebook), offered as a 交通 entry: 記一筆 opens
+// 記一筆 filled in for the person to look over and save; 不用 passes it on.
+// Never saved on its own (real money).
+let family = null;
+import('#kit/family.mjs')
+  .then(f => {
+    family = f;
+    if (f.heard?.('transit', 'ride')) hooks.render?.();
+  })
+  .catch(() => {});
+const RIDES = 'money:rides.v1';
+const ridesDone = () => (Array.isArray(kept(RIDES)) ? kept(RIDES) : []);
+const rideDone = id => keep(RIDES, [id, ...ridesDone().filter(x => x !== id)].slice(0, 20));
+function rideCard() {
+  const r = rideOffer(family?.heard?.('transit', 'ride'), { done: ridesDone() });
+  if (!r) return null;
+  const c = subOf(r.sub) || catOf(r.cat);
+  const pic = tile(glyph(c?.icon || catOf(r.cat)?.icon || 'bus'), catOf(r.cat)?.color || '#0088ff');
+  return h('section', { class: 'q-section mn-ride' }, [
+    h('div', { class: 'q-rowcard' }, [
+      h('div', { class: 'q-ritem mn-ride-row' }, [
+        pic,
+        h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('剛剛的車資，記一筆？', 'Log that ride?') }), h('small', { text: [r.note, W('估的票價', 'est. fare')].filter(Boolean).join(' · ') })]),
+        h('span', { class: 'q-ritem-value num', text: money(r.amt) })
+      ]),
+      h('div', { class: 'mn-ride-acts' }, [
+        h('button', { class: 'q-btn small mn-ride-no', type: 'button', text: W('不用', 'No thanks'), onclick: () => (rideDone(r.id), render()) }),
+        h('button', { class: 'q-btn tinted small', type: 'button', text: W('記一筆', 'Log it'), onclick: () => (rideDone(r.id), openEntry({ day: r.day, kind: 'out', amt: r.amt, note: r.note, cat: r.cat, sub: r.sub }), render()) })
+      ])
+    ])
+  ]);
+}
 let askingTip = '';
 function reviewCard(b, now) {
   const ym = reviewMonth(now);
