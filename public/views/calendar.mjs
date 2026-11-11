@@ -4,7 +4,7 @@
 // (holidays and typhoon days off in red, as a Taiwan calendar has them),
 // and the picked day's entries under it. A swipe across the month goes to
 // the next or the last; the picked day's entries sit right under it.
-import { h, icons, menu, tile } from '#kit/ui.mjs';
+import { h, icons, menu, tile, toast } from '#kit/ui.mjs';
 import { notifyOn } from '#kit/orbit.mjs';
 import { dayOffAt, myPlace } from '#kit/dayoff.mjs';
 import { monthByDay, monthTotals, monthDays, shiftMonth, entriesOn, budgetState, monthLeft, lines } from '../lib/books.mjs';
@@ -16,6 +16,7 @@ import { entryRow, openEntry } from './entry.mjs';
 import { reviewMonth, reviewOf, reviewFacts } from '../lib/month.mjs';
 import { rideOffer } from '../lib/ride.mjs';
 import { catName, catOf, subOf, glyph } from '../lib/cats.mjs';
+import { testBudget, testTpass, testRide } from '../testing.mjs';
 
 const WEEK = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['日', '一', '二', '三', '四', '五', '六'];
 
@@ -40,7 +41,8 @@ export function renderCal(box) {
   const t = monthTotals(b, ym);
   const days = monthByDay(b, ym);
   const now = today();
-  const budget = budgetState(b, ym, now).find(x => !x.cat);
+  const tb = globalThis.ORBIT_TEST?.flags?.moneyBudget;
+  const budget = tb && now.startsWith(ym) ? testBudget(tb, t.out, monthDays(ym), Number(now.slice(8, 10))) : budgetState(b, ym, now).find(x => !x.cat);
   const place = myPlace('work');
   // (Beside the day's entries on a tablet or a computer, the whole month
   // always: there's height for it. A phone on its side keeps the week.)
@@ -159,7 +161,7 @@ const RIDES = 'money:rides.v1';
 const ridesDone = () => (Array.isArray(kept(RIDES)) ? kept(RIDES) : []);
 const rideDone = id => keep(RIDES, [id, ...ridesDone().filter(x => x !== id)].slice(0, 20));
 function rideCard() {
-  const r = rideOffer(family?.heard?.('transit', 'ride'), { done: ridesDone() });
+  const r = rideOffer(globalThis.ORBIT_TEST?.flags?.moneyRide ? testRide() : family?.heard?.('transit', 'ride'), { done: ridesDone() });
   if (!r) return null;
   const c = subOf(r.sub) || catOf(r.cat);
   const pic = tile(glyph(c?.icon || catOf(r.cat)?.icon || 'bus'), catOf(r.cat)?.color || '#0088ff');
@@ -241,16 +243,16 @@ function goWeek(n) {
 // out this week), soonest first; a tap opens its settings. The notices are
 // app.mjs's; the list is 更多 › 到期提醒.
 function renewals(b, now) {
-  const list = reminders(b, now).filter(x => x.left != null && x.left <= 7 && (x.left >= 0 || (!x.r.roll && x.left >= -7)));
+  const list = (globalThis.ORBIT_TEST?.flags?.moneyTpass ? [testTpass(now)] : []).concat(reminders(b, now)).filter(x => x.left != null && x.left <= 7 && (x.left >= 0 || (!x.r.roll && x.left >= -7)));
   if (!list.length) return null;
   const rows = list.map(x => {
-    const ask = !notifyOn() && x.r.on !== false && 'Notification' in globalThis;
+    const ask = (!notifyOn() || globalThis.ORBIT_TEST?.flags?.moneyNoticeDenied) && x.r.on !== false && 'Notification' in globalThis;
     return h('div', { class: `q-ritem mn-row mn-renew${x.left <= 2 ? ' soon' : ''}` }, [
       reminderTile(x.r),
-      h('button', { class: 'q-ritem-text mn-renew-open', type: 'button', onclick: () => openReminder(x.r.id, render) }, [h('span', { class: 'q-ritem-title', text: `${x.r.name} ${leftText(x)}` }), h('small', { text: dueText(x.r, x) })]),
+      h('button', { class: 'q-ritem-text mn-renew-open', type: 'button', onclick: () => (x.test ? toast(W('測試用的 TPASS，沒有存', 'A test TPASS, not saved')) : openReminder(x.r.id, render)) }, [h('span', { class: 'q-ritem-title', text: `${x.r.name} ${leftText(x)}` }), h('small', { text: dueText(x.r, x) })]),
       // (Notices off: turned on from here first. One renewed by hand: 續購.)
       ask
-        ? h('button', { class: 'q-btn tinted small', type: 'button', text: W('提醒我', 'Remind me'), onclick: async () => (await hooks.notices?.()) && render() })
+        ? h('button', { class: 'q-btn tinted small', type: 'button', text: W('提醒我', 'Remind me'), onclick: async () => ((await hooks.notices?.()) ? render() : toast(W('請到系統設定允許通知', 'Allow notices in system settings'), { tone: 'bad' })) })
         : x.r.roll
           ? null
           : h('button', { class: 'q-btn tinted small', type: 'button', text: W('續購', 'Renew'), onclick: () => renewNow(x.r, x, openEntry) })

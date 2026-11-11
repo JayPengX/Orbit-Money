@@ -20,12 +20,9 @@ export const GLYPHS = {
   paw: g('<circle cx="7" cy="9" r="1.8"/><circle cx="17" cy="9" r="1.8"/><circle cx="10" cy="5.5" r="1.8"/><circle cx="14" cy="5.5" r="1.8"/><path d="M12 12c-3 0-5.5 3.5-5.5 6 0 1.5 1.2 2.5 2.7 2.2 1-.2 1.8-.7 2.8-.7s1.8.5 2.8.7c1.5.3 2.7-.7 2.7-2.2 0-2.5-2.5-6-5.5-6z"/>'),
   baby: g('<circle cx="12" cy="12" r="8.5"/><path d="M9 10.5h.01M15 10.5h.01M9.5 15a3.5 3.5 0 0 0 5 0M12 3.5c-1 1.5-.5 3 1 3"/>'),
   receipt: g('<path d="M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21zM9 8h6M9 12h6M9 16h3"/>'),
-  scan: g('<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16M4 12h16"/>'),
   card: g('<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M6.5 15h4"/>'),
   repeat: g('<path d="M4 11V9a3 3 0 0 1 3-3h12l-3-3M20 13v2a3 3 0 0 1-3 3H5l3 3"/>'),
-  target: kitIcons.target,
-  mail: g('<path d="M3.5 6.5h17v11h-17zM3.5 7l8.5 6.5L20.5 7"/>'),
-  barcode: g('<path d="M4 5v14M7 5v14M10.5 5v14M13 5v14M16.5 5v14M20 5v14"/>')
+  target: kitIcons.target
 };
 const icon = name => GLYPHS[name] || kitIcons[name] || kitIcons.grid;
 
@@ -131,19 +128,6 @@ export function addCat(books, { k, parent = '', zh, icon = 'grid', color = '#8e8
   useBooksCats(books);
   const sibs = parent ? subsOf(parent, { all: true }) : catList(k, { all: true });
   return saveCat(books, { id: `c-${newId(now)}`, k, parent, zh, icon, color, order: sibs.length }, now);
-}
-// One place up (-1) or down (+1) among its own: every sibling's order written, so they stay put.
-export function moveCat(books, id, dir, now = Date.now()) {
-  useBooksCats(books);
-  const c = table.get(id);
-  if (!c) return false;
-  const sibs = c.parent ? subsOf(c.parent, { all: true }) : catList(c.k, { all: true });
-  const i = sibs.findIndex(x => x.id === id);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= sibs.length) return false;
-  [sibs[i], sibs[j]] = [sibs[j], sibs[i]];
-  sibs.forEach((x, n) => x.order !== n && saveCat(books, { id: x.id, order: n }, now));
-  return true;
 }
 // Siblings put in the order given (ids: a category's subs, or one kind's
 // categories, as the person dragged them; kit reorder). Only `order` changes.

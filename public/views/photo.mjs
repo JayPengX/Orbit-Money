@@ -121,6 +121,9 @@ async function fromQr(f) {
 }
 
 async function send(f) {
+  // (測試工具: the read used up or failing, nothing sent; testing.mjs.)
+  const t = globalThis.ORBIT_TEST?.flags?.moneyRead;
+  if (t) return t === 'cap' ? { error: 'cap', left: 0 } : null;
   try {
     const img = await createImageBitmap(f, { imageOrientation: 'from-image' });
     const k = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));

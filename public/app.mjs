@@ -22,6 +22,7 @@ import { renderAccts } from './views/accounts.mjs';
 import { renderStats } from './views/stats.mjs';
 import { renderMore } from './views/more.mjs';
 import { openEntry } from './views/entry.mjs';
+import './testing.mjs';
 
 document.documentElement.lang = lang === 'en' ? 'en' : 'zh-Hant';
 const $ = id => document.getElementById(id);
@@ -95,7 +96,7 @@ function plan() {
 }
 // Notices turned on from the app (月曆's 提醒我): this phone asked, the pass's switch on.
 hooks.notices = async () => {
-  if (!('Notification' in globalThis)) return false;
+  if (!('Notification' in globalThis) || globalThis.ORBIT_TEST?.flags?.moneyNoticeDenied) return false;
   const p = await Notification.requestPermission().catch(() => 'denied');
   if (p !== 'granted') return false;
   setNotifyOn(true, q);

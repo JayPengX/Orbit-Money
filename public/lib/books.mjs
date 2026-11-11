@@ -340,7 +340,9 @@ export function budgetState(books, ym, today) {
     .map(b => {
       const spent = b.cat ? byCat[b.cat] || 0 : t.out;
       const share = spent / b.amt;
-      return { ...b, spent, left: b.amt - spent, share, pace: gone ? share / (gone / days) : 0, perDay: gone < days ? Math.max(0, Math.floor((b.amt - spent) / (days - gone + (today?.startsWith(ym) ? 1 : 0)))) : 0 };
+      // days still to spend in: a running month counts today (its last day is 1)
+      const rest = days - gone + (today?.startsWith(ym) ? 1 : 0);
+      return { ...b, spent, left: b.amt - spent, share, pace: gone ? share / (gone / days) : 0, perDay: rest > 0 ? Math.max(0, Math.floor((b.amt - spent) / rest)) : 0 };
     })
     .sort((a, b) => (a.cat ? 1 : 0) - (b.cat ? 1 : 0) || b.share - a.share);
 }

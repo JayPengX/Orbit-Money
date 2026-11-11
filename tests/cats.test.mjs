@@ -27,7 +27,10 @@ test('rename, hide and reorder are the person’s own, the built-in kept', () =>
   const b = sample();
   C.saveCat(b, { id: 'food', zh: '吃飯' }, T);
   C.saveCat(b, { id: 'family', hidden: true }, T);
-  C.moveCat(b, 'transport', -1, T);
+  const ids = C.catList('out', { all: true }).map(c => c.id);
+  const i = ids.indexOf('transport');
+  [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]];
+  C.orderCats(b, ids, T);
   C.useCats(b.cats);
   const list = C.catList('out').map(c => c.id);
   assert.equal(C.catOf('food').zh, '吃飯');

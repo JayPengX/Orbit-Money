@@ -345,8 +345,10 @@ async function fixBalance(a) {
         type: 'button',
         text: W('儲存', 'Save'),
         onclick: () => {
-          const v = Number(input.value.replace(/[^\d-]/g, ''));
-          if (!Number.isFinite(v)) return;
+          const typed = input.value.replace(/[^\d-]/g, '');
+          const v = Number(typed);
+          // An empty field (or only a minus) changes nothing: never a fix to NT$0.
+          if (!/\d/.test(typed) || !Number.isFinite(v)) return s.close();
           const by = adjustBy(b, a.id, credit ? -v : v, now);
           if (by) put(b, 'entries', { d: now, k: 'adj', amt: by, a: a.id, cat: '', note: '', t: Date.now() });
           s.close();
@@ -571,7 +573,14 @@ export function openRepeat(r) {
     detent: 'large',
     body: [body],
     foot: h('div', { class: 'q-sheet-foot mn-foot2' }, [
-      r ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('刪除', 'Delete'), onclick: () => (drop(state.books, 'recur', r.id), s.close(), saved()) }) : null,
+      r ? h('button', { class: 'q-btn danger tinted', type: 'button', text: W('刪除', 'Delete'), onclick: () => {
+        // A one-tap delete gets 復原 (as an account's or a category's does).
+        const was = { ...state.books.recur[r.id] };
+        drop(state.books, 'recur', r.id);
+        s.close();
+        saved();
+        toast(W('已刪除固定收支', 'Repeat deleted'), { ms: 6000, action: { label: W('復原', 'Undo'), onTap: () => (put(state.books, 'recur', was), saved()) } });
+      } }) : null,
       h('button', {
         class: 'q-btn primary',
         type: 'button',

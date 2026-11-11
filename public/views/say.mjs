@@ -42,7 +42,7 @@ export function openSay() {
         return finish(own);
       }
       const { cats, pays } = lists();
-      const r = await kitAI.aiFlow(host, {
+      const r = globalThis.ORBIT_TEST?.flags?.moneyAiCap ? { error: 'cap', left: 0 } : await kitAI.aiFlow(host, {
         feature: 'money-say',
         input: { text, today: today(), cats, pays, lang: en ? 'en' : 'zh' },
         lists: { cat: cats, pay: pays },

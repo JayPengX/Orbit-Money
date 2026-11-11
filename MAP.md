@@ -59,6 +59,7 @@ Jay's, dated (Taiwan day), newest wins; the family's are in Orbit-Core `docs/RUL
 | `lib/books.mjs`, `cats.mjs`, `stats.mjs` | The books and every total; the categories; 統計's numbers |
 | `lib/guess.mjs`, `say.mjs`, `ask.mjs`, `month.mjs`, `receipt-qr.mjs` | The guesses; 用說的記帳; 問我的帳's tables; 每月回顧; 電子發票 QR |
 | `lib/renew.mjs`, `ride.mjs`, `columns.mjs`, `logos.mjs`, `brands.mjs`, `networks.mjs` | 到期提醒; 車資記帳; even columns; logos and card networks |
+| `testing.mjs` | Money's switches in the kit's hidden 測試工具 (display and reads only, nothing saved): `moneyRead` (拍照記帳 cap/fail), `moneyAiCap`, `moneyBudget` (low/over), `moneyTpass`, `moneyRide`, `moneyNoticeDenied`, `moneyGeoDenied` |
 | `views/` | Each tab and sheet: `calendar`, `accounts`, `stats`, `more`, `entry` (記一筆), `photo`, `say`, `ask`, `renew`, `cat-edit`, `pics` |
 
 ## Run and test

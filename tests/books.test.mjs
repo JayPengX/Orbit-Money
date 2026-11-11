@@ -51,6 +51,11 @@ test('budgets: spent, left, pace against the days gone, per day left', () => {
   assert.ok(Math.abs(food.pace - 0.62 / (16 / 31)) < 1e-9);
   assert.equal(food.perDay, Math.floor(380 / 16));
   assert.equal(B.budgetState(b, '2026-09', '2026-10-16')[0].pace, 0);
+  // The month's last day: what's left is today's, never NT$0 a day with money left.
+  const last = B.budgetState(b, '2026-10', '2026-10-31');
+  assert.equal(last.find(x => !x.cat).perDay, 10000 - 3620);
+  assert.equal(B.monthLeft(last.find(x => !x.cat), '2026-10', '2026-10-31').daysLeft, 1);
+  assert.equal(B.budgetState(b, '2026-09', '2026-10-16')[0].perDay, 0);
 });
 
 test('repeats: monthly on the last day when shorter, weekly, yearly; made once, a removed one stays removed', () => {

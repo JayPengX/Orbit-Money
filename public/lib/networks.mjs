@@ -12,7 +12,6 @@ export const NETWORKS = [
   { id: 'discover', zh: 'Discover', en: 'Discover' }
 ];
 const BY_ID = new Map(NETWORKS.map(n => [n.id, n]));
-export const networkOf = id => BY_ID.get(id) || null;
 export const networkLogo = id => (BY_ID.has(id) ? `./img/network/${id}.svg` : '');
 
 // The network a card is on: its own, else (a card under a credit card: the

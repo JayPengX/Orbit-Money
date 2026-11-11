@@ -107,7 +107,7 @@ export function openAsk({ ask = '' } = {}) {
       const day = today();
       const { tables } = askTables(state.books, day, { lang });
       const facts = booksFacts(state.books, day, { lang });
-      const r = await kitAI.aiCall('money-ask', { question: q, facts, lang: en ? 'en' : 'zh' });
+      const r = globalThis.ORBIT_TEST?.flags?.moneyAiCap ? { error: 'cap', left: 0 } : await kitAI.aiCall('money-ask', { question: q, facts, lang: en ? 'en' : 'zh' });
       if (!open) return;
       const line = r.out?.line || r.out?.answer;
       const shown = (r.out?.show || []).map(id => tables[id]).filter(Boolean);

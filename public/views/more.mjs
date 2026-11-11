@@ -110,7 +110,10 @@ function openGuessing() {
       b.st = Math.round(Date.now() / 1000);
       saved();
       // (Asked now, so the question comes from the switch, not later in 記一筆.)
-      if (on) navigator.geolocation?.getCurrentPosition(() => {}, () => toast(W('手機沒有允許位置，可在設定裡打開', 'Location isn’t allowed on this phone'), { tone: 'bad' }), { maximumAge: 300_000, timeout: 15_000 });
+      const refused = () => toast(W('手機沒有允許位置，可在設定裡打開', 'Location isn’t allowed on this phone'), { tone: 'bad' });
+      // (測試工具: as if the phone refused, testing.mjs.)
+      if (on && globalThis.ORBIT_TEST?.flags?.moneyGeoDenied) refused();
+      else if (on) navigator.geolocation?.getCurrentPosition(() => {}, refused, { maximumAge: 300_000, timeout: 15_000 });
     }
   });
   const row = (label, n) => h('div', { class: 'q-ritem mn-row' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label })]), h('span', { class: 'q-ritem-value num', text: `${n} / ${r.of}` })]);
