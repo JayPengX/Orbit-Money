@@ -3,7 +3,7 @@
 // in place of the 發票 tools), then the tools as rows: the categories, 智慧帶入,
 // 到期提醒, the repeats, 預算 (only while none is set: once one is, it lives in
 // 統計), the accounts put away (when there are any), the books as a file.
-import { h, toast, sheet, toggle, tile } from '#kit/ui.mjs';
+import { h, toast, sheet, toggle, tile, icons as kitIcons } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph, guessCats } from '../lib/cats.mjs';
 import { reminders } from '../lib/renew.mjs';
@@ -59,7 +59,7 @@ export function renderMore(box) {
       wide ? askRow : null,
       tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W('改名、排序、加細項', 'Rename, reorder, add subs'), W(`${cats} 個`, `${cats}`), () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
-      tool(glyph('spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Picks what you usually log'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
+      tool(glyph(kitIcons.ai ? 'ai' : 'spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Picks what you usually log'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
       // (TPASS, subscriptions, memberships: the soonest one.)
       tool(glyph('bell'), '#ff9500', W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : W('TPASS、訂閱、會員到期前提醒', 'TPASS, subscriptions, memberships'), dueIn == null ? '' : dueIn <= 0 ? W('今天', 'Today') : W(`${dueIn} 天後`, `in ${dueIn} d`), () => openRenewals()),
       // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
