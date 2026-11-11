@@ -43,8 +43,10 @@ Live: https://orbit.jaypengx.com/money/
 - **Every screen** (Jay 2026-10-31; Orbit-Core DESIGN.md §10): a phone upright
   is one column; on its side or a tablet two, a computer three (`shell.mjs`
   `columns` for 月曆's month beside the day, `flow` for 帳戶 and 統計: the
-  phone's order cut into even columns; 更多's tools a grid of cards with no
-  lone one on the last row). The page redraws when the screen changes
+  phone's order cut into even columns, the evenest of cuts as tall
+  (`lib/columns.mjs evenCuts`; 帳戶's total across the top, 新增帳戶 under the
+  last column; 統計's 分類 free to start the second); 更多's tools a grid of
+  cards, every row full and one width (`evenRows`: 3, 3, 2). Jay's iPad 2026-11-11. The page redraws when the screen changes
   (`onScreen` in app.mjs). On a phone on its side 記一筆 puts the categories
   in a column beside the rest (money.css `.mn-part`).
 - **The books** (`lib/books.mjs`, pure, tested): accounts (cash, bank,

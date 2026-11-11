@@ -115,12 +115,14 @@ export function renderStats(box) {
 
   const amt = total(B(), kind, p.from, p.to);
   const parts = [bar, hero(kind, p, prev, amt, now, redraw)];
-  // (Wide: the controls, the period and its categories head the first
-  // column; the rest run on into the next ones, in the phone's order.)
+  // (Wide: the controls and the period head the first column; the rest,
+  // 分類 first, run on into the next ones in the phone's order, the columns
+  // as even as that allows: 分類 kept under the period made the first column
+  // twice the others, Jay's iPad 2026-11-11.)
   const done = () => {
     const st = h('div', { class: 'mn-st' });
     box.replaceChildren(st);
-    flow(st, parts, { first: 3 });
+    flow(st, parts, { first: 2 });
   };
   if (!amt) {
     parts.push(empty({ icon: 'chart', title: kind === 'in' ? W('這段時間沒有收入', 'No income') : W('這段時間沒有支出', 'Nothing spent'), body: skip.size ? W('有些分類被篩掉了', 'Some categories are filtered out') : '' }));

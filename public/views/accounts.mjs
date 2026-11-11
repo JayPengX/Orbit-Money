@@ -8,7 +8,7 @@ import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, acct
 import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { NETWORKS, networkLogo } from '../lib/networks.mjs';
 import { catName, glyph, lookOf, subsOf, subOf, guessCat, guessSub } from '../lib/cats.mjs';
-import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, card, flow } from '../shell.mjs';
+import { state, W, en, lang, money, dayLabel, today, saved, KINDS, kindName, acct, acctName, allAccounts, openAccounts, cardsOf, card, flow, columnsHere } from '../shell.mjs';
 import { entryRow, openEntry, payOptions, catTiles, subChips, subCols } from './entry.mjs';
 import { acctTile, methodTile, cardTile, payPic, whatTile } from './pics.mjs';
 
@@ -35,8 +35,13 @@ export function renderAccts(box) {
   });
   const add = h('button', { class: 'q-btn tinted block mn-add', type: 'button', onclick: () => openAccountEdit(null) }, [h('span', { html: icons.plus }), W('新增帳戶', 'Add an account')]);
 
-  // (Wide: the groups run on into a second and third column, in order.)
-  flow(box, [hero, ...groups, owedSection(), add]);
+  // (Wide: the total across the top, the groups under it in columns, in
+  // order, 新增帳戶 under the last; Jay's iPad 2026-11-11: the total alone in
+  // the first column, its top above the groups' heads beside it.)
+  if (columnsHere() < 2) return flow(box, [hero, ...groups, owedSection(), add]);
+  const rest = h('div', { class: 'mn-acct-cols' });
+  box.replaceChildren(hero, rest);
+  flow(rest, [...groups, owedSection()], { tail: add });
 }
 
 // 朋友還沒給: a friend's share of a spend not handed over yet; a tap says

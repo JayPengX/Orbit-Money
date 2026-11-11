@@ -7,6 +7,7 @@ import { h, toast, sheet, toggle, tile, icons as kitIcons } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph, guessCats } from '../lib/cats.mjs';
 import { reminders } from '../lib/renew.mjs';
+import { evenRows } from '../lib/columns.mjs';
 import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
 import { state, W, today, acctName, card, allAccounts, saved, columnsHere } from '../shell.mjs';
@@ -69,14 +70,13 @@ export function renderMore(box) {
       tool(glyph('share'), '#0088ff', W('匯出', 'Export'), W('整本帳本存成試算表', 'All entries as a spreadsheet'), 'CSV', () => exportCsv())
     ])
   ]);
-  // (Wide: as many across as there's room for, and no lone card on the last
-  // row: 拍照記帳, the first, runs across what's left over.)
+  // (Wide: as many across as there's room for, every row full and its cards
+  // one width: lib/columns.mjs evenRows.)
   if (wide) {
     const grid = tools.querySelector('.mn-tool-grid');
-    const n = columnsHere();
-    const left = grid.children.length % n;
-    grid.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
-    if (left) snapRow.style.gridColumn = `span ${n - left + 1}`;
+    const { tracks, spans } = evenRows(grid.children.length, columnsHere());
+    grid.style.gridTemplateColumns = `repeat(${tracks}, minmax(0, 1fr))`;
+    [...grid.children].forEach((c, i) => (c.style.gridColumn = `span ${spans[i]}`));
   }
   box.replaceChildren(...[ways, tools].filter(Boolean));
 }
