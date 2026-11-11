@@ -17,7 +17,7 @@ export function openSay() {
   const host = h('div', { class: 'mn-say-flow', 'aria-live': 'polite' });
   const said = h('div', { class: 'mn-say-said' });
   let open = true;
-  const bar = kitAI.aiBar({ placeholder: W('早餐 45 午餐 120 捷運 30', 'Breakfast 45, lunch 120, MRT 30'), label: W('用說的記帳', 'Say what you spent'), onSend: t => go(t) });
+  const bar = kitAI.aiBar({ placeholder: W('早餐 45 午餐 120', 'Breakfast 45, lunch 120'), label: W('用說的記帳', 'Say what you spent'), onSend: t => go(t) });
   const hint = h('p', { class: 'mn-hint' }, [W('打字或按鍵盤上的麥克風說：花了什麼、多少。可以一次說好幾筆，「昨天」「前天」也行。', 'Type, or tap the keyboard’s mic: what and how much. Several at once is fine, and “yesterday” too.')]);
   const s = sheet({ title: W('用說的記帳', 'Say it'), detent: 'medium', cls: 'mn-say', body: [hint, said, host, bar], onClose: () => (open = false) });
   requestAnimationFrame(() => bar.input.focus());
