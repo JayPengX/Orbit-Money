@@ -17,14 +17,20 @@ Your own books for real money: what you spend each day, what each account holds,
 
 <p align="center">
   <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month on a calendar">
-  <img src="docs/screenshots/money-2.webp" width="30%" alt="Log spending in seconds">
-  <img src="docs/screenshots/money-3.webp" width="30%" alt="Where the money went">
+  <img src="docs/screenshots/money-2.webp" width="30%" alt="Ask your books, see the answer">
+  <img src="docs/screenshots/money-3.webp" width="30%" alt="Log spending in seconds">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/money-4.webp" width="30%" alt="Every account, EasyCard too">
-  <img src="docs/screenshots/money-5.webp" width="30%" alt="Twelve broad categories">
-  <img src="docs/screenshots/money-6.webp" width="30%" alt="It learns your habits">
+  <img src="docs/screenshots/money-4.webp" width="30%" alt="Where the money went">
+  <img src="docs/screenshots/money-5.webp" width="30%" alt="Every account, EasyCard too">
+  <img src="docs/screenshots/money-6.webp" width="30%" alt="The whole year">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/money-7.webp" width="30%" alt="Breakfast, lunch and dinner apart">
+  <img src="docs/screenshots/money-8.webp" width="30%" alt="Twelve broad categories">
+  <img src="docs/screenshots/money-9.webp" width="30%" alt="It learns your habits">
 </p>
 
 <details>
@@ -32,14 +38,20 @@ Your own books for real money: what you spend each day, what each account holds,
 
 <p align="center">
   <img src="docs/screenshots/money-1.zh.webp" width="30%" alt="一整個月的收支">
-  <img src="docs/screenshots/money-2.zh.webp" width="30%" alt="幾秒就記一筆">
-  <img src="docs/screenshots/money-3.zh.webp" width="30%" alt="錢花到哪裡，一圈看懂">
+  <img src="docs/screenshots/money-2.zh.webp" width="30%" alt="問你的帳，答案畫成圖">
+  <img src="docs/screenshots/money-3.zh.webp" width="30%" alt="幾秒就記一筆">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/money-4.zh.webp" width="30%" alt="每個帳戶與悠遊卡">
-  <img src="docs/screenshots/money-5.zh.webp" width="30%" alt="十二大類，一眼分好">
-  <img src="docs/screenshots/money-6.zh.webp" width="30%" alt="越用越懂你的習慣">
+  <img src="docs/screenshots/money-4.zh.webp" width="30%" alt="錢花到哪裡，一圈看懂">
+  <img src="docs/screenshots/money-5.zh.webp" width="30%" alt="每個帳戶與悠遊卡">
+  <img src="docs/screenshots/money-6.zh.webp" width="30%" alt="一整年的走勢">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/money-7.zh.webp" width="30%" alt="早餐、午餐、晚餐分開記">
+  <img src="docs/screenshots/money-8.zh.webp" width="30%" alt="十二大類，一眼分好">
+  <img src="docs/screenshots/money-9.zh.webp" width="30%" alt="越用越懂你的習慣">
 </p>
 
 </details>
@@ -48,6 +60,8 @@ Your own books for real money: what you spend each day, what each account holds,
 
 ## Features
 
+- **Orbit AI:** 問我的帳 (這個月吃飯花了多少？) is added up on the phone and drawn as rows with category tiles, cards and bars, AI only picking the tables and writing one line; 每月回顧 the same, with one suggestion; 用說的記帳 reads an entry from words. The whole book is never sent.
+- **車資記帳:** a ride Orbit Transit planned is offered on 月曆 as a 交通 entry to look over and save.
 - **月曆 Calendar:** opens on today: the month's spent, income and what's left against the budget, the week around today, and today's entries right below; the whole month a tap away.
 - **帳戶 Accounts:** cash, banks, 電子票證, 電子支付 and credit cards, each with its own logo; every card shows its network (Visa, Mastercard, JCB, American Express, UnionPay, Diners Club); TPASS and YouBike with their own logos; total assets; fixed income and expenses.
 - **統計 Stats:** one page, top to bottom. Pick week, month, year or your own dates; the card shows the total against the period before, the daily average and where the month is heading, over gold bars of the periods before (tap one to jump to it). Under it, a donut of the categories with their sub-categories around them (tap one to leave it out of the count), and budgets.
