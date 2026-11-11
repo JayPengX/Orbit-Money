@@ -96,7 +96,8 @@ export function openAsk() {
     starters.hidden = true;
     bar.busy(true);
     bar.clear();
-    const think = kitAI.aiThinking(W('翻一下你的帳…', 'Looking through your books…'));
+    const doing = W('翻一下你的帳…', 'Looking through your books…');
+    const think = kitAI.aiAnswerWait?.({ text: doing, rows: 3 }) || kitAI.aiThinking(doing);
     talk.append(h('p', { class: 'mn-say-you', text: q }), think);
     think.scrollIntoView?.({ block: 'nearest' });
     try {
