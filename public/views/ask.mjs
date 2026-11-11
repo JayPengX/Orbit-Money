@@ -81,7 +81,8 @@ function answerOf(line, shown, mark) {
   return kitAI.aiAnswer({ line: commas(line), sections, note });
 }
 
-export function openAsk() {
+// `ask`: a question already said (問 Orbit's, #ask=…), asked at once.
+export function openAsk({ ask = '' } = {}) {
   const talk = h('div', { class: 'mn-ask-talk', 'aria-live': 'polite' });
   let open = true;
   const bar = kitAI.aiBar({ placeholder: W('問你的帳…', 'Ask your books…'), label: W('問我的帳', 'Ask my books'), max: 200, onSend: q => go(q) });
@@ -89,7 +90,8 @@ export function openAsk() {
   const hint = h('p', { class: 'mn-hint', text: W('數字都由手機從你的帳本算好，AI 只挑出回答的表、說一句話，不會改動任何一筆。', 'Your phone adds up your entries; AI only picks the tables that answer and says one line, and never changes an entry.') });
   const foot = h('div', { class: 'q-sheet-foot mn-ask-foot' }, [bar]);
   sheet({ title: W('問我的帳', 'Ask my books'), detent: 'large', cls: 'mn-say mn-ask', body: [hint, starters, talk], foot, onClose: () => (open = false) });
-  requestAnimationFrame(() => bar.input.focus());
+  if (ask) requestAnimationFrame(() => go(String(ask).slice(0, 200)));
+  else requestAnimationFrame(() => bar.input.focus());
 
   async function go(q) {
     if (bar.classList.contains('busy')) return;

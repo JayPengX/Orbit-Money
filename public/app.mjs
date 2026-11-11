@@ -228,6 +228,17 @@ if (!gated) boot();
 
 // The address: a tab (#stats).
 function openFromHash(start = false) {
+  // (問 Orbit's question, the Pass sheet's: #ask=<words>, 問我的帳 with it, over the first tab.)
+  if (/(?:^#|&)ask=/.test(location.hash)) {
+    import('#kit/ask-orbit.mjs')
+      .then(m => {
+        const text = m.takeAsk?.();
+        if (start) openFromHash(true);
+        if (text) return import('./views/ask.mjs').then(x => x.openAsk({ ask: text }));
+      })
+      .catch(() => {});
+    return;
+  }
   const hash = decodeURIComponent(location.hash.slice(1));
   // (#inv: the old 發票 tab's address, now 更多.)
   const tab = TABS.includes(hash) ? hash : hash === 'inv' ? 'more' : start ? 'cal' : null;
