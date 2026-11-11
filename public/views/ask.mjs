@@ -12,6 +12,8 @@
 import { h, sheet } from '#kit/ui.mjs';
 import * as kitAI from '#kit/ai.mjs';
 import { askTables, booksFacts } from '../lib/ask.mjs';
+import { catOf, subOf, glyph } from '../lib/cats.mjs';
+import { payPic } from './pics.mjs';
 import { state, W, en, today, lang, money } from '../shell.mjs';
 
 const STARTERS = [
@@ -44,6 +46,41 @@ export function tableCard(t, mark = []) {
   ]);
 }
 
+// A row's picture (Jay 11-11: "icon, images… native and beautiful"): a
+// category its own tile, a way to pay its card's or account's picture, the
+// rest an emoji the table gave it.
+function leadOf(r) {
+  if (r.pay) {
+    const [a, via] = r.pay.split('|');
+    return payPic(a, via || '', 32);
+  }
+  const c = r.id && (subOf(r.id) ? catOf(subOf(r.id).parent) : catOf(r.id));
+  if (c?.icon) return { glyph: glyph(c.icon), color: c.color };
+  return r.pic || null;
+}
+// The answer drawn by the kit's one look for AI answers (aiAnswer); a phone
+// on an older kit draws the tables as before.
+function answerOf(line, shown, mark) {
+  const lit = new Set(mark);
+  const note = W('AI 挑的表，數字都是你帳本的', 'Tables picked by AI, every figure from your books');
+  if (!kitAI.aiAnswer) return h('div', { class: 'mn-ask-a' }, [h('p', { class: 'mn-ask-line', text: commas(line) }), ...shown.map(t => tableCard(t, mark)), kitAI.aiNote(note)]);
+  const sections = shown.map(t => {
+    const max = Math.max(1, ...t.rows.map(r => Math.max(r.amt, r.was || 0)));
+    return {
+      title: t.title,
+      rows: t.rows.map(r => ({
+        lead: leadOf(r),
+        label: r.label,
+        sub: r.was != null ? W(`之前 ${money(r.was)}`, `was ${money(r.was)}`) : r.n ? W(`${r.n} 筆`, `${r.n}×`) : '',
+        value: money(r.amt),
+        bar: { now: r.amt, was: r.was ?? null, max },
+        on: lit.has(r.label)
+      }))
+    };
+  });
+  return kitAI.aiAnswer({ line: commas(line), sections, note });
+}
+
 export function openAsk() {
   const talk = h('div', { class: 'mn-ask-talk', 'aria-live': 'polite' });
   let open = true;
@@ -71,7 +108,7 @@ export function openAsk() {
       const line = r.out?.line || r.out?.answer;
       const shown = (r.out?.show || []).map(id => tables[id]).filter(Boolean);
       const a = line
-        ? h('div', { class: 'mn-ask-a' }, [h('p', { class: 'mn-ask-line', text: commas(line) }), ...shown.map(t => tableCard(t, r.out?.mark || [])), kitAI.aiNote(W('AI 挑的表，數字都是你帳本的', 'Tables picked by AI, every figure from your books'))])
+        ? answerOf(line, shown, r.out?.mark || [])
         : h('p', { class: 'mn-hint mn-say-err', text: r.error ? kitAI.aiSays(r.error, r.left) : W('這個問題從帳本裡看不出來，換個問法試試。', 'Your books don’t say. Try asking another way.') });
       think.replaceWith(a);
       a.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });

@@ -76,36 +76,36 @@ export function askTables(books, today, { lang = 'zh', months = 3 } = {}) {
     spent.push({ label: mn, amt: out, got: total(books, 'in', from, to) });
     const cats = byCat(books, 'out', from, to, id => subOf(id)?.parent || '').slice(0, 8);
     put(`cat${i}`, W_(lang, `${mn}花在哪`, `${mn}: by category`), cats.map(c => ({ label: nameOf(c.cat, lang), amt: c.amt, id: c.cat })));
-    put(`pay${i}`, W_(lang, `${mn}怎麼付的`, `${mn}: how it was paid`), byPay(books, from, to, lang).slice(0, 8).map(p => ({ label: p.label, amt: p.amt, n: p.n })));
+    put(`pay${i}`, W_(lang, `${mn}怎麼付的`, `${mn}: how it was paid`), byPay(books, from, to, lang).slice(0, 8).map(p => ({ label: p.label, amt: p.amt, n: p.n, pay: p.key })));
     if (i === 0) {
       for (const c of cats.slice(0, 3)) {
         const subs = c.subs.filter(x => x.sub).slice(0, 6);
-        if (subs.length >= 2) put(`sub0.${c.cat}`, W_(lang, `${mn}${nameOf(c.cat, lang)}裡`, `${mn}: inside ${nameOf(c.cat, lang)}`), subs.map(x => ({ label: nameOf(x.sub, lang), amt: x.amt })));
+        if (subs.length >= 2) put(`sub0.${c.cat}`, W_(lang, `${mn}${nameOf(c.cat, lang)}裡`, `${mn}: inside ${nameOf(c.cat, lang)}`), subs.map(x => ({ label: nameOf(x.sub, lang), amt: x.amt, id: x.sub })));
       }
-      put('inc0', W_(lang, `${mn}收入`, `${mn}: income`), byCat(books, 'in', from, to).slice(0, 5).map(c => ({ label: nameOf(c.cat, lang), amt: c.amt })));
-      put('place0', W_(lang, `${mn}常去的地方`, `${mn}: places`), places(books, 'out', from, to, 6).map(p => ({ label: p.name.slice(0, 16), amt: p.amt, n: p.n })));
-      put('big0', W_(lang, `${mn}最大筆`, `${mn}: largest`), largest(books, 'out', from, to, 4).map(l => ({ label: `${Number(l.d.slice(5, 7))}/${Number(l.d.slice(8))} ${(l.e.note || nameOf(l.cat, lang)).slice(0, 16)}`, amt: l.amt })));
+      put('inc0', W_(lang, `${mn}收入`, `${mn}: income`), byCat(books, 'in', from, to).slice(0, 5).map(c => ({ label: nameOf(c.cat, lang), amt: c.amt, id: c.cat })));
+      put('place0', W_(lang, `${mn}常去的地方`, `${mn}: places`), places(books, 'out', from, to, 6).map(p => ({ label: p.name.slice(0, 16), amt: p.amt, n: p.n, pic: '📍' })));
+      put('big0', W_(lang, `${mn}最大筆`, `${mn}: largest`), largest(books, 'out', from, to, 4).map(l => ({ label: `${Number(l.d.slice(5, 7))}/${Number(l.d.slice(8))} ${(l.e.note || nameOf(l.cat, lang)).slice(0, 16)}`, amt: l.amt, id: l.e.sub || l.cat })));
     }
   }
-  if (spent.length > 1) put('months', W_(lang, '每月支出', 'Spent by month'), spent.map(({ label, amt }) => ({ label, amt })));
+  if (spent.length > 1) put('months', W_(lang, '每月支出', 'Spent by month'), spent.map(({ label, amt }) => ({ label, amt, pic: '📅' })));
   // This month against last month to the same day of the month (a fair
   // comparison partway through), category by category.
   const day = Number(today.slice(8, 10));
   const last = shiftMonth(ym, -1);
   const lastTo = `${last}-${String(Math.min(day, monthDays(last))).padStart(2, '0')}`;
-  put('vs', W_(lang, `比上個月同期（到 ${Number(lastTo.slice(5, 7))}/${Number(lastTo.slice(8))}）`, `Against last month to the same day`), changes(books, 'out', { from: `${ym}-01`, to: today }, { from: `${last}-01`, to: lastTo }).slice(0, 6).map(c => ({ label: nameOf(c.cat, lang), amt: c.amt, was: c.before })));
+  put('vs', W_(lang, `比上個月同期（到 ${Number(lastTo.slice(5, 7))}/${Number(lastTo.slice(8))}）`, `Against last month to the same day`), changes(books, 'out', { from: `${ym}-01`, to: today }, { from: `${last}-01`, to: lastTo }).slice(0, 6).map(c => ({ label: nameOf(c.cat, lang), amt: c.amt, was: c.before, id: c.cat })));
   const mon = mondayOf(today);
   put('week', W_(lang, '這週和上週', 'This week and last'), [
-    { label: W_(lang, '這週', 'This week'), amt: total(books, 'out', mon, today) },
-    { label: W_(lang, '上週', 'Last week'), amt: total(books, 'out', addDays(mon, -7), addDays(mon, -1)) }
+    { label: W_(lang, '這週', 'This week'), amt: total(books, 'out', mon, today), pic: '🗓️' },
+    { label: W_(lang, '上週', 'Last week'), amt: total(books, 'out', addDays(mon, -7), addDays(mon, -1)), pic: '🗓️' }
   ]);
   const b = live(books.budgets).find(x => !x.cat);
   if (b) {
     const used = total(books, 'out', `${ym}-01`, today);
     put('budget', W_(lang, '這個月的預算', 'This month’s budget'), [
-      { label: W_(lang, '預算', 'Budget'), amt: Number(b.amt) },
-      { label: W_(lang, '已花', 'Spent'), amt: used },
-      { label: W_(lang, '還剩', 'Left'), amt: Number(b.amt) - used }
+      { label: W_(lang, '預算', 'Budget'), amt: Number(b.amt), pic: '🎯' },
+      { label: W_(lang, '已花', 'Spent'), amt: used, pic: '💸' },
+      { label: W_(lang, '還剩', 'Left'), amt: Number(b.amt) - used, pic: '👛' }
     ]);
   }
   return { tables: t, spent, first };
