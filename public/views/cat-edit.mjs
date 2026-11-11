@@ -231,6 +231,6 @@ function nameAsk(title, value) {
     const go = () => finish(input.value.trim());
     input.addEventListener('keydown', e => e.key === 'Enter' && (e.preventDefault(), go()));
     const s = sheet({ title, cls: 'mn-namesheet', body: [input], onClose: () => finish(''), foot: h('div', { class: 'q-sheet-foot' }, [h('button', { class: 'q-btn primary block', type: 'button', text: W('好', 'Done'), onclick: go })]) });
-    setTimeout(() => input.focus(), 300);
+    input.focus();
   });
 }

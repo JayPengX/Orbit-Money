@@ -356,7 +356,7 @@ async function fixBalance(a) {
       })
     ])
   });
-  setTimeout(() => input.focus(), 300);
+  input.focus();
 }
 
 const payBill = (a, bill) => openEntry({ kind: 'move', amt: bill?.left || 0, note: W('繳卡費', 'Card bill'), from: a.pay, to: a.id });

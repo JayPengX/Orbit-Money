@@ -91,7 +91,8 @@ export function openAsk({ ask = '' } = {}) {
   const foot = h('div', { class: 'q-sheet-foot mn-ask-foot' }, [bar]);
   sheet({ title: W('問我的帳', 'Ask my books'), detent: 'large', cls: 'mn-say mn-ask', body: [hint, starters, talk], foot, onClose: () => (open = false) });
   if (ask) requestAnimationFrame(() => go(String(ask).slice(0, 200)));
-  else requestAnimationFrame(() => bar.input.focus());
+  // (In the tap that opened it: iOS raises its keys only then; the kit lands the sheet first.)
+  else bar.input.focus();
 
   async function go(q) {
     if (bar.classList.contains('busy')) return;
