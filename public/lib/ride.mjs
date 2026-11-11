@@ -15,6 +15,8 @@ export function rideOffer(fact, { now = Date.now(), done = [] } = {}) {
   if (!id || !Number.isFinite(at) || !(fare > 0) || fare > 5000) return null;
   if (now < at - 30 * 60_000 || now > at + HOLD || done.includes(id)) return null;
   const modes = Array.isArray(fact.modes) ? fact.modes.map(String) : [];
-  const day = new Date(at + 8 * 3_600_000).toISOString().slice(0, 10);
+  // The trip's day by the phone's own clock (as the books' days are).
+  const t = new Date(at);
+  const day = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
   return { id, amt: fare, note: String(fact.name || '').slice(0, 40), day, cat: 'transport', sub: modes.some(m => LONG.test(m)) ? 'transport:long' : 'transport:ride' };
 }

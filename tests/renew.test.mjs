@@ -4,6 +4,9 @@ import assert from 'node:assert/strict';
 import * as B from '../public/lib/books.mjs';
 import * as R from '../public/lib/renew.mjs';
 
+// The phone in Taiwan unless a test moves it.
+process.env.TZ = 'Asia/Taipei';
+
 const T = Date.UTC(2026, 9, 27);
 
 test('a cycle: days, months (the month’s last when shorter), years', () => {
@@ -41,7 +44,7 @@ test('renews by itself: the next charge on or after today; nothing set: not plac
   assert.equal(R.standing(b, b.renew.n, '2026-11-15').due, '2026-11-15');
 });
 
-test('when the phone is told: each day picked at its own time of day, 08:00 unless set (Taiwan); off: never', () => {
+test('when the phone is told: each day picked at its own time of day, 08:00 unless set; off: never', () => {
   const r = { id: 'x', at: [0, 3, 1] };
   const t = R.remindTimes(r, { due: '2026-11-25' });
   assert.deepEqual(t.map(x => [x.n, new Date(x.at).toISOString()]), [[3, '2026-11-22T00:00:00.000Z'], [1, '2026-11-24T00:00:00.000Z'], [0, '2026-11-25T00:00:00.000Z']]);
@@ -49,6 +52,16 @@ test('when the phone is told: each day picked at its own time of day, 08:00 unle
   assert.equal(R.tmOf({ tm: '25:00' }), '08:00');
   assert.deepEqual(R.remindTimes({ id: 'x', on: false }, { due: '2026-11-25' }), []);
   assert.deepEqual(R.remindTimes({ id: 'x' }, { due: '' }), []);
+});
+
+test('abroad: told at the hour set where the phone is, not Taiwan\'s', () => {
+  process.env.TZ = 'America/Los_Angeles';
+  try {
+    const t = R.remindTimes({ id: 'x', at: [0], tm: '20:00' }, { due: '2026-11-25' });
+    assert.equal(new Date(t[0].at).toISOString(), '2026-11-26T04:00:00.000Z');
+  } finally {
+    process.env.TZ = 'Asia/Taipei';
+  }
 });
 
 test('older books: the TPASS settings on the category become the list’s TPASS; a TPASS logged makes one; once', () => {

@@ -5,6 +5,9 @@ import assert from 'node:assert/strict';
 import * as B from '../public/lib/books.mjs';
 import * as C from '../public/lib/cats.mjs';
 
+// The phone in Taiwan unless a test moves it.
+process.env.TZ = 'Asia/Taipei';
+
 const T = Date.UTC(2026, 9, 27);
 function sample() {
   const b = B.emptyBooks();
@@ -342,4 +345,15 @@ test('a dragged order (分類 grips) is saved as each one’s order, nothing els
   C.useCats(b.cats);
   assert.deepEqual(C.subsOf('food', { all: true }).map(s => s.id), subs);
   assert.equal(C.catOf('transport').zh, '交通', 'only the order changed');
+});
+
+test('abroad: a meal is told by the hour where the phone is', () => {
+  process.env.TZ = 'America/Los_Angeles';
+  try {
+    const t = Date.parse('2026-11-06T08:00:00-08:00');
+    assert.equal(C.mealOf({ t, d: '2026-11-06' }), 'food:breakfast');
+    assert.equal(C.mealOf({ t: Date.parse('2026-11-06T19:00:00-08:00'), d: '2026-11-06' }), 'food:dinner');
+  } finally {
+    process.env.TZ = 'Asia/Taipei';
+  }
 });

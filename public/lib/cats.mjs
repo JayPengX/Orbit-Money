@@ -424,17 +424,20 @@ export const guessCats = {
 // and everything else stay as they were. No flag: whatever is still under
 // 三餐 (a phone that was away) goes the same way when it turns up.
 const OLD_MEAL = { 'food:breakfast': 'food:breakfast', 'food:lunch': 'food:lunch', 'food:dinner': 'food:dinner', 'food:late': 'food:dinner' };
-const TW = 8 * 3_600_000;
-const twDay = t => new Date(t + TW).toISOString().slice(0, 10);
-const twHour = t => {
-  const x = new Date(t + TW);
-  return x.getUTCHours() + x.getUTCMinutes() / 60;
+// By the phone's own clock, wherever it is (as the books' days are: lib/guess.mjs).
+const dayAt = t => {
+  const x = new Date(t);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+};
+const hourAt = t => {
+  const x = new Date(t);
+  return x.getHours() + x.getMinutes() / 60;
 };
 const BY_HOUR = h => (h < 4 ? 'dinner' : h < 10.5 ? 'breakfast' : h < 15 ? 'lunch' : 'dinner');
 // The meal one record goes back to ('' when it can't be told).
 export function mealOf(r, was = '') {
   if (OLD_MEAL[was]) return OLD_MEAL[was];
-  if (r.t && r.d && twDay(r.t) === r.d) return `food:${BY_HOUR(twHour(r.t))}`;
+  if (r.t && r.d && dayAt(r.t) === r.d) return `food:${BY_HOUR(hourAt(r.t))}`;
   return '';
 }
 const MEAL_COLS = ['entries', 'recur', 'renew'];

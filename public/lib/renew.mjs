@@ -74,8 +74,8 @@ export const reminders = (books, today) =>
 export const atOf = r => (Array.isArray(r?.at) ? r.at : DEFAULT_AT).filter(n => AT.includes(n)).sort((a, b) => b - a);
 // The time of day it's told, the one set or 08:00.
 export const tmOf = r => (/^([01]\d|2[0-3]):[0-5]\d$/.test(r?.tm || '') ? r.tm : DEFAULT_TM);
-// When the phone is told (ms, Taiwan time): each day picked, at its time of day.
-export const remindTimes = (r, s) => (r?.on === false || !s?.due ? [] : atOf(r).map(n => ({ n, day: addDays(s.due, -n), at: Date.parse(`${addDays(s.due, -n)}T${tmOf(r)}:00+08:00`) })));
+// When the phone is told (ms): each day picked, at its time of day by the phone's own clock.
+export const remindTimes = (r, s) => (r?.on === false || !s?.due ? [] : atOf(r).map(n => ({ n, day: addDays(s.due, -n), at: Date.parse(`${addDays(s.due, -n)}T${tmOf(r)}:00`) })));
 
 // Renewed by hand (no spend to log): the next one starts the day after this one ends.
 export const renewedBy = (r, s) => (s?.due ? (r.roll ? s.due : addDays(s.due, 1)) : '');

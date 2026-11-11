@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rideOffer } from '../public/lib/ride.mjs';
 
+// The phone in Taiwan unless a test moves it.
+process.env.TZ = 'Asia/Taipei';
+
 const at = Date.parse('2026-11-11T07:20:00+08:00');
 const fact = { id: 't1', at, name: '新竹 → 竹北', fare: 30, modes: ['bus'] };
 
@@ -17,4 +20,15 @@ test('nothing made up: no fare, a nonsense one, no id', () => {
   assert.equal(rideOffer({ ...fact, fare: 'x' }, { now: at }), null);
   assert.equal(rideOffer({ ...fact, id: '' }, { now: at }), null);
   assert.equal(rideOffer(null), null);
+});
+
+test('abroad: the trip\'s day is where the phone is', () => {
+  process.env.TZ = 'America/Los_Angeles';
+  try {
+    // 20:00 in California is still the 10th there (the 11th in Taiwan).
+    const late = Date.parse('2026-11-10T20:00:00-08:00');
+    assert.equal(rideOffer({ ...fact, at: late }, { now: late }).day, '2026-11-10');
+  } finally {
+    process.env.TZ = 'Asia/Taipei';
+  }
 });
