@@ -42,6 +42,13 @@ test('renews by itself: the next charge on or after today; nothing set: not plac
   const list = R.reminders(b, '2026-10-27');
   assert.deepEqual(list.map(x => [x.r.id, x.due, x.left]), [['n', '2026-11-15', 19], ['y', '2026-12-01', 35], ['z', '', null]]);
   assert.equal(R.standing(b, b.renew.n, '2026-11-15').due, '2026-11-15');
+  // Counted from the start each time: begun on 1/31, it renews on the month's last day,
+  // never the 28th ever after; begun on a 2/29, on the 29th when there is one.
+  assert.equal(R.standing(b, { start: '2026-01-31', n: 1, unit: 'month', roll: true }, '2026-03-01').due, '2026-03-31');
+  assert.equal(R.standing(b, { start: '2026-01-31', n: 1, unit: 'month', roll: true }, '2026-11-12').due, '2026-11-30');
+  assert.equal(R.standing(b, { start: '2024-02-29', n: 1, unit: 'year', roll: true }, '2028-01-01').due, '2028-02-29');
+  assert.equal(R.standing(b, { start: '2026-08-31', n: 3, unit: 'month', roll: true }, '2027-03-01').due, '2027-05-31');
+  assert.equal(R.standing(b, { start: '2026-11-01', n: 7, unit: 'day', roll: true }, '2026-11-12').due, '2026-11-15');
 });
 
 test('when the phone is told: each day picked at its own time of day, 08:00 unless set; off: never', () => {

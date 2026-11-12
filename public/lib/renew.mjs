@@ -58,8 +58,11 @@ export function standing(books, r, today) {
   if (!start) return { start: '', due: '', left: null, src: '', e: link?.e || null };
   let due;
   if (r.roll) {
+    // (Each one counted from the start, never from the last: one begun on 1/31
+    // renews on the 30th or 31st, not the 28th for ever after February.)
+    let k = 1;
     due = addCycle(start, n, unit);
-    for (let i = 0; due < today && i < 2000; i++) due = addCycle(due, n, unit);
+    for (; due < today && k < 2000; k++) due = addCycle(start, n * (k + 1), unit);
   } else due = addDays(addCycle(start, n, unit), -1);
   return { start, due, left: gap(today, due), src, e: src === 'entry' ? link.e : null };
 }
