@@ -23,17 +23,17 @@ export function renderMore(box) {
   // gold button with a caption under it floated; "ugly").
   const snapRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => snap() }, [
     tile(glyph('camera'), 'var(--q-accent)'),
-    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('拍照記帳', 'Add from a photo') }), h('small', { text: W('收據、帳單、截圖，AI 幫你填好', 'Receipts, bills, screenshots: AI fills it in') })])
+    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('拍照記帳', 'Add from a photo') }), h('small', { text: W('收據、帳單、截圖，AI 幫你填好', 'AI reads receipts and bills') })])
   ]);
   // 用說的記帳 beside it (Jay 11-10): type or dictate, the phone reads plain lines itself.
   const sayRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => openSay() }, [
     tile(glyph(kitIcons.ai ? 'ai' : 'spark'), '#5856d6'),
-    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('用說的記帳', 'Say what you spent') }), h('small', { text: W('「早餐 45 午餐 120」，一次記好幾筆', '“Breakfast 45, lunch 120”: several at once') })])
+    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('用說的記帳', 'Say what you spent') }), h('small', { text: W('說「早餐 45 午餐 120」', 'Say “breakfast 45, lunch 120”') })])
   ]);
   // 問我的帳 (Jay 11-10): ask about your own books; the phone adds up, AI answers.
   const askRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => openAsk({}) }, [
     tile(glyph('chat'), '#5856d6'),
-    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('問我的帳', 'Ask my books') }), h('small', { text: W('「這個月吃飯花多少」，用你的帳回答', '“How much on food this month?”, from your books') })])
+    h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('問我的帳', 'Ask my books') }), h('small', { text: W('問「這個月吃飯花多少？」', 'Ask “how much on food?”') })])
   ]);
   // (Wide: every tool a card in one grid, 拍照記帳 the first of them.)
   const wide = columnsHere() > 1;
@@ -58,16 +58,16 @@ export function renderMore(box) {
       wide ? snapRow : null,
       wide ? sayRow : null,
       wide ? askRow : null,
-      tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W('改名、排序、加細項', 'Rename, reorder, add subs'), W(`${cats} 個`, `${cats}`), () => openCats()),
+      tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W('改名、排序、加細項', 'Rename and reorder'), W(`${cats} 個`, `${cats}`), () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
-      tool(glyph(kitIcons.ai ? 'ai' : 'spark'), '#5856d6', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Picks what you usually log'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
+      tool(glyph(kitIcons.ai ? 'ai' : 'spark'), '#5856d6', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Your usual picks'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
       // (TPASS, subscriptions, memberships: the soonest one.)
       tool(glyph('bell'), '#ff9500', W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : W('TPASS、訂閱、會員到期前提醒', 'TPASS, subscriptions, memberships'), dueIn == null ? '' : dueIn <= 0 ? W('今天', 'Today') : W(`${dueIn} 天後`, `in ${dueIn} d`), () => openRenewals()),
       // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
       tool(glyph('repeat'), '#30b0c7', W('固定收支', 'Repeats'), W('房租、薪水，到日子自動記', 'Rent, pay: logged on the day'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : '', () => openRepeats()),
       live(state.books.budgets).length ? null : tool(glyph('target'), '#ff3b30', W('預算', 'Budget'), W('每月上限，統計裡看剩多少', 'A monthly cap, tracked in Stats'), '', () => openBudgets()),
       closed.length ? tool(glyph('lock'), '#8e8e93', W('已封存', 'Put away'), W('不用的帳戶', 'Accounts no longer used'), W(`${closed.length} 個`, `${closed.length}`), () => openClosed()) : null,
-      tool(glyph('share'), '#0088ff', W('匯出', 'Export'), W('整本帳本存成試算表', 'All entries as a spreadsheet'), 'CSV', () => exportCsv())
+      tool(glyph('share'), '#0088ff', W('匯出', 'Export'), W('整本帳本存成試算表', 'All your entries'), 'CSV', () => exportCsv())
     ])
   ]);
   // (Wide: as many across as there's room for, every row full and its cards
