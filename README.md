@@ -16,42 +16,28 @@
 Your own books for real money: what you spend each day, what each account holds, and any receipt logged from a photo. Part of **Orbit**, a family of apps for life in Taiwan that share one sign-in, the Orbit Pass. See them all at [orbit.jaypengx.com](https://orbit.jaypengx.com/pass/).
 
 <p align="center">
-  <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month on a calendar">
-  <img src="docs/screenshots/money-2.webp" width="30%" alt="Ask your books, see the answer">
-  <img src="docs/screenshots/money-3.webp" width="30%" alt="Log spending in seconds">
+  <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month, at a glance">
+  <img src="docs/screenshots/money-2.webp" width="30%" alt="Log in seconds, the category already guessed">
+  <img src="docs/screenshots/money-3.webp" width="30%" alt="Where the money went">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/money-4.webp" width="30%" alt="Where the money went">
-  <img src="docs/screenshots/money-5.webp" width="30%" alt="Every account, EasyCard too">
-  <img src="docs/screenshots/money-6.webp" width="30%" alt="The whole year">
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/money-7.webp" width="30%" alt="Breakfast, lunch and dinner apart">
-  <img src="docs/screenshots/money-8.webp" width="30%" alt="Twelve broad categories">
-  <img src="docs/screenshots/money-9.webp" width="30%" alt="It learns your habits">
+  <img src="docs/screenshots/money-4.webp" width="30%" alt="Banks, cards and EasyCard, all in one">
+  <img src="docs/screenshots/money-5.webp" width="30%" alt="Ask your books, see the answer">
 </p>
 
 <details>
 <summary>中文畫面</summary>
 
 <p align="center">
-  <img src="docs/screenshots/money-1.zh.webp" width="30%" alt="一整個月的收支">
-  <img src="docs/screenshots/money-2.zh.webp" width="30%" alt="問你的帳，答案畫成圖">
-  <img src="docs/screenshots/money-3.zh.webp" width="30%" alt="幾秒就記一筆">
+  <img src="docs/screenshots/money-1.zh.webp" width="30%" alt="一整個月，花多少一眼看">
+  <img src="docs/screenshots/money-2.zh.webp" width="30%" alt="幾秒記一筆，分類自動猜好">
+  <img src="docs/screenshots/money-3.zh.webp" width="30%" alt="錢花到哪裡，一圈看懂">
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/money-4.zh.webp" width="30%" alt="錢花到哪裡，一圈看懂">
-  <img src="docs/screenshots/money-5.zh.webp" width="30%" alt="每個帳戶與悠遊卡">
-  <img src="docs/screenshots/money-6.zh.webp" width="30%" alt="一整年的走勢">
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/money-7.zh.webp" width="30%" alt="早餐、午餐、晚餐分開記">
-  <img src="docs/screenshots/money-8.zh.webp" width="30%" alt="十二大類，一眼分好">
-  <img src="docs/screenshots/money-9.zh.webp" width="30%" alt="越用越懂你的習慣">
+  <img src="docs/screenshots/money-4.zh.webp" width="30%" alt="銀行、信用卡、悠遊卡，全都管">
+  <img src="docs/screenshots/money-5.zh.webp" width="30%" alt="問你的帳，答案畫成圖">
 </p>
 
 </details>
