@@ -7,7 +7,7 @@
 // 篩選 leaves categories or subs out of every figure.
 import { h, icons, tile, pickSeg, sheet, toast, menu, empty, toggle } from '#kit/ui.mjs';
 import { addDays } from '#kit/format.mjs';
-import { lines, budgetState, monthDays, shiftMonth, put, drop, live } from '../lib/books.mjs';
+import { lines, budgetState, monthDays, shiftMonth, put, drop, live, ntOf } from '../lib/books.mjs';
 import { catList, catOf, catName, subOf, glyph } from '../lib/cats.mjs';
 import { byCat, byAccount, shape, largest, places, sameplace, placeOf, daysIn, weekdays, pace, months, kept, firstDay, total, trendOf, periodKey } from '../lib/stats.mjs';
 import { state, hooks, W, en, lang, money, plain, short, monthLabel, dayLabel, today, saved, acct, acctName, card, flow } from '../shell.mjs';
@@ -907,7 +907,7 @@ export function openBudgets(redraw = () => {}) {
         text: W('儲存', 'Save'),
         onclick: () => {
           for (const [cat, i] of inputs) {
-            const amt = Math.round(Number(i.value.replace(/[^\d.]/g, '')) || 0);
+            const amt = ntOf(i.value);
             const was = have[cat];
             if (amt > 0 && amt !== was?.amt) put(b, 'budgets', { id: was?.id || `b-${cat || 'all'}`, cat, amt });
             else if (!amt && was) drop(b, 'budgets', was.id);

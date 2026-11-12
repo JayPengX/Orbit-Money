@@ -6,7 +6,7 @@
 // offering to merge with the same payment already logged. A 退款 has its own small sheet.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE, sameAs, balances } from '../lib/books.mjs';
+import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE, sameAs, balances, ntOf } from '../lib/books.mjs';
 import { catsFor, shownCat, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, subFromWords, defaultsOf, saveCat, guessCats } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 import { payPic, whatTile, acctTile } from './pics.mjs';
@@ -257,7 +257,8 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   const amountIn = h('input', { class: 'num mn-amount-in', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', enterkeyhint: 'done', autocomplete: 'off', placeholder: '0', 'aria-label': W('金額', 'Amount') });
   const sizer = h('span', { class: 'num mn-amount-size', 'aria-hidden': 'true' });
   amountIn.addEventListener('input', () => {
-    f.amt = amountIn.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
+    // (A pasted 「1,234.00」 is 1234: what's after a point never becomes more digits.)
+    f.amt = amountIn.value.replace(/\..*$/, '').replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
     f.auto = false;
     touched = true;
     paintAmount();
@@ -527,7 +528,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   async function commit() {
     const sum = Number(f.amt) || 0;
     if (!(sum > 0)) return;
-    const whole = v => Math.max(0, Math.round(Number(String(v ?? '').replace(/[^\d]/g, '')) || 0));
+    const whole = v => Math.max(0, ntOf(v));
     const shares = f.k === 'out' ? f.friends.map(fr => ({ ...fr, n: whole(fr.amt) })).filter(fr => fr.n > 0) : [];
     const alsoAmt = f.k === 'out' && f.also ? whole(f.also.amt) : 0;
     if (shares.reduce((n, fr) => n + fr.n, 0) + alsoAmt > sum) return toast(W('分攤和另付加起來超過金額了', 'The shares come to more than the amount'), { tone: 'bad' });
@@ -702,7 +703,7 @@ export function openRefund({ of = null, back = null } = {}) {
         type: 'button',
         text: W('儲存', 'Save'),
         onclick: () => {
-          const amt = Math.round(Number(String(f.amt).replace(/[^\d]/g, '')) || 0);
+          const amt = ntOf(f.amt);
           if (!(amt > 0)) return toast(W('請填金額', 'Fill in the amount'), { tone: 'bad' });
           if (amt > left) return toast(W(`最多退 ${money(left)}`, `At most ${money(left)}`), { tone: 'bad' });
           const now = Date.now();

@@ -9,6 +9,7 @@ import { ask } from '#kit/orbit.mjs';
 import { catList, catOf, subsOf, subOf, catName, glyph, usesOf, saveCat, addCat, orderCats, mergeCat, removeCat, isBuiltIn, catUndo, useBooksCats, CAT_ICONS, CAT_COLORS } from '../lib/cats.mjs';
 import { state, W, lang, saved, money, acct, card } from '../shell.mjs';
 import { payOptions } from './entry.mjs';
+import { ntOf } from '../lib/books.mjs';
 
 const changed = () => (useBooksCats(state.books), saved());
 // The subs in a line that never runs off: past three, the first two and the count.
@@ -205,7 +206,7 @@ function openDefaults(c, done) {
         type: 'button',
         text: W('儲存', 'Save'),
         onclick: () => {
-          const v = Math.round(Number(String(f.n).replace(/[^\d]/g, '')) || 0);
+          const v = ntOf(f.n);
           if (f.mode !== 'none' && !(v > 0)) return toast(W('請填金額', 'Fill in the amount'), { tone: 'bad' });
           saveCat(b, { id: c.id, pay: f.pay, amt: f.mode === 'amt' ? v : 0, unit: f.mode === 'unit' ? v : 0 });
           changed();

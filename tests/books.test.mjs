@@ -427,3 +427,20 @@ test('the repeat sheet never repaints the field being left; a reminder tells a s
   assert.doesNotMatch(rn, /f\.start = st\(\)\.start/);
   assert.match(rn, /from: f\.start/);
 });
+
+// What's typed or pasted is whole NT$ (Jay's books: a 「12,345.00」 pasted from the bank
+// into 調整餘額 was 1,234,500; a 分攤 「33.5」 typed on a computer was 335).
+test('ntOf: whole NT$ from what was typed or pasted', () => {
+  assert.equal(B.ntOf('12,345.00'), 12345);
+  assert.equal(B.ntOf('NT$ 1,234.50'), 1235);
+  assert.equal(B.ntOf('33.5'), 34);
+  assert.equal(B.ntOf('-500'), 500);
+  assert.equal(B.ntOf('-1,500.4', { neg: true }), -1500);
+  assert.equal(B.ntOf('12-3', { neg: true }), 123);
+  assert.equal(B.ntOf(''), 0);
+  assert.equal(B.ntOf('-', { neg: true }), 0);
+  assert.equal(B.ntOf('abc'), 0);
+  assert.equal(B.ntOf(undefined), 0);
+  assert.equal(B.ntOf(0.4), 0);
+  assert.equal(Object.is(B.ntOf('-0.2', { neg: true }), -0), false);
+});

@@ -4,7 +4,7 @@
 // entries; a credit card to its bill too.
 import { h, icons, tile, sheet, toggle, toast, empty, segmented, menu } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { balances, worth, put, drop, dropAccount, live, adjustBy, cardBill, acctTotals, owed, touches, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf, historyOf, hasHistory, closeAccount, closeCard, moveAccount, moveCard, snapshot, restore, accountParts } from '../lib/books.mjs';
+import { balances, worth, ntOf, put, drop, dropAccount, live, adjustBy, cardBill, acctTotals, owed, touches, nextRepeat, runRepeats, ACCOUNT_KINDS, groupOf, historyOf, hasHistory, closeAccount, closeCard, moveAccount, moveCard, snapshot, restore, accountParts } from '../lib/books.mjs';
 import { brandsFor, brandOf } from '../lib/brands.mjs';
 import { NETWORKS, networkLogo } from '../lib/networks.mjs';
 import { catName, glyph, lookOf, subsOf, subOf, guessCat, guessSub } from '../lib/cats.mjs';
@@ -345,10 +345,10 @@ async function fixBalance(a) {
         type: 'button',
         text: W('儲存', 'Save'),
         onclick: () => {
-          const typed = input.value.replace(/[^\d-]/g, '');
-          const v = Number(typed);
           // An empty field (or only a minus) changes nothing: never a fix to NT$0.
-          if (!/\d/.test(typed) || !Number.isFinite(v)) return s.close();
+          // (「12,345.00」 pasted from the bank is 12,345: ntOf.)
+          if (!/\d/.test(input.value)) return s.close();
+          const v = ntOf(input.value, { neg: true });
           const by = adjustBy(b, a.id, credit ? -v : v, now);
           if (by) put(b, 'entries', { d: now, k: 'adj', amt: by, a: a.id, cat: '', note: '', t: Date.now() });
           s.close();
@@ -438,12 +438,12 @@ export function openAccountEdit(a, host = null) {
     const name = f.name.trim() || (f.brand ? (en ? brandOf(f.brand).en : brandOf(f.brand).zh) : kindName(f.kind));
     const day = v => Math.min(31, Math.max(0, Math.floor(Number(v) || 0))) || '';
     const rec = { ...(a || {}), kind: f.kind, brand: f.brand, net: f.kind === 'credit' ? f.net : '', name, inTotal: f.inTotal, pay: f.kind === 'credit' ? f.pay : '', close: f.kind === 'credit' ? day(f.close) : '', due: f.kind === 'credit' ? day(f.due) : '' };
-    const whole = v => Math.max(0, Math.round(Number(String(v).replace(/[^\d]/g, '')) || 0));
+    const whole = v => Math.max(0, ntOf(v));
     if (f.kind === 'ticket' || f.kind === 'wallet') {
       rec.reload = rl.on ? { on: true, from: acct(rl.from) ? rl.from : '', amt: whole(rl.amt) || 500, below: whole(rl.below) } : a?.reload ? { ...a.reload, on: false } : undefined;
     } else delete rec.reload;
     if (isNew) {
-      const v = Math.round(Number(String(f.open).replace(/[^\d.-]/g, '')) || 0);
+      const v = ntOf(f.open, { neg: true });
       rec.open = f.kind === 'credit' ? -Math.abs(v) : v;
       rec.order = allAccounts().length;
     }
@@ -594,7 +594,7 @@ export function openRepeat(r) {
         type: 'button',
         text: W('儲存', 'Save'),
         onclick: () => {
-          const amt = Math.round(Number(String(f.amt).replace(/[^\d.]/g, '')));
+          const amt = ntOf(f.amt);
           if (!(amt > 0) || !acct(f.a) || (f.k === 'move' && (!acct(f.to) || f.to === f.a))) return toast(W('請填好金額和帳戶', 'Fill in the amount and account'), { tone: 'bad' });
           put(state.books, 'recur', { ...(r || {}), k: f.k, amt, cat: f.k === 'move' ? '' : f.cat, sub: f.k === 'move' ? '' : f.sub, a: f.a, via: f.k === 'move' ? '' : f.via, to: f.k === 'move' ? f.to : '', every: f.every, day: f.day, from: f.from, note: f.note.trim() });
           runRepeats(state.books, today());

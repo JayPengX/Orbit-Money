@@ -187,6 +187,13 @@ export function alsoOf(e) {
   }
   return out;
 }
+// Whole NT$ from what was typed or pasted: 「NT$ 1,234.50」 is 1,235, never 123,450 (the
+// point kept, the rest dropped); `neg`: a minus kept. Nothing there: 0.
+export function ntOf(v, { neg = false } = {}) {
+  const s = String(v ?? '').replace(neg ? /[^\d.-]/g : /[^\d.]/g, '');
+  const n = parseFloat(s.replace(/(?!^)-/g, ''));
+  return Number.isFinite(n) ? Math.round(n) || 0 : 0;
+}
 export const feeOf = e => (e && (e.k === 'out' || e.k === 'move') ? Math.max(0, Math.round(Number(e.fee) || 0)) : 0);
 // Every account an entry moves.
 export const touches = e => [...new Set([e.a, e.to, ...alsoOf(e).map(p => p.a)].filter(Boolean))];
