@@ -389,17 +389,21 @@ export function openAccountEdit(a, host = null) {
   const dueIn = dayIn('due', W('例如 3', 'e.g. 3'));
   const counted = toggle({ checked: f.inTotal, label: W('計入總資產', 'Count in net worth'), onChange: on => (f.inTotal = on) });
 
+  // A brand's name as the account's (a credit card's with 信用卡): a name
+  // still one of these follows the brand picked; one typed is kept.
+  // (國泰世華 信用卡 stayed when 玉山銀行 was picked after it.)
+  const brandName = br => (en ? br.en : br.zh) + (f.kind === 'credit' ? W(' 信用卡', ' card') : '');
   function paint() {
     const brands = brandsFor(f.kind);
     const kindPick = isNew
-      ? h('div', { class: 'mn-kinds' }, ACCOUNT_KINDS.filter(k => k !== 'cash').map(k => h('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(k === f.kind), text: kindName(k), onclick: () => ((f.kind = k), (f.brand = ''), paint()) })))
+      ? h('div', { class: 'mn-kinds' }, ACCOUNT_KINDS.filter(k => k !== 'cash').map(k => h('button', { class: 'q-chip', type: 'button', 'aria-pressed': String(k === f.kind), text: kindName(k), onclick: () => (brandsFor(f.kind).some(x => brandName(x) === nameIn.value) && (nameIn.value = f.name = ''), (f.kind = k), (f.brand = ''), paint()) })))
       : null;
     const brandGrid = brands.length
       ? h(
           'div',
           { class: 'mn-brands' },
           brands.map(br =>
-            h('button', { class: 'mn-brand', type: 'button', 'aria-pressed': String(br.id === f.brand), onclick: () => ((f.brand = f.brand === br.id ? '' : br.id), !nameIn.value || brands.some(x => (en ? x.en : x.zh) === nameIn.value) ? ((nameIn.value = f.brand ? (en ? br.en : br.zh) + (f.kind === 'credit' ? W(' 信用卡', ' card') : '') : ''), (f.name = nameIn.value)) : 0, paint()) }, [
+            h('button', { class: 'mn-brand', type: 'button', 'aria-pressed': String(br.id === f.brand), onclick: () => ((f.brand = f.brand === br.id ? '' : br.id), !nameIn.value || brands.some(x => brandName(x) === nameIn.value) ? ((nameIn.value = f.brand ? brandName(br) : ''), (f.name = nameIn.value)) : 0, paint()) }, [
               acctTile({ brand: br.id, kind: f.kind }, 40),
               h('span', { text: en ? br.en : br.zh })
             ])

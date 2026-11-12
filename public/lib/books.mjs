@@ -434,9 +434,10 @@ export function cardBill(books, card, today) {
   const dueDay = Number(card.due) || 0;
   let due = '';
   if (dueDay) {
+    // (The first due day after the close: the same month when it comes later
+    // in it, as a card that closes on the 5th is due on the 20th.)
     let dm = ym;
-    do dm = shiftMonth(dm, 1);
-    while (`${dm}-${String(Math.min(dueDay, monthDays(dm))).padStart(2, '0')}` <= closed);
+    while (`${dm}-${String(Math.min(dueDay, monthDays(dm))).padStart(2, '0')}` <= closed) dm = shiftMonth(dm, 1);
     due = `${dm}-${String(Math.min(dueDay, monthDays(dm))).padStart(2, '0')}`;
   }
   return { closed, opened, bill, paid, left: Math.max(0, bill - paid), due };

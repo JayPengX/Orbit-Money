@@ -77,6 +77,12 @@ test("a card's bill: buys between the last two closing days, paid since, due aft
   const bill = B.cardBill(b, b.accts.cc, '2026-10-27');
   assert.deepEqual(bill, { closed: '2026-10-15', opened: '2026-09-16', bill: 3000, paid: 1000, left: 2000, due: '2026-11-03' });
   assert.equal(B.cardBill(b, { ...b.accts.cc, close: 0 }, '2026-10-27'), null);
+  // Due later in the month it closes: that month (closes the 5th, due the 20th).
+  assert.equal(B.cardBill(b, { ...b.accts.cc, close: 5, due: 20 }, '2026-11-12').due, '2026-11-20');
+  assert.equal(B.cardBill(b, { ...b.accts.cc, close: 5, due: 5 }, '2026-11-12').due, '2026-12-05');
+  // A close on the 31st in a short month, due the 10th: the next month.
+  assert.equal(B.cardBill(b, { ...b.accts.cc, close: 31, due: 10 }, '2026-12-05').due, '2026-12-10');
+  assert.equal(B.cardBill(b, { ...b.accts.cc, close: 31, due: 10 }, '2026-12-05').closed, '2026-11-30');
 });
 
 test('removing an account takes its cards, repeats and entries, and unlinks a card paid from it', () => {
