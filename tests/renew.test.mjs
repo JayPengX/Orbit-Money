@@ -51,17 +51,17 @@ test('renews by itself: the next charge on or after today; nothing set: not plac
   assert.equal(R.standing(b, { start: '2026-11-01', n: 7, unit: 'day', roll: true }, '2026-11-12').due, '2026-11-15');
 });
 
-test('when the phone is told: the days before in the evening (20:00), that day in the morning (08:00), unless set; off: never', () => {
+test('when the phone is told: the days before in the evening (18:00), that day in the morning (08:00), unless set; off: never', () => {
   const r = { id: 'x', at: [0, 3, 1] };
   const t = R.remindTimes(r, { due: '2026-11-25' });
-  // (Jay 2026-11-12: the day before at 20:00, the evening before; the day itself at 08:00.)
-  assert.deepEqual(t.map(x => [x.n, new Date(x.at).toISOString()]), [[3, '2026-11-22T12:00:00.000Z'], [1, '2026-11-24T12:00:00.000Z'], [0, '2026-11-25T00:00:00.000Z']]);
-  assert.deepEqual(R.remindTimes({ ...r, tm: '07:15' }, { due: '2026-11-25' }).map(x => new Date(x.at).toISOString()), ['2026-11-22T12:00:00.000Z', '2026-11-24T12:00:00.000Z', '2026-11-24T23:15:00.000Z']);
+  // (The day before at 18:00, the evening before while still out (by 20:00 Jay's home, too late to renew); the day itself at 08:00.)
+  assert.deepEqual(t.map(x => [x.n, new Date(x.at).toISOString()]), [[3, '2026-11-22T10:00:00.000Z'], [1, '2026-11-24T10:00:00.000Z'], [0, '2026-11-25T00:00:00.000Z']]);
+  assert.deepEqual(R.remindTimes({ ...r, tm: '07:15' }, { due: '2026-11-25' }).map(x => new Date(x.at).toISOString()), ['2026-11-22T10:00:00.000Z', '2026-11-24T10:00:00.000Z', '2026-11-24T23:15:00.000Z']);
   assert.deepEqual(R.remindTimes({ ...r, tm: '07:15', eve: '21:30' }, { due: '2026-11-25' }).map(x => new Date(x.at).toISOString()), ['2026-11-22T13:30:00.000Z', '2026-11-24T13:30:00.000Z', '2026-11-24T23:15:00.000Z']);
   assert.equal(R.tmOf({ tm: '25:00' }), '08:00');
-  assert.equal(R.eveOf({ eve: '9pm' }), '20:00');
-  // (A reminder saved before, with only its morning time: the day before moves to 20:00.)
-  assert.equal(R.timeFor({ tm: '08:00' }, 1), '20:00');
+  assert.equal(R.eveOf({ eve: '9pm' }), '18:00');
+  // (A reminder saved before, with only its morning time: the day before moves to 18:00.)
+  assert.equal(R.timeFor({ tm: '08:00' }, 1), '18:00');
   assert.equal(R.timeFor({ tm: '08:00' }, 0), '08:00');
   assert.deepEqual(R.remindTimes({ id: 'x', on: false }, { due: '2026-11-25' }), []);
   assert.deepEqual(R.remindTimes({ id: 'x' }, { due: '' }), []);

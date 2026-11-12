@@ -90,7 +90,7 @@ export function openReminder(id, done = () => {}) {
   const onRow = h('div', { class: 'q-ritem mn-rm-row' }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('提醒我', 'Remind me') })]), onSw]);
   const times = h('div', { class: 'q-rowcard mn-rm-card' });
   // The times of day (the phone's own clock picker): the days before (the
-  // evening, 20:00) and that day (the morning, 08:00).
+  // evening, 18:00) and that day (the morning, 08:00).
   const timeRow = (key, title) => {
     const input = h('input', { class: 'mn-date', type: 'time', value: f[key], 'aria-label': title });
     input.addEventListener('change', () => ((f[key] = /^\d\d:\d\d$/.test(input.value) ? input.value : f[key]), paint()));
