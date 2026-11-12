@@ -17,7 +17,7 @@ Your own books for real money: what you spend each day, what each account holds,
 
 <p align="center">
   <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month, at a glance">
-  <img src="docs/screenshots/money-2.webp" width="30%" alt="Log in seconds, the category already guessed">
+  <img src="docs/screenshots/money-2.webp" width="30%" alt="Log in seconds, category guessed">
   <img src="docs/screenshots/money-3.webp" width="30%" alt="Where the money went">
 </p>
 
