@@ -148,10 +148,16 @@ function showTab(tab) {
   tabNav.select(tab);
   render({ ifChanged: true });
 }
+// A redraw put off under an open sheet or a field (a Pass copy, a new day) is
+// done once the last sheet closes or the field is left, saved or not.
+let behind = false;
 const quietRefresh = () => {
-  if (document.querySelector('dialog.q-sheet[open]') || document.activeElement?.tagName === 'INPUT') return;
+  if (document.querySelector('dialog.q-sheet[open]') || document.activeElement?.tagName === 'INPUT') return void (behind = true);
+  behind = false;
   if (state.loaded) render();
 };
+document.addEventListener('close', () => behind && setTimeout(quietRefresh, 450), true);
+document.addEventListener('focusout', () => behind && setTimeout(quietRefresh, 0), true);
 
 window.__fxStarted = true;
 const gated = installGate('money', lang);

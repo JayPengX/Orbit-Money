@@ -444,3 +444,11 @@ test('ntOf: whole NT$ from what was typed or pasted', () => {
   assert.equal(B.ntOf(0.4), 0);
   assert.equal(Object.is(B.ntOf('-0.2', { neg: true }), -0), false);
 });
+
+test('a redraw put off under an open sheet is done when the sheet closes, saved or not', async () => {
+  const { readFileSync } = await import('node:fs');
+  const app = readFileSync(new URL('../public/app.mjs', import.meta.url), 'utf8');
+  assert.match(app, /return void \(behind = true\)/);
+  assert.match(app, /addEventListener\('close', \(\) => behind && setTimeout\(quietRefresh/);
+  assert.match(app, /addEventListener\('focusout', \(\) => behind && setTimeout\(quietRefresh/);
+});
