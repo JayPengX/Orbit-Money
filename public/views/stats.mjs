@@ -289,7 +289,7 @@ function hero(kind, p, prev, amt, now, redraw) {
   let one = fig(vs, '—');
   if (before) {
     const diff = Math.round(((amt - before) / before) * 100);
-    one = fig(vs, `${diff >= 0 ? '▲' : '▼'}${Math.abs(diff)}%`);
+    one = fig(vs, diff ? `${diff > 0 ? '▲' : '▼'}${Math.abs(diff)}%` : W('持平', 'Same'));
   } else if (start && start <= prev.to && amt) one = fig(vs, W('新', 'New'));
   let two = null;
   if (kind === 'out') {

@@ -452,3 +452,11 @@ test('a redraw put off under an open sheet is done when the sheet closes, saved 
   assert.match(app, /addEventListener\('close', \(\) => behind && setTimeout\(quietRefresh/);
   assert.match(app, /addEventListener\('focusout', \(\) => behind && setTimeout\(quietRefresh/);
 });
+
+// 統計's card: a change that rounds to 0% (a little less, or the same) said ▲0%.
+test('統計’s card says 持平 when the change rounds to 0%, never ▲0%', async () => {
+  const { readFileSync } = await import('node:fs');
+  const st = readFileSync(new URL('../public/views/stats.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(st, /diff >= 0 \? '▲'/);
+  assert.match(st, /diff \? `\$\{diff > 0 \? '▲' : '▼'\}/);
+});
