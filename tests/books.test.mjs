@@ -390,3 +390,26 @@ test("月曆's card draws monthLeft's number as its focal one, and the page carr
   assert.ok(read('index.html').indexOf('href="./money.css"') < read('index.html').indexOf('href="./look.css"'));
   assert.doesNotMatch(read('app.mjs'), /orbit\.look/);
 });
+
+test('a repeat moved to another day never makes a second one in a period it already has (kept or removed)', () => {
+  const b = B.emptyBooks();
+  B.put(b, 'accts', { id: 'cash', name: '現金', kind: 'cash', open: 0, inTotal: true }, T);
+  B.put(b, 'recur', { id: 'rent', k: 'out', amt: 8000, cat: 'home', a: 'cash', every: 'month', day: 5, from: '2026-01-05' }, T);
+  B.put(b, 'recur', { id: 'rent-2', k: 'out', amt: 100, cat: 'home', a: 'cash', every: 'month', day: 20, from: '2026-10-20' }, T);
+  assert.equal(B.runRepeats(b, '2026-11-12', T), 11 + 1);
+  B.drop(b, 'entries', 'r-rent-2026-03-05', T + 1);
+  B.put(b, 'recur', { ...b.recur.rent, day: 1 }, T + 2);
+  // Only December is new to it; March, removed by hand, stays removed (rent-2, its id
+  // starting like rent's, is its own: its 11-20 comes now).
+  assert.equal(B.runRepeats(b, '2026-11-12', T + 3), 0);
+  assert.equal(B.runRepeats(b, '2026-12-01', T + 3), 2);
+  assert.equal(B.live(b.entries).filter(e => e.rec === 'rent').length, 11);
+  // Started earlier: the months before fill.
+  B.put(b, 'recur', { ...b.recur.rent, from: '2025-11-01' }, T + 4);
+  assert.equal(B.runRepeats(b, '2026-12-01', T + 5), 2);
+  // Weekly moved from Monday to Friday: no second in a week it has.
+  B.put(b, 'recur', { id: 'w', k: 'out', amt: 50, cat: 'food', a: 'cash', every: 'week', day: 1, from: '2026-11-02' }, T);
+  assert.equal(B.runRepeats(b, '2026-11-12', T), 2);
+  B.put(b, 'recur', { ...b.recur.w, day: 5 }, T + 1);
+  assert.equal(B.runRepeats(b, '2026-11-12', T + 2), 0);
+});

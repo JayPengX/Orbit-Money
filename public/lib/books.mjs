@@ -394,13 +394,21 @@ export function repeatDays(r, from, to) {
 export const repeatEntryId = (r, day) => `r-${r.id}-${day}`;
 // Every repeat's entries due up to `today` that aren't in the books yet (made
 // or removed). Returns how many were added.
+// (A period it already made one in, kept or removed, gets no second: a rent
+// moved from the 5th to the 1st added the 1st of every month gone by again,
+// ten rents twice. A period with none, a start moved earlier, still fills.)
+const periodOf = (every, d) => (every === 'year' ? d.slice(0, 4) : every === 'week' ? addDays(d, -((new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7)) : d.slice(0, 7));
 export function runRepeats(books, today, now = Date.now()) {
   let n = 0;
   for (const r of live(books.recur)) {
     if (!books.accts[r.a] || books.accts[r.a].del) continue;
+    const mine = `r-${r.id}-`;
+    // (A removed one keeps only its id, its day in it.)
+    const dayOf = e => (e?.rec === r.id && e.d) || (String(e?.id).startsWith(mine) && /^\d{4}-\d\d-\d\d$/.test(String(e.id).slice(mine.length)) ? String(e.id).slice(mine.length) : '');
+    const had = new Set(Object.values(books.entries || {}).map(dayOf).filter(Boolean).map(d => periodOf(r.every, d)));
     for (const d of repeatDays(r, r.from, today)) {
       const id = repeatEntryId(r, d);
-      if (books.entries[id]) continue;
+      if (books.entries[id] || had.has(periodOf(r.every, d))) continue;
       put(books, 'entries', { id, d, k: r.k, amt: r.amt, cat: r.k === 'move' ? '' : r.cat, sub: r.k === 'move' ? '' : r.sub || '', note: r.note || '', a: r.a, via: r.via || '', to: r.k === 'move' ? r.to : '', rec: r.id, t: now }, now);
       n++;
     }
