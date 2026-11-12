@@ -498,19 +498,25 @@ function everyText(r) {
 export function openRepeat(r) {
   const now = today();
   const f = { k: r?.k || 'out', amt: r?.amt ? String(r.amt) : '', cat: r?.cat || 'home', sub: r?.sub || '', a: r?.a || 'cash', via: r?.via || '', to: r?.to || '', every: r?.every || 'month', day: r?.day ?? Number(now.slice(8, 10)), from: r?.from || now, note: r?.note || '' };
+  const rest = h('div', { class: 'mn-form-rest' });
   const body = h('div', { class: 'mn-form' });
   const amtIn = h('input', { class: 'q-field num mn-big-in', type: 'text', inputmode: 'numeric', placeholder: 'NT$', value: f.amt });
   amtIn.addEventListener('input', () => (f.amt = amtIn.value));
   const noteIn = h('input', { class: 'q-field', type: 'text', maxlength: '40', placeholder: W('例如：房租、Netflix', 'e.g. Rent, Netflix'), value: f.note });
   noteIn.addEventListener('input', () => (f.note = noteIn.value));
-  // (The name says the category where it can: 「TPASS」 is 交通 · TPASS.)
+  // (The name says the category where it can: 「TPASS」 is 交通 · TPASS, as it's typed. Never on
+  // its blur: a repaint then took the tap that blurred it, 收入 or 每週 tapped and lost.)
   let picked = Boolean(r);
-  noteIn.addEventListener('change', () => {
-    if (picked || f.k === 'move') return;
-    const c = f.k === 'out' ? guessCat(f.note) : '';
-    if (c) f.cat = c;
-    f.sub = guessSub(f.cat, f.note);
-    paint();
+  let again = 0;
+  noteIn.addEventListener('input', () => {
+    clearTimeout(again);
+    again = setTimeout(() => {
+      if (picked || f.k === 'move') return;
+      const c = f.k === 'out' ? guessCat(f.note) : '';
+      const cat = c || f.cat;
+      const sub = guessSub(cat, f.note);
+      if (cat !== f.cat || sub !== f.sub) (f.cat = cat), (f.sub = sub), paint();
+    }, 300);
   });
   const fromIn = h('input', { class: 'q-field', type: 'date', value: f.from });
   fromIn.addEventListener('change', () => (f.from = fromIn.value || f.from));
@@ -531,6 +537,7 @@ export function openRepeat(r) {
     { value: f.every, onChange: e => ((f.every = e), (f.day = e === 'week' ? 1 : e === 'year' ? now.slice(5) : Number(now.slice(8, 10))), paint()) }
   );
   function paint() {
+    if (!body.firstChild) body.append(kinds, field(W('名稱', 'Name'), noteIn), field(W('金額', 'Amount'), amtIn), rest);
     const pick = (field_, moving) => {
       const opts = payOptions({ moving, keep: [f.a, f.via, f.to] });
       const cur = opts.find(o => o.a === f[field_] && (moving || o.via === f.via));
@@ -550,12 +557,9 @@ export function openRepeat(r) {
               i.addEventListener('input', () => (f.day = Math.min(31, Math.max(1, Number(i.value) || 1))));
               return i;
             })();
-    body.replaceChildren(
+    // (The kind, name and amount stay put: the field being typed in is never moved.)
+    rest.replaceChildren(
       ...[
-        kinds,
-        // (What it is first: the name is what the list shows.)
-        field(W('名稱', 'Name'), noteIn),
-        field(W('金額', 'Amount'), amtIn),
         f.k !== 'move'
           ? (() => {
               const grid = h('div', { class: 'mn-cats all q-rows-full q-rows-keep', role: 'radiogroup' }, catTiles(f.k, f.cat, id => ((picked = true), id !== f.cat && ((f.cat = id), (f.sub = '')), paint())));

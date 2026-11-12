@@ -64,9 +64,10 @@ export function openReminder(id, done = () => {}) {
   const was = id && b.renew?.[id] && !b.renew[id].del ? b.renew[id] : null;
   const now = today();
   const f = { name: was?.name || '', start: was?.start || '', n: Number(was?.n) || 30, unit: was?.unit || 'day', roll: Boolean(was?.roll), cat: was?.cat || '', sub: was?.sub || '', on: was?.on !== false, at: new Set(Array.isArray(was?.at) ? was.at : DEFAULT_AT), tm: tmOf(was) };
-  // Where it would stand as the sheet is now (the start shown: the one in force, a spend's too).
+  // Where it would stand as the sheet is now (the start shown: the one in force, a spend's too;
+  // f.start stays the one set here, so a spend's day is still told as the spend's).
   const st = () => standing(b, f, now);
-  f.start = st().start || f.start;
+  let moved = false;
 
   const label = h('span', { class: 'q-focus-label' });
   const big = h('b', { class: 'q-focus-value q-fit' });
@@ -76,8 +77,8 @@ export function openReminder(id, done = () => {}) {
   const nameIn = h('input', { class: 'mn-rm-in', type: 'text', maxlength: '20', value: f.name, placeholder: W('TPASS、Netflix⋯', 'TPASS, Netflix…'), enterkeyhint: 'done', autocomplete: 'off', 'aria-label': W('名稱', 'Name') });
   nameIn.addEventListener('input', () => ((f.name = nameIn.value), paint()));
   nameIn.addEventListener('keydown', e => e.key === 'Enter' && nameIn.blur());
-  const dateIn = h('input', { class: 'mn-date', type: 'date', value: f.start, max: '2099-12-31', 'aria-label': W('開始日', 'Start day') });
-  dateIn.addEventListener('change', () => ((f.start = dateIn.value), paint()));
+  const dateIn = h('input', { class: 'mn-date', type: 'date', value: st().start || f.start, max: '2099-12-31', 'aria-label': W('開始日', 'Start day') });
+  dateIn.addEventListener('change', () => ((f.start = dateIn.value), (moved = true), paint()));
   const startV = h('span', { class: 'q-ritem-value' });
   const startSrc = h('small');
   const cycleV = h('span', { class: 'q-ritem-value' });
@@ -122,6 +123,7 @@ export function openReminder(id, done = () => {}) {
     // Where the day comes from: a spend logged, or set here.
     startSrc.textContent = s.src === 'entry' ? W(`從 ${md(s.e.d)} 記的那筆（${money(s.e.amt)}）`, `From the ${md(s.e.d)} spend (${money(s.e.amt)})`) : '';
     startSrc.hidden = !startSrc.textContent;
+    dateIn.value = s.start || f.start;
     cycleV.textContent = cycleName(f.n, f.unit);
     linkV.textContent = linkName(f) || W('不跟著', 'None');
     rollSub.textContent = f.roll ? W('像訂閱、年費，會自己扣款', 'Like a subscription') : W('到期要自己續，像 TPASS', 'Renewed by hand, like a TPASS');
@@ -182,10 +184,10 @@ export function openReminder(id, done = () => {}) {
         onclick: () => {
           const name = f.name.trim() || linkName(f);
           if (!name) return toast(W('請取個名字', 'Give it a name'), { tone: 'bad' }), nameIn.focus();
-          const cur = st();
+          const link = moved && f.start ? standing(b, { ...f, start: '' }, now) : null;
           put(b, 'renew', { ...(was || {}), name, start: f.start, n: f.n, unit: f.unit, roll: f.roll, cat: f.cat, sub: f.sub, on: f.on, at: [...f.at].sort((x, y) => y - x), tm: f.tm });
           // (A start moved later than the spend it follows: that spend began then, ridden later than bought.)
-          if (cur.src === 'entry' && f.start && f.start > cur.e.d) put(b, 'entries', { ...b.entries[cur.e.id], from: f.start });
+          if (link?.e && f.start > link.start) put(b, 'entries', { ...b.entries[link.e.id], from: f.start });
           s.close();
           saved();
           toast(W('已儲存', 'Saved'));

@@ -266,6 +266,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-acct .q-section { display: grid; gap: 8px; margin-top: 18px; }
 .mn-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 4px 0 16px; }
 .mn-form > * { min-width: 0; }
+.mn-form-rest { display: contents; }
 .mn-field { display: grid; gap: 6px; min-width: 0; }
 .mn-field-l { color: var(--q-label-2); font: 600 13px/16px var(--q-font); }
 .mn-field .q-field { background: var(--q-surface); font-size: 16px; }

@@ -413,3 +413,17 @@ test('a repeat moved to another day never makes a second one in a period it alre
   B.put(b, 'recur', { ...b.recur.w, day: 5 }, T + 1);
   assert.equal(B.runRepeats(b, '2026-11-12', T + 2), 0);
 });
+
+// A repeat's name guesses its category as it's typed: a repaint on the name's blur took
+// the tap that blurred it (收入, 每週 tapped and lost). A reminder that follows a spend
+// keeps its own start: the spend's day is told as the spend's (從 11/12 記的那筆).
+test('the repeat sheet never repaints the field being left; a reminder tells a spend’s day', async () => {
+  const { readFileSync } = await import('node:fs');
+  const read = f => readFileSync(new URL(`../public/${f}`, import.meta.url), 'utf8');
+  const acc = read('views/accounts.mjs');
+  assert.doesNotMatch(acc, /noteIn\.addEventListener\('change'/);
+  assert.match(acc, /rest\.replaceChildren\(/);
+  const rn = read('views/renew.mjs');
+  assert.doesNotMatch(rn, /f\.start = st\(\)\.start/);
+  assert.match(rn, /from: f\.start/);
+});
