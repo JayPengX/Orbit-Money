@@ -15,6 +15,7 @@ Jay's, dated (Taiwan day), newest wins; the family's are in Orbit-Core `docs/RUL
 - 10-27 退款 is never income: it comes off its spend, all or part; a friend's share of what you paid comes off too, their cash counted once handed over. A 自動加值 nobody in the books paid for (a parent's card) is 收入.
 - 10-27 Fees (ATM, 境外交易手續費) are typed from the bill, with a 1.5% tap for a credit card; never calculated on their own.
 - 10-27 LINE Points (any points or gift card) can pay part of a spend. 悠遊卡/一卡通 are 儲值卡, never 電子錢包.
+- 11-12 A card that reloads itself (自動加值): when an earlier spend on it is added, changed or deleted, every later spend is run again in date order and each reload worked out afresh, so the balance is always right and never below zero because of the order the edits came in (`replayReloads`).
 - 10-30 Cards carry their network (卡別: Visa, Mastercard, JCB, American Express, UnionPay…), picked when adding or editing and shown wherever the card is (its real mark).
 - 10-27 Ways to pay show their own logos; 手機條碼 stays black on white in dark mode.
 
@@ -31,7 +32,7 @@ Jay's, dated (Taiwan day), newest wins; the family's are in Orbit-Core `docs/RUL
 - 11-03 轉帳 shows only what a transfer has: the amount, 從 and 到 (logo and balance, a swap), the day, 手續費, a note; it opens on the accounts usually moved between.
 - 10-31 No 發票 features (no 對獎, 手機條碼, scanner or 載具 file): one 拍照記帳 for any picture (receipt, invoice, bill, app screenshot, transfer notice, price tag); the AI reads amount, day, store, items, category and way to pay; it opens as a filled entry to check, and a matching entry already logged (same amount, within a day) is offered to merge, never added twice.
 - 11-10 拍照記帳 reads a paper 電子發票's QR codes on the phone first (exact number, day, total and items with no AI read; the seller's name from 經濟部's register), nothing to tap or see added; any other picture goes to the AI.
-- 10-27 A TPASS (any sub with 有效天數) is counted down on 月曆, with a notice the evening before and the morning of its last day.
+- 10-27 A TPASS (any sub with 有效天數) is counted down on 月曆, with a notice the evening before (20:00) and the morning of its last day (08:00); 11-12 the days before at the evening time, that day at the morning time, both the person's to change.
 
 **統計 and the look.**
 - 10-27 統計 is a full statistics area: every category with its subs and their share; every useful cut (account and way to pay, a category across months, against the period before, fixed vs day to day, fees, money back, largest, places, weekdays, income vs spending, any dates). 支出 and 收入 are separate views, never netted; the share kept is secondary, under 收入.

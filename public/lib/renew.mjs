@@ -8,8 +8,9 @@
 //          out and is renewed by hand (a TPASS: the reminder is for its last
 //          day). cat, sub: a spend logged there starts a new one (its `from`,
 //          the day it began, else its day). on, at: told or not, and how many
-//          days before (0: that day). tm: the time of day it's told ('HH:MM';
-//          Jay 2026-10-27: his to choose, by 20:00 he's home, too late to renew).
+//          days before (0: that day). tm: the time that day is told ('HH:MM',
+//          08:00: the morning); eve: the time the days before are told (20:00,
+//          the evening before; Jay 2026-10-27, again 2026-11-12). Both his to choose.
 import { addDays } from '#kit/format.mjs';
 import { live, put, monthDays } from './books.mjs';
 
@@ -19,6 +20,7 @@ export const CYCLES = [[7, 'day'], [30, 'day'], [90, 'day'], [1, 'month'], [3, '
 export const AT = [7, 3, 1, 0];
 export const DEFAULT_AT = [1, 0];
 export const DEFAULT_TM = '08:00';
+export const DEFAULT_EVE = '20:00';
 
 // `day` moved on by n days, months (the same date, the month's last when
 // it's shorter) or years.
@@ -75,10 +77,14 @@ export const reminders = (books, today) =>
 
 // How many days before it's told (0 that morning), largest first.
 export const atOf = r => (Array.isArray(r?.at) ? r.at : DEFAULT_AT).filter(n => AT.includes(n)).sort((a, b) => b - a);
-// The time of day it's told, the one set or 08:00.
-export const tmOf = r => (/^([01]\d|2[0-3]):[0-5]\d$/.test(r?.tm || '') ? r.tm : DEFAULT_TM);
+// The time of day it's told: that day, the one set or 08:00; a day or more
+// before, the one set or 20:00 (the evening before, Jay 2026-11-12).
+const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
+export const tmOf = r => (HM.test(r?.tm || '') ? r.tm : DEFAULT_TM);
+export const eveOf = r => (HM.test(r?.eve || '') ? r.eve : DEFAULT_EVE);
+export const timeFor = (r, n) => (n > 0 ? eveOf(r) : tmOf(r));
 // When the phone is told (ms): each day picked, at its time of day by the phone's own clock.
-export const remindTimes = (r, s) => (r?.on === false || !s?.due ? [] : atOf(r).map(n => ({ n, day: addDays(s.due, -n), at: Date.parse(`${addDays(s.due, -n)}T${tmOf(r)}:00`) })));
+export const remindTimes = (r, s) => (r?.on === false || !s?.due ? [] : atOf(r).map(n => ({ n, day: addDays(s.due, -n), at: Date.parse(`${addDays(s.due, -n)}T${timeFor(r, n)}:00`) })));
 
 // Renewed by hand (no spend to log): the next one starts the day after this one ends.
 export const renewedBy = (r, s) => (s?.due ? (r.roll ? s.due : addDays(s.due, 1)) : '');

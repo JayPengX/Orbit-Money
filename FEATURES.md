@@ -14,6 +14,8 @@ To remove a feature on purpose, delete its line here in the same commit and say 
 - 記一筆's first guess: what most people log at the hour and amount in a first week, catch-ups in the day's order, payday on its date; guessed again once the amount or a store's name is typed (Jay 11-03) — `public/lib/guess.mjs`: `COMMON`, `USUAL`, `nightShare`, `monthly`, `guessNew`, `MODEL`; `public/views/entry.mjs`: `guessAgain`; `public/lib/cats.mjs`: `subFromWords`
 - 轉帳 only a transfer's fields: 從 over 到 with logos and balances, a swap, 手續費, the usual pair guessed (Jay 11-03) — `public/views/entry.mjs`, `public/lib/guess.mjs`: `paintMove`, `mn-xfer-swap`, `mn-fee-pill`, `guessMove`
 - 自動加值 on stored-value cards — `public/lib/books.mjs`: `autoReload`
+- 自動加值 run again from an earlier spend changed or deleted — `public/lib/books.mjs`: `replayReloads`
+- 到期提醒 the evening before and that morning — `public/lib/renew.mjs`: `DEFAULT_EVE`
 - Money back, fees, 朋友分攤, LINE Points — `public/lib/books.mjs`, `public/views/entry.mjs`: `backsFor`, `feeOf`, `朋友分攤`, `LINE Points`
 - Card networks (卡別) — `public/views/accounts.mjs`, `public/views/pics.mjs`: `卡別`, `netTile`
 - 到期提醒 and the TPASS countdown — `public/views/renew.mjs`: `reminderTile`
