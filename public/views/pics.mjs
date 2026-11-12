@@ -21,12 +21,26 @@ const kindTile = (kind, size) => {
 };
 
 // A card network's mark (Visa, Mastercard…), the card shape on a square of `size`.
+// (A mark that doesn't load: the plain card tile; a corner mark: none. Never a broken picture.)
+const cardPlain = size => {
+  const t = tile(glyph('card'), '#0088ff');
+  if (size < 40) t.style.cssText += `;width:${size}px;height:${size}px;border-radius:${Math.round(size * 0.3)}px`;
+  return t;
+};
 export function netTile(id, size = 40) {
-  return h('span', { class: 'mn-net', style: `--s:${size}px` }, [h('img', { src: networkLogo(id), alt: '', loading: 'lazy', decoding: 'async' })]);
+  const i = h('img', { src: networkLogo(id), alt: '', loading: 'lazy', decoding: 'async' });
+  const box = h('span', { class: 'mn-net', style: `--s:${size}px` }, [i]);
+  i.addEventListener('error', () => box.replaceWith(cardPlain(size)), { once: true });
+  return box;
 }
+const badge = net => {
+  const i = h('img', { class: 'mn-net-badge', src: networkLogo(net), alt: '', decoding: 'async' });
+  i.addEventListener('error', () => i.remove(), { once: true });
+  return i;
+};
 // A bank's or a wallet's picture with the card's network in its corner (from
 // 36 px up: any smaller and the mark can't be read).
-const withNet = (pic, net, size) => (net && size >= 36 ? h('span', { class: 'mn-has-net', style: `--s:${size}px` }, [pic, h('img', { class: 'mn-net-badge', src: networkLogo(net), alt: '', decoding: 'async' })]) : pic);
+const withNet = (pic, net, size) => (net && size >= 36 ? h('span', { class: 'mn-has-net', style: `--s:${size}px` }, [pic, badge(net)]) : pic);
 
 // An account's picture: its brand's logo, else its kind's tile. A credit
 // card's network in the corner; a credit card of no bank shows its network.
@@ -60,11 +74,7 @@ export const methodLogo = name => {
 export function methodTile(name, size = 40, net = '') {
   const src = methodLogo(name);
   if (!src && net) return netTile(net, size);
-  const plain = () => {
-    const t = tile(glyph('card'), '#0088ff');
-    if (size < 40) t.style.cssText += `;width:${size}px;height:${size}px;border-radius:${Math.round(size * 0.3)}px`;
-    return t;
-  };
+  const plain = () => cardPlain(size);
   return src ? withNet(img(src, size, plain), net, size) : plain();
 }
 export const cardTile = (c, size = 40) => methodTile(c.name, size, netOfCard(c, acct(c.acct)));

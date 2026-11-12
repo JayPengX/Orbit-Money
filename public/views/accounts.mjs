@@ -474,7 +474,7 @@ const netGrid = (cur, onPick) =>
     [...NETWORKS, null].map(n => {
       const id = n?.id || '';
       return h('button', { class: 'mn-brand', type: 'button', role: 'radio', 'aria-checked': String(id === cur), 'aria-pressed': String(id === cur), onclick: () => onPick(id === cur ? '' : id) }, [
-        n ? h('img', { class: 'mn-net-card', src: networkLogo(id), alt: '', decoding: 'async' }) : h('span', { class: 'mn-net-card mn-net-none', html: glyph('card') }),
+        n ? h('img', { class: 'mn-net-card', src: networkLogo(id), alt: '', decoding: 'async', onerror: e => e.currentTarget.replaceWith(h('span', { class: 'mn-net-card mn-net-none', html: glyph('card') })) }) : h('span', { class: 'mn-net-card mn-net-none', html: glyph('card') }),
         h('span', { text: n ? (en ? n.en : n.zh) : W('不指定', 'None') })
       ]);
     })
