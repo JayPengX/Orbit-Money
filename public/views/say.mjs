@@ -66,6 +66,6 @@ export function openSay() {
       return;
     }
     s.close();
-    use(buys, { none: W('沒聽到金額', 'No amount heard') });
+    use(buys, { none: W('沒聽到金額', 'No amount heard'), said: true });
   }
 }

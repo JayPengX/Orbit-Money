@@ -138,8 +138,9 @@ async function send(f) {
 
 // One read as what an entry needs: the category (a sub picked means its
 // parent too; none read, the store's words), the way to pay when the picture
-// showed one, and the receipt kept on the entry (`inv`).
-function asBuy(r) {
+// showed one, and the receipt kept on the entry (`inv`; none for words said:
+// 用說的記帳's entries are no receipt).
+function asBuy(r, said = false) {
   const k = r.k === 'in' ? 'in' : 'out';
   const sub = subOf(r.cat);
   const words = `${r.store} ${(r.items || []).map(i => i.name).join(' ')}`;
@@ -156,17 +157,17 @@ function asBuy(r) {
     cat,
     sub: sub?.id || (cat ? guessSub(cat, words) : ''),
     pay,
-    inv: { seller: r.store || '', items: (r.items || []).map(i => ({ name: i.name, qty: 1, price: i.amt })), no: r.invoice || '', day, total: r.total, from: 'photo' }
+    inv: said ? null : { seller: r.store || '', items: (r.items || []).map(i => ({ name: i.name, qty: 1, price: i.amt })), no: r.invoice || '', day, total: r.total, from: 'photo' }
   };
 }
 
 // (Also 用說的記帳's, views/say.mjs: the same reads, said instead of photographed.)
-export function use(read, { none = W('照片裡沒有看到金額', 'No payment in that picture') } = {}) {
+export function use(read, { none = W('照片裡沒有看到金額', 'No payment in that picture'), said = false } = {}) {
   if (!read.length) return toast(none, { tone: 'bad' });
-  const buys = read.map(asBuy);
+  const buys = read.map(r => asBuy(r, said));
   if (buys.length === 1) {
     const [x] = buys;
-    return openEntry({ day: x.day, kind: x.k, amt: x.total, note: x.store || x.inv.items[0]?.name || '', cat: x.cat, sub: x.sub, pay: x.pay, inv: x.inv });
+    return openEntry({ day: x.day, kind: x.k, amt: x.total, note: x.store || x.inv?.items[0]?.name || '', cat: x.cat, sub: x.sub, pay: x.pay, inv: x.inv });
   }
   review(buys.sort((p, q) => p.day.localeCompare(q.day)));
 }
@@ -175,7 +176,7 @@ export function use(read, { none = W('照片裡沒有看到金額', 'No payment 
 // day and way to pay stay as the person logged them; the store and items come
 // in, and a category only where it had none.
 export function mergeInto(e, x, now = Date.now()) {
-  put(state.books, 'entries', { ...e, inv: x.inv, note: e.note || x.store, cat: e.cat || x.cat, sub: e.cat ? e.sub || '' : x.sub }, now);
+  put(state.books, 'entries', { ...e, inv: x.inv || e.inv, note: e.note || x.store, cat: e.cat || x.cat, sub: e.cat ? e.sub || '' : x.sub }, now);
 }
 
 // Several at once: each row new (記一筆), merged into the entry it matched,
@@ -200,7 +201,7 @@ function review(buys) {
         const what = catName(subOf(r.x.sub) || catOf(r.x.cat || shownCat(r.x.k)), lang);
         const tag = r.act === 'merge' ? h('span', { class: 'q-tag merge', text: W(`併入 ${md(r.e.d)} ${titleOf(r.e)}`, `Merge into ${md(r.e.d)} ${titleOf(r.e)}`) }) : r.act === 'skip' ? h('span', { class: 'q-tag', text: W('不記', 'Left out') }) : null;
         return h('button', { class: `q-ritem chevron mn-row${r.act === 'skip' ? ' skip' : ''}`, type: 'button', onclick: ev => pick(ev.currentTarget, r) }, [
-          h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: r.x.store || r.x.inv.items[0]?.name || what }), h('small', { text: `${dayLabel(r.x.day, { week: false })} · ${what}` }), tag ? h('span', { class: 'q-tags' }, [tag]) : null]),
+          h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: r.x.store || r.x.inv?.items[0]?.name || what }), h('small', { text: `${dayLabel(r.x.day, { week: false })} · ${what}` }), tag ? h('span', { class: 'q-tags' }, [tag]) : null]),
           h('span', { class: `q-ritem-value num${r.x.k === 'in' ? ' mn-amt in' : ''}`, text: money(r.x.total) })
         ]);
       })
@@ -221,7 +222,7 @@ function review(buys) {
         paint();
         if (!rows.length) s.close();
         const x = r.x;
-        openEntry({ day: x.day, kind: x.k, amt: x.total, note: x.store || x.inv.items[0]?.name || '', cat: x.cat, sub: x.sub, pay: x.pay, inv: x.inv });
+        openEntry({ day: x.day, kind: x.k, amt: x.total, note: x.store || x.inv?.items[0]?.name || '', cat: x.cat, sub: x.sub, pay: x.pay, inv: x.inv });
       } }
     ].filter(Boolean));
   }
@@ -233,7 +234,7 @@ function review(buys) {
       if (r.act === 'merge') (mergeInto(r.e, r.x, now), merged++);
       if (r.act !== 'add') continue;
       const pay = r.x.pay || f;
-      const e = put(b, 'entries', { d: r.x.day, k: r.x.k, amt: r.x.total, cat: r.x.cat || shownCat(r.x.k), sub: r.x.cat ? r.x.sub : '', note: r.x.store || r.x.inv.items[0]?.name || '', a: pay.a, via: pay.via || '', to: '', inv: r.x.inv, t: now + n }, now);
+      const e = put(b, 'entries', { d: r.x.day, k: r.x.k, amt: r.x.total, cat: r.x.cat || shownCat(r.x.k), sub: r.x.cat ? r.x.sub : '', note: r.x.store || r.x.inv?.items[0]?.name || '', a: pay.a, via: pay.via || '', to: '', ...(r.x.inv ? { inv: r.x.inv } : {}), t: now + n }, now);
       if (r.x.k === 'out') autoReload(b, e, now);
       added++;
     }
