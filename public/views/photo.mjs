@@ -10,7 +10,7 @@
 import { h, icons, sheet, toast, menu } from '#kit/ui.mjs';
 import { workerJson, proxyJson } from '#kit/orbit.mjs';
 import { readInvoices, shortSeller } from '../lib/receipt-qr.mjs';
-import { put, autoReload, matchBuys } from '../lib/books.mjs';
+import { put, replayReloads, touches, matchBuys } from '../lib/books.mjs';
 import { catsFor, subsOf, catName, catOf, subOf, guessCat, guessSub, shownCat } from '../lib/cats.mjs';
 import { state, W, lang, money, dayLabel, today, saved, acct, card } from '../shell.mjs';
 import { openEntry, payOptions, lastPay, titleOf } from './entry.mjs';
@@ -235,7 +235,7 @@ function review(buys) {
       if (r.act !== 'add') continue;
       const pay = r.x.pay || f;
       const e = put(b, 'entries', { d: r.x.day, k: r.x.k, amt: r.x.total, cat: r.x.cat || shownCat(r.x.k), sub: r.x.cat ? r.x.sub : '', note: r.x.store || r.x.inv?.items[0]?.name || '', a: pay.a, via: pay.via || '', to: '', ...(r.x.inv ? { inv: r.x.inv } : {}), t: now + n }, now);
-      if (r.x.k === 'out') autoReload(b, e, now);
+      if (r.x.k === 'out') replayReloads(b, touches(e), e.d, now);
       added++;
     }
     b.st = Math.round(now / 1000);

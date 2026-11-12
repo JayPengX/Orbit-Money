@@ -466,6 +466,8 @@ export function cardBill(books, card, today) {
 // sets it off brings its reload in as a transfer from the account behind it,
 // on the same day, tied to the spend (`for`), so both balances stay right.
 // Run again when the spend changes; its old reload goes first. → the amount reloaded.
+// (The balance is the card's just before this spend, in the order of the day:
+// entries by day, then by when they were logged.)
 export function autoReload(books, e, now = Date.now()) {
   for (const r of live(books.entries)) if (r.for === e.id) drop(books, 'entries', r.id, now);
   const a = books.accts[e.a];
@@ -474,13 +476,40 @@ export function autoReload(books, e, now = Date.now()) {
   // parent's card (Jay 2026-10-27): it comes in as income, under 自動加值, Jay 2026-10-29.)
   const outside = !r?.from || !books.accts[r.from] || books.accts[r.from].del;
   if (!e || e.del || e.k !== 'out' || !r?.on || !(r.amt > 0) || r.from === a.id) return 0;
-  const bal = balances(books, e.d)[a.id];
-  if (bal + e.amt >= (Number(r.below) || 0) && bal >= 0) return 0;
+  const before = balanceBefore(books, a.id, e);
+  const after = before + effect(e, a.id);
+  if (before >= (Number(r.below) || 0) && after >= 0) return 0;
   let n = 1;
-  while (bal + n * r.amt < 0 && n < 20) n++;
+  while (after + n * r.amt < 0 && n < 20) n++;
   const base = { id: `${e.id}-r`, d: e.d, amt: n * r.amt, via: '', auto: 'reload', for: e.id, t: (e.t || now) - 1 };
   put(books, 'entries', outside ? { ...base, k: 'in', cat: 'topup', sub: '', note: '', a: a.id, to: '' } : { ...base, k: 'move', cat: '', note: '', a: r.from, to: a.id }, now);
   return n * r.amt;
+}
+// Entries in the order they happened: by day, then by when they were logged.
+const inOrder = (x, y) => x.d.localeCompare(y.d) || (x.t || 0) - (y.t || 0) || String(x.id).localeCompare(String(y.id));
+// A card's balance just before an entry (its opening, then every live entry before it).
+export function balanceBefore(books, id, e) {
+  let bal = Number(books.accts[id]?.open) || 0;
+  for (const x of live(books.entries)) if (x.id !== e.id && inOrder(x, e) < 0 && touches(x).includes(id)) bal += effect(x, id);
+  return bal;
+}
+// An entry on a card that reloads itself was added, changed or deleted on `from`
+// (Jay 2026-11-12): every spend on it from that day on is run again in order,
+// each reload worked out afresh, so the balance is right and never left below
+// zero by the order the edits were made in. A deleted spend's reload (or one moved off
+// the card) goes with it. `ids`: the accounts the entry touched, before and after. → { spend id: reloaded }.
+export function replayReloads(books, ids, from, now = Date.now()) {
+  const got = {};
+  for (const id of new Set(ids)) {
+    if (!books.accts[id]?.reload?.on) continue;
+    for (const r of live(books.entries)) {
+      const sp = r.auto === 'reload' && r.for && (r.k === 'in' ? r.a === id : r.to === id) ? books.entries[r.for] : null;
+      if (sp !== null && (!sp || sp.del || sp.k !== 'out' || sp.a !== id)) drop(books, 'entries', r.id, now);
+    }
+    const spends = live(books.entries).filter(e => e.k === 'out' && e.a === id && e.d >= from).sort(inOrder);
+    for (const e of spends) got[e.id] = autoReload(books, e, now);
+  }
+  return got;
 }
 
 // ---- What's usual ------------------------------------------------------------------

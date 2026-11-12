@@ -460,3 +460,40 @@ test('統計’s card says 持平 when the change rounds to 0%, never ▲0%', as
   assert.doesNotMatch(st, /diff >= 0 \? '▲'/);
   assert.match(st, /diff \? `\$\{diff > 0 \? '▲' : '▼'\}/);
 });
+
+// Jay 2026-11-12: deleting or editing an earlier 悠遊卡 spend runs every later spend
+// on the card again in order, so a reload one of them relied on is redone (it was
+// left as it was, and the card went to −NT$410).
+test('自動加值: an earlier spend deleted or changed, every later one is run again in order', () => {
+  const b = sample();
+  B.put(b, 'accts', { id: 'ez', name: '悠遊卡', kind: 'ticket', open: 50, inTotal: true, reload: { on: true, from: 'cc', amt: 500, below: 100 } }, T);
+  const save = (rec, was = null) => { const e = B.put(b, 'entries', { k: 'out', cat: 'transport', a: 'ez', ...rec }, T); return B.replayReloads(b, [...B.touches(e), ...(was ? B.touches(was) : [])], was && was.d < e.d ? was.d : e.d, T)[e.id] || 0; };
+  const del = id => { const was = b.entries[id]; B.drop(b, 'entries', id, T); for (const r of B.live(b.entries)) if (r.for === id) B.drop(b, 'entries', r.id, T); B.replayReloads(b, B.touches(was), was.d, T); };
+  assert.equal(save({ id: 's1', d: '2026-11-01', amt: 10, t: 1 }), 500);
+  assert.equal(save({ id: 's2', d: '2026-11-02', amt: 440, t: 2 }), 0);
+  assert.equal(save({ id: 's3', d: '2026-11-03', amt: 20, t: 3 }), 0);
+  assert.equal(B.balances(b).ez, 80);
+  // The first deleted: its reload goes, and s2 (now tapped at NT$50) brings one in.
+  del('s1');
+  assert.equal(B.balances(b).ez, 90);
+  assert.equal(b.entries['s2-r'].amt, 500);
+  assert.ok(B.live(b.entries).every(e => e.for !== 's1'));
+  // Never below zero on any day, whatever order the edits came in.
+  const low = () => Math.min(...['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04'].map(d => B.balances(b, d).ez));
+  assert.ok(low() >= 0);
+  // s2 changed to NT$40: its reload stays (still under NT$100 when tapped), s3's not needed.
+  save({ ...b.entries.s2, amt: 40 }, b.entries.s2);
+  assert.equal(B.balances(b).ez, 490);
+  // A spend logged later for an earlier day (backdated): what follows it is redone.
+  save({ id: 's0', d: '2026-10-31', amt: 600, t: 4 });
+  assert.ok(low() >= 0 && B.balances(b, '2026-10-31').ez >= 0);
+  // A spend moved off the card: its reload goes with it.
+  const s0 = b.entries.s0;
+  save({ ...s0, a: 'cash' }, s0);
+  assert.ok(!B.live(b.entries).some(e => e.for === 's0'));
+  assert.ok(low() >= 0);
+  // The sums stay whole: what went in equals the reloads kept.
+  const reloads = B.live(b.entries).filter(e => e.auto === 'reload').reduce((n, e) => n + e.amt, 0);
+  const spent = B.live(b.entries).filter(e => e.k === 'out' && e.a === 'ez').reduce((n, e) => n + e.amt, 0);
+  assert.equal(B.balances(b).ez, 50 + reloads - spent);
+});

@@ -6,7 +6,7 @@
 // offering to merge with the same payment already logged. A 退款 has its own small sheet.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { put, drop, live, usualFor, autoReload, alsoOf, feeOf, backsFor, newId, FEE, sameAs, balances, ntOf } from '../lib/books.mjs';
+import { put, drop, live, usualFor, replayReloads, touches, alsoOf, feeOf, backsFor, newId, FEE, sameAs, balances, ntOf } from '../lib/books.mjs';
 import { catsFor, shownCat, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, subFromWords, defaultsOf, saveCat, guessCats } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 import { payPic, whatTile, acctTile } from './pics.mjs';
@@ -565,7 +565,8 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     }
     // (No longer a spend: nothing can come back for it.)
     for (const x of backsFor(b, kept.id)) if (x.why === 'friend' ? !keep.has(x.id) : f.k !== 'out') drop(b, 'entries', x.id, now);
-    const reloaded = autoReload(b, kept, now);
+    // (自動加值: every spend on the card from the earlier of its old and new day run again in order.)
+    const reloaded = replayReloads(b, [...touches(kept), ...(was ? touches(was) : [])], was && was.d < kept.d ? was.d : kept.d, now)[kept.id] || 0;
     if (f.k !== 'move' && f.k !== 'adj') {
       b.opt = { ...b.opt, lastPay: { a: f.a, via: f.via }, lastCat: { ...(b.opt?.lastCat || {}), [f.k]: f.cat } };
       b.st = Math.round(now / 1000);
@@ -608,6 +609,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
           if (!(await ask({ title: W('刪除這筆？', 'Delete this entry?'), body: `${money(Math.abs(was.amt))} · ${dayLabel(was.d)}`, ok: W('刪除', 'Delete'), cancel: W('取消', 'Cancel'), danger: true, icon: 'trash' }))) return;
           drop(b, 'entries', was.id);
           for (const r of live(b.entries)) if (r.for === was.id || r.of === was.id) drop(b, 'entries', r.id);
+          replayReloads(b, touches(was), was.d);
           s.close();
           saved();
         }
