@@ -48,7 +48,9 @@ export const COMMON = Object.fromEntries([
   C('out', 'food:breakfast', 5, [7.5], [9.5], 60, 0.4),
   C('out', 'food:lunch', 5.5, [12.4], [12.8], 110, 0.4),
   C('out', 'food:dinner', 5, [18.8], [18.8], 130, 0.5),
-  C('out', 'food:drink', 4, [15.5, 10.5], [15], 55, 0.4),
+  // (飲料點心 at 23:30 too, the late-night snack: with nothing near midnight, a
+  // new person's first one at 23:57 came up 早餐.)
+  C('out', 'food:drink', 4, [15.5, 10.5, 23.5], [15, 23.5], 55, 0.4),
   C('out', 'transport:ride', 4, [8.2, 18.2], [], 25, 0.5),
   C('out', 'transport:car', 0.5, [8, 18], [11, 17], 300, 0.7),
   C('out', 'transport:long', 0.15, [17], [10, 17], 700, 0.6),

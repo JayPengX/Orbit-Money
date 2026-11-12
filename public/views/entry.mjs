@@ -110,9 +110,17 @@ export function subChips(cat, cur, onPick) {
 
 // openEntry({ entry }) to change one; { day, kind, inv, amt, note, cat, sub, pay } to add one
 // (pay: { a, via } a photo showed).
+// A new one closed with ✕ or a swipe after an amount was typed: kept a
+// while, and the next 記一筆 of that day opens with it again (a slip of the
+// thumb never loses what was typed).
+let draft = null;
+const DRAFT_MS = 15 * 60_000;
 export function openEntry({ entry = null, day = today(), kind = '', inv = null, amt = 0, note = '', from = '', to = '', cat = '', sub = '', pay = null } = {}) {
   const b = state.books;
   const was = entry ? b.entries[entry.id] : null;
+  if (!entry && !amt && !note && !inv && !cat && !from && draft && draft.d === day && Date.now() - draft.t < DRAFT_MS) ({ amt, note, kind } = { ...draft, kind: kind || draft.k });
+  draft = null;
+  let handled = false;
   const opt = b.opt || {};
   // What a new one probably is (lib/guess.mjs, Jay 2026-10-30: "a guess of
   // everything"): the person's own entries most like now, by the hour (a new
@@ -227,7 +235,8 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
         paintPay();
         paintUnits();
       },
-      now ? 0 : 350
+      // (A pause in typing, not every digit: 1, 12, 128 each guessed flipped the category under the thumb.)
+      now ? 0 : 900
     );
   }
   if (was) f.sub = was.sub || '';
@@ -305,7 +314,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
         mergeInto(e, { inv: f.inv, store: f.note.trim() || f.inv.seller, cat: f.k === 'move' ? '' : f.cat, sub: f.sub });
         state.day = e.d;
         state.month = e.d.slice(0, 7);
-        s.close();
+        ((handled = true), s.close());
         toast(W(`收據併入 ${dayLabel(e.d, { week: false })} 那筆`, `Receipt added to the ${dayLabel(e.d, { week: false })} entry`));
         saved();
       } })
@@ -450,7 +459,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
       !f.feeOn ? { label: W('手續費', 'Fee'), onClick: () => ((f.feeOn = true), paintExtras(), focusLast('.mn-x-fee input')) } : null,
       out && !f.also ? { label: W('另一種付款（點數、禮券）', 'Paid partly another way'), onClick: () => ((f.also = { a: openAccounts().find(x => x.brand === 'linepoints')?.id || openAccounts().find(x => x.id !== f.a && x.kind === 'wallet')?.id || openAccounts().find(x => x.id !== f.a)?.id || f.a, via: '', amt: '' }), paintExtras(), focusLast('.mn-x-also input')) } : null,
       out ? { label: W('朋友分攤', 'A friend’s share'), onClick: () => (f.friends.push({ who: '', amt: '', a: 'cash', wait: false }), paintExtras(), focusLast('.mn-x-friend input')) } : null,
-      out && was ? { label: W('退款', 'Refund'), onClick: () => (s.close(), openRefund({ of: was })) } : null
+      out && was ? { label: W('退款', 'Refund'), onClick: () => (((handled = true), s.close()), openRefund({ of: was })) } : null
     ].filter(Boolean));
   }
   // (The new row in view above the 儲存 bar, and again once the keys are up:
@@ -517,7 +526,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
       });
     // (退款 already logged: each opens its own sheet.)
     for (const r of f.k === 'out' ? refunds : [])
-      rows.push(h('button', { class: 'q-ritem chevron mn-xrow mn-x-refund', type: 'button', onclick: () => (s.close(), openRefund({ back: r })) }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W(`退款 ${money(r.amt)}`, `Refund ${money(r.amt)}`) }), h('small', { text: `${dayLabel(r.d, { week: false })} · ${acctName(r.a)}` })])]));
+      rows.push(h('button', { class: 'q-ritem chevron mn-xrow mn-x-refund', type: 'button', onclick: () => (((handled = true), s.close()), openRefund({ back: r })) }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W(`退款 ${money(r.amt)}`, `Refund ${money(r.amt)}`) }), h('small', { text: `${dayLabel(r.d, { week: false })} · ${acctName(r.a)}` })])]));
     extras.hidden = !rows.length;
     extras.replaceChildren(...rows);
     paintFx();
@@ -573,7 +582,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     }
     state.day = f.d;
     state.month = f.d.slice(0, 7);
-    s.close();
+    ((handled = true), s.close());
     if (reloaded) return toast(W(`${acct(f.a)?.name} 自動加值 ${money(reloaded)}`, `${acct(f.a)?.name} topped up ${money(reloaded)}`)), saved();
     if (!was && (f.k === 'out' || f.k === 'in') && suggest(rec)) return saved();
     toast(was ? W('已更新', 'Updated') : W('記好了', 'Saved'));
@@ -610,20 +619,23 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
           drop(b, 'entries', was.id);
           for (const r of live(b.entries)) if (r.for === was.id || r.of === was.id) drop(b, 'entries', r.id);
           replayReloads(b, touches(was), was.d);
-          s.close();
+          ((handled = true), s.close());
           saved();
         }
       })
     : // (A new one: 拍照 where the delete would be; the picture's read opens this sheet again, filled in.)
       // (And 用說的記帳 beside it, Jay 11-10: say it, the sheet's entries come back filled in.)
       h('span', { class: 'mn-leads' }, [
-        h('button', { class: 'q-close mn-snap', type: 'button', 'aria-label': W('拍照記帳', 'From a photo'), html: icons.camera, onclick: () => snap({ picked: () => s.close() }) }),
-        h('button', { class: 'q-close mn-say-btn', type: 'button', 'aria-label': W('用說的記帳', 'Say what you spent'), html: icons.ai || icons.spark, onclick: () => (s.close(), openSay()) })
+        h('button', { class: 'q-close mn-snap', type: 'button', 'aria-label': W('拍照記帳', 'From a photo'), html: icons.camera, onclick: () => snap({ picked: () => ((handled = true), s.close()) }) }),
+        h('button', { class: 'q-close mn-say-btn', type: 'button', 'aria-label': W('用說的記帳', 'Say what you spent'), html: icons.ai || icons.spark, onclick: () => (((handled = true), s.close()), openSay()) })
       ]);
   const s = sheet({
     title: was ? W('編輯', 'Edit') : W('記一筆', 'New entry'),
     lead,
     cls: 'mn-entry',
+    onClose: () => {
+      if (!handled && !was && !f.auto && Number(f.amt) > 0) draft = { d: f.d, k: f.k, amt: Number(f.amt), note: f.note, t: Date.now() };
+    },
     // (Three runs, one column on a phone; on a phone on its side the
     // categories, or a transfer's two accounts, stand beside the amount and
     // the rest: money.css .mn-part.)
