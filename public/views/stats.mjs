@@ -313,7 +313,7 @@ function hero(kind, p, prev, amt, now, redraw) {
     state.at = q.from <= now && now <= q.to && state.range !== 'custom' ? now : q.from;
     redraw();
   };
-  const step = (n, ok, label) => h('button', { class: 'mn-step', type: 'button', 'aria-label': label, disabled: ok ? null : true, html: icons.chevron, onclick: () => go(n) });
+  const step = (n, ok, label) => h('button', { class: `mn-step${n < 0 ? ' back' : ''}`, type: 'button', 'aria-label': label, disabled: ok ? null : true, html: icons.chevron, onclick: () => go(n) });
   const head = h('div', { class: 'mn-hero-head' }, [
     h('button', { class: 'mn-month mn-hero-pick', type: 'button', 'aria-haspopup': 'menu', onclick: e => pickPeriod(e.currentTarget, p, now, redraw) }, [h('span', { class: 'q-fit', text: p.label }), h('i', { html: icons.chevron })]),
     h('span', { class: 'mn-cal-steps' }, [step(-1, back.to >= (start || now), W('更早', 'Earlier')), step(1, next.from <= now, W('較近', 'Later'))])

@@ -92,7 +92,7 @@ export function renderCal(box) {
     return btn;
   });
   const go = dir => (open ? goMonth(dir) : goWeek(dir));
-  const step = (dir, label) => h('button', { class: 'mn-step', type: 'button', 'aria-label': label, html: icons.chevron, onclick: () => go(dir) });
+  const step = (dir, label) => h('button', { class: `mn-step${dir < 0 ? ' back' : ''}`, type: 'button', 'aria-label': label, html: icons.chevron, onclick: () => go(dir) });
   const calHead = h('div', { class: 'mn-cal-head' }, [
     h('button', { class: 'mn-month', type: 'button', onclick: e => pickMonth(e.currentTarget) }, [monthLabel(ym), h('i', { html: icons.chevron })]),
     h('span', { class: 'mn-cal-steps' }, [

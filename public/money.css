@@ -65,7 +65,7 @@ h1, h2, h3, p { margin: 0; }
 .mn-cal-steps { display: flex; }
 .mn-step { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; color: var(--q-accent); }
 .mn-step svg { width: 17px; height: 17px; stroke-width: 2.4; }
-.mn-step:first-child svg { transform: scaleX(-1); }
+.mn-step.back svg { transform: scaleX(-1); }
 .mn-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px 0; }
 .mn-w { padding-bottom: 4px; color: var(--q-label-2); font: 500 12px/16px var(--q-font); text-align: center; }
 .mn-w.off { color: var(--mn-off); }

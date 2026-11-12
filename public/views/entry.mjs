@@ -253,6 +253,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   // field is as wide as what's in it (a hidden copy sizes it), so NT$ sits
   // right beside the digits. Beside it, what it goes under: the category's
   // tile and name, a tap on them puts the keys away to show the categories.
+  let fxChip = null; // 手續費's 海外 1.5% (paintFx)
   const amountIn = h('input', { class: 'num mn-amount-in', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', enterkeyhint: 'done', autocomplete: 'off', placeholder: '0', 'aria-label': W('金額', 'Amount') });
   const sizer = h('span', { class: 'num mn-amount-size', 'aria-hidden': 'true' });
   amountIn.addEventListener('input', () => {
@@ -345,6 +346,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     save.disabled = !(sum > 0) || (f.k === 'move' && (!f.to || f.to === f.a));
     paintUnits();
     paintMerge();
+    paintFx();
   }
   // Under the subs, one row of quick amounts: a category priced by the unit
   // (NT$5 × 1, 2, 3…), else the amounts it's usually been (常用), likeliest
@@ -413,6 +415,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   function paintPay() {
     const p = payOf(f.a, f.via);
     payBtn.replaceChildren(p ? payPic(p.a, p.via, 24) : h('span', { html: glyph('wallet') }), h('span', { class: 'mn-pill-t', text: p?.short || p?.label || W('付款方式', 'Paid with') }), h('i', { html: icons.chevron }));
+    paintFx();
   }
   // A transfer: one card, 從 over 到, each account with its logo and what it
   // holds now; the round button between them turns it around.
@@ -467,17 +470,27 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     return i;
   };
   const xBtn = (label, onTap) => h('button', { class: 'mn-x-del', type: 'button', 'aria-label': label, text: '✕', onclick: () => (tick(), onTap(), paintExtras()) });
+  function fxNow() {
+    const sum = Number(f.amt) || 0;
+    return f.k === 'out' && acct(f.a)?.kind === 'credit' && sum > 0 ? Math.round(sum * 0.015) : 0;
+  }
+  function paintFx() {
+    if (!fxChip?.isConnected) return;
+    const fx = fxNow();
+    fxChip.style.visibility = fx ? '' : 'hidden';
+    fxChip.setAttribute('aria-label', W(`海外交易手續費 1.5%：${money(fx)}`, `Foreign fee 1.5%: ${money(fx)}`));
+  }
   function paintExtras() {
     feeBtn.hidden = f.k !== 'move' || f.feeOn;
     pills.classList.toggle('solo', payBtn.hidden && feeBtn.hidden);
     const rows = [];
     const on = f.k === 'out' || f.k === 'move';
     if (on && f.feeOn) {
-      // (A credit card abroad: most banks charge 1.5% of it; a tap fills that in.)
-      const sum = Number(f.amt) || 0;
-      const fx = f.k === 'out' && acct(f.a)?.kind === 'credit' && sum > 0 ? Math.round(sum * 0.015) : 0;
+      // (A credit card abroad: most banks charge 1.5% of it; a tap fills that
+      // in. Worked out as the amount and the card change: paintFx.)
       const feeIn = numIn(f.fee, v => (f.fee = v), W('手續費', 'Fee'));
-      rows.push(h('div', { class: 'mn-xrow mn-x-fee' }, [h('span', { class: 'mn-x-l', text: W('手續費', 'Fee') }), feeIn, fx ? h('button', { class: 'mn-subchip num', type: 'button', text: W('海外 1.5%', 'Abroad 1.5%'), 'aria-label': W(`海外交易手續費 1.5%：${money(fx)}`, `Foreign fee 1.5%: ${money(fx)}`), onclick: () => (tick(), (f.fee = String(fx)), (feeIn.value = f.fee)) }) : h('span'), xBtn(W('移除手續費', 'Remove fee'), () => ((f.feeOn = false), (f.fee = '')))]));
+      fxChip = h('button', { class: 'mn-subchip num', type: 'button', text: W('海外 1.5%', 'Abroad 1.5%'), onclick: () => (tick(), (f.fee = String(fxNow())), (feeIn.value = f.fee)) });
+      rows.push(h('div', { class: 'mn-xrow mn-x-fee' }, [h('span', { class: 'mn-x-l', text: W('手續費', 'Fee') }), feeIn, fxChip, xBtn(W('移除手續費', 'Remove fee'), () => ((f.feeOn = false), (f.fee = '')))]));
     }
     if (f.k === 'out' && f.also) {
       // (LINE Points always offered, Jay 2026-10-31: with no account for it yet,
@@ -506,6 +519,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
       rows.push(h('button', { class: 'q-ritem chevron mn-xrow mn-x-refund', type: 'button', onclick: () => (s.close(), openRefund({ back: r })) }, [h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W(`退款 ${money(r.amt)}`, `Refund ${money(r.amt)}`) }), h('small', { text: `${dayLabel(r.d, { week: false })} · ${acctName(r.a)}` })])]));
     extras.hidden = !rows.length;
     extras.replaceChildren(...rows);
+    paintFx();
   }
 
   const save = h('button', { class: 'q-btn primary block', type: 'button', onclick: () => commit(), text: W('儲存', 'Save') });
