@@ -87,7 +87,7 @@ export function openAsk({ ask = '' } = {}) {
   let open = true;
   const bar = kitAI.aiBar({ placeholder: W('問你的帳…', 'Ask your books…'), label: W('問我的帳', 'Ask my books'), max: 200, onSend: q => go(q) });
   const starters = h('div', { class: 'q-ai-chips mn-ask-starters' }, STARTERS.map(q => h('button', { class: 'q-chip', type: 'button', text: q, onclick: () => go(q) })));
-  const hint = h('p', { class: 'mn-hint', text: W('數字都由手機從你的帳本算好，AI 只挑出回答的表、說一句話，不會改動任何一筆。', 'Your phone adds up your entries; AI only picks the tables that answer and says one line, and never changes an entry.') });
+  const hint = h('p', { class: 'mn-hint', text: W('從你的帳算，不會改動任何一筆。', 'From your own entries; nothing is changed.') });
   const foot = h('div', { class: 'q-sheet-foot mn-ask-foot' }, [bar]);
   sheet({ title: W('問我的帳', 'Ask my books'), detent: 'large', cls: 'mn-say mn-ask', body: [hint, starters, talk], foot, onClose: () => (open = false) });
   if (ask) requestAnimationFrame(() => go(String(ask).slice(0, 200)));

@@ -10,7 +10,7 @@ import { reminders } from '../lib/renew.mjs';
 import { evenRows } from '../lib/columns.mjs';
 import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
-import { state, W, today, acctName, card, allAccounts, saved, columnsHere } from '../shell.mjs';
+import { state, W, lang, today, acctName, card, allAccounts, saved, columnsHere } from '../shell.mjs';
 import { snap } from './photo.mjs';
 import { openSay } from './say.mjs';
 import { openAsk } from './ask.mjs';
@@ -27,7 +27,7 @@ export function renderMore(box) {
   ]);
   // 用說的記帳 beside it (Jay 11-10): type or dictate, the phone reads plain lines itself.
   const sayRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => openSay() }, [
-    tile(glyph('spark'), '#af52de'),
+    tile(glyph(kitIcons.ai ? 'ai' : 'spark'), '#5856d6'),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('用說的記帳', 'Say what you spent') }), h('small', { text: W('「早餐 45 午餐 120」，一次記好幾筆', '“Breakfast 45, lunch 120”: several at once') })])
   ]);
   // 問我的帳 (Jay 11-10): ask about your own books; the phone adds up, AI answers.
@@ -60,7 +60,7 @@ export function renderMore(box) {
       wide ? askRow : null,
       tool(glyph('grid'), '#8e8e93', W('分類', 'Categories'), W('改名、排序、加細項', 'Rename, reorder, add subs'), W(`${cats} 個`, `${cats}`), () => openCats()),
       // (How often 記一筆's guesses were right, once there are a few.)
-      tool(glyph(kitIcons.ai ? 'ai' : 'spark'), '#af52de', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Picks what you usually log'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
+      tool(glyph(kitIcons.ai ? 'ai' : 'spark'), '#5856d6', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Picks what you usually log'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
       // (TPASS, subscriptions, memberships: the soonest one.)
       tool(glyph('bell'), '#ff9500', W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : W('TPASS、訂閱、會員到期前提醒', 'TPASS, subscriptions, memberships'), dueIn == null ? '' : dueIn <= 0 ? W('今天', 'Today') : W(`${dueIn} 天後`, `in ${dueIn} d`), () => openRenewals()),
       // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
@@ -121,7 +121,8 @@ function openGuessing() {
     title: W('智慧帶入', 'Smart fill'),
     cls: 'mn-guess-sheet',
     body: [
-      h('p', { class: 'mn-hint', text: W('記一筆時，照你自己記過的帳：差不多這個時間、平日或週末、同一個地方常記的，先選好收支、分類和付款方式（記得還少時，照多數人這時候記的）；打了金額或備註會再猜一次。金額放在「常用」第一個，點了才填。', 'New entries start as what you usually log at this time, on this kind of day and in this place (while you’ve logged little, what most people log then): kind, category and way to pay picked for you, and guessed again once you type the amount or a note. The amount waits first in Usual until you tap it.') }),
+      h('p', { class: 'mn-hint', text: W('照你常在這個時間、這種日子、這個地方記的，先選好。', 'Picked from what you usually log at this time, day and place.') }),
+
       h('div', { class: 'mn-switch-row' }, [h('span', {}, [h('b', { text: W('用所在位置', 'Use where I am') }), h('small', { text: W('只記到約 100 公尺，存在你自己的帳本裡', 'Kept to about 100 m, only in your own books') })]), geo]),
       r.of >= 1 ? h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: r.replayed ? W(`用你記過的 ${r.of} 筆重猜`, `Replayed on your last ${r.of}`) : W(`最近 ${r.of} 筆猜中`, `Right in the last ${r.of}`) })]) : null,
       r.of >= 1 ? h('div', { class: 'q-rowcard' }, [row(W('分類', 'Category'), r.what), row(W('付款方式', 'Way to pay'), r.pay), row(W('金額', 'Amount'), r.amt), ...(r.chips != null ? [row(W('金額在常用裡', 'Amount in Usual'), r.chips)] : [])]) : null
@@ -135,10 +136,17 @@ async function exportCsv() {
   const kindOf = e => (e.k === 'back' && e.why === 'friend' ? W(`${e.who || '朋友'}分攤`, `${e.who || 'Friend'}’s share`) : KIND[e.k] || e.k);
   // (Another way a spend was paid: 「LINE Points 50」.)
   const also = e => (Array.isArray(e.also) ? e.also.map(p => `${acctName(p.a)} ${p.amt}`).join(' ') : '');
-  const q = v => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? ''));
+  // (A cell of words that starts like a formula, a note 「=…」 or 「-5折」 or a
+  // store's name from a photo, is kept as words: Excel and Numbers would run
+  // it. Line breaks of either kind are quoted.)
+  const q = v => {
+    let s = String(v ?? '');
+    if (typeof v !== 'number' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
   const rows = live(state.books.entries)
     .sort((a, b) => a.d.localeCompare(b.d) || (a.t || 0) - (b.t || 0))
-    .map(e => [e.d, kindOf(e), e.k === 'out' || e.k === 'in' || e.k === 'back' ? catName(catOf(e.cat), 'zh') : '', subOf(e.sub) ? catName(subOf(e.sub), 'zh') : '', e.k === 'out' ? -e.amt : e.amt, e.k === 'back' && e.wait ? W('還沒給', 'Not yet') : acctName(e.a), e.k === 'move' ? acctName(e.to) : card(e.via)?.name || '', e.fee ? -e.fee : '', also(e), e.note || '', e.inv?.no || '']);
+    .map(e => [e.d, kindOf(e), e.k === 'out' || e.k === 'in' || e.k === 'back' ? catName(catOf(e.cat), lang) : '', subOf(e.sub) ? catName(subOf(e.sub), lang) : '', e.k === 'out' ? -e.amt : e.amt, e.k === 'back' && e.wait ? W('還沒給', 'Not yet') : acctName(e.a), e.k === 'move' ? acctName(e.to) : card(e.via)?.name || '', e.fee ? -e.fee : '', also(e), e.note || '', e.inv?.no || '']);
   const head = W('日期,種類,分類,細項,金額,帳戶,轉入／付款方式,手續費,另付,備註,發票號碼', 'Date,Kind,Category,Sub,Amount,Account,To / paid with,Fee,Also paid with,Note,Invoice');
   const text = `﻿${[head, ...rows.map(r => r.map(q).join(','))].join('\n')}\n`;
   const name = `orbit-money-${today()}.csv`;
