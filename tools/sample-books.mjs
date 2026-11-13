@@ -8,7 +8,7 @@ const b = emptyBooks();
 const now = Date.now();
 const day = new Date(now + 8 * 3_600_000).toISOString().slice(0, 10);
 const acct = (id, name, kind, open, more = {}) => put(b, 'accts', { id, name, kind, open, inTotal: true, order: Object.keys(b.accts).length, ...more }, now);
-acct('cash', '現金', 'cash', 9000);
+acct('cash', '現金', 'cash', 35000);
 acct('a1', '玉山 薪轉', 'bank', 86000, { brand: 'esun' });
 acct('a2', '悠遊卡', 'ticket', 350, { brand: 'easycard', reload: { on: true, from: 'a1', amt: 500, below: 100 } });
 acct('a3', '國泰 CUBE 卡', 'credit', 0, { brand: 'cathay', net: 'visa', pay: 'a1', close: 5, due: 20 });
@@ -35,7 +35,7 @@ put(b, 'renew', { id: 'tpass', name: 'TPASS', start: '', n: 30, unit: 'day', rol
 put(b, 'renew', { id: 'rm-ai', name: 'Claude Pro', start: addDays(day, -25), n: 1, unit: 'month', roll: true, cat: '', sub: '', on: true, at: [1] }, now);
 put(b, 'renew', { id: 'rm-gym', name: '健身房會員', start: addDays(day, -300), n: 1, unit: 'year', roll: false, cat: '', sub: '', on: true, at: [7, 1] }, now);
 put(b, 'cats', { id: 'transport:ride', pay: { a: 'a2', via: '' } }, now);
-put(b, 'budgets', { id: 'b-all', cat: '', amt: 20000 }, now);
+put(b, 'budgets', { id: 'b-all', cat: '', amt: 30000 }, now);
 put(b, 'budgets', { id: 'b-food', cat: 'food', amt: 6000 }, now);
 put(b, 'entries', { id: 'inv-KX20418836', d: addDays(day, -9), k: 'out', amt: 149, cat: 'shop', note: '7-ELEVEN', a: 'a3', via: '', to: '', inv: { no: 'KX20418836', day: addDays(day, -9), sid: '', seller: '7-ELEVEN', total: 149, items: [{ name: '美式咖啡', qty: 1, price: 45 },{ name: '御飯糰', qty: 2, price: 52 }] }, t: now }, now);
 put(b, 'entries', { id: 'inv-LM55093127', d: addDays(day, -15), k: 'out', amt: 386, cat: 'shop', note: '全聯福利中心', a: 'a3', via: '', to: '', inv: { no: 'LM55093127', day: addDays(day, -15), sid: '', seller: '全聯福利中心', total: 386, items: [{ name: '鮮奶', qty: 2, price: 93 },{ name: '吐司', qty: 1, price: 45 },{ name: '雞蛋', qty: 1, price: 155 }] }, t: now }, now);
