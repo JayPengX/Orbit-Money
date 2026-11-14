@@ -67,8 +67,10 @@ function read(f) {
     if (!open) return;
     if (!r || r.error) {
       // (level: a pass with no Orbit AI, Orbit-Core eco.js levelOf; only a paper invoice's QR reads.)
-      const level = r?.error === 'level';
-      status.textContent = level ? W('這組 Orbit Pass 沒有 AI 讀圖', 'This Orbit Pass doesn’t read photos with AI') : r?.error === 'cap' ? W('今天的 AI 讀圖用完了', 'No more reads today') : W('這張沒有讀出來', 'That one didn’t read');
+      // (used: the account's Orbit AI allowance spent, Orbit-Core ai-allow.js; a day, a month or in all.)
+      const used = r?.error === 'used';
+      const level = r?.error === 'level' || used;
+      status.textContent = used ? W('你的 Orbit AI 次數用完了', 'Your Orbit AI is used up for now') : level ? W('這組 Orbit Pass 沒有 AI 讀圖', 'This Orbit Pass doesn’t read photos with AI') : r?.error === 'cap' ? W('今天的 AI 讀圖用完了', 'No more reads today') : W('這張沒有讀出來', 'That one didn’t read');
       note.textContent = level ? W('電子發票的 QR code 照樣讀得出來，或自己記一筆。', 'An e-invoice’s QR code still reads; or add it by hand.') : r?.error === 'cap' ? W('明天再來，或先自己記一筆。', 'Back tomorrow; add it by hand for now.') : W('可以再試一次，或換一張清楚一點的。', 'Try again, or a clearer picture.');
       again.hidden = r?.error === 'cap' || level;
       return;
