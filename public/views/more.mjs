@@ -21,7 +21,7 @@ import { openBudgets } from './stats.mjs';
 export function renderMore(box) {
   // 拍照記帳 first, as a row of its own with what it reads (Jay 10-31: the
   // gold button with a caption under it floated; "ugly").
-  const snapRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => snap() }, [
+  const snapRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', 'data-ai-tap': '', onclick: () => snap() }, [
     tile(glyph('camera'), 'var(--q-accent)'),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('拍照記帳', 'Add from a photo') }), h('small', { text: W('收據、帳單、截圖，AI 幫你填好', 'AI reads receipts and bills') })])
   ]);

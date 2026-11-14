@@ -626,7 +626,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     : // (A new one: 拍照 where the delete would be; the picture's read opens this sheet again, filled in.)
       // (And 用說的記帳 beside it, Jay 11-10: say it, the sheet's entries come back filled in.)
       h('span', { class: 'mn-leads' }, [
-        h('button', { class: 'q-close mn-snap', type: 'button', 'aria-label': W('拍照記帳', 'From a photo'), html: icons.camera, onclick: () => snap({ picked: () => ((handled = true), s.close()) }) }),
+        h('button', { class: 'q-close mn-snap', type: 'button', 'data-ai-tap': '', 'aria-label': W('拍照記帳', 'From a photo'), html: icons.camera, onclick: () => snap({ picked: () => ((handled = true), s.close()) }) }),
         h('button', { class: 'q-close mn-say-btn', type: 'button', 'aria-label': W('用說的記帳', 'Say what you spent'), html: icons.ai || icons.spark, onclick: () => (((handled = true), s.close()), openSay()) })
       ]);
   const s = sheet({

@@ -191,7 +191,7 @@ function reviewCard(b, now) {
   const tipBox = h('div', { class: 'mn-review-tip', 'aria-live': 'polite' });
   const saved = kept(REVIEW(ym));
   // (The AI writes the figures as given, 12169: shown as the app writes money, 12,169.)
-  const showTip = tip => tipBox.replaceChildren(h('span', { class: 'q-ai-mark', 'aria-hidden': 'true', html: icons.ai || icons.spark || '' }), h('span', { text: tip.replace(/\d{4,}/g, n => (/^(19|20)\d\d$/.test(n) ? n : Number(n).toLocaleString('en-US'))) }));
+  const showTip = tip => (tipBox.removeAttribute('data-ai-only'), tipBox).replaceChildren(h('span', { class: 'q-ai-mark', 'aria-hidden': 'true', html: icons.ai || icons.spark || '' }), h('span', { text: tip.replace(/\d{4,}/g, n => (/^(19|20)\d\d$/.test(n) ? n : Number(n).toLocaleString('en-US'))) }));
   // (The AI's tip on a tap (Jay 11-14: "make AI feature like this a button to click like we do in
   // orbit law, never spend a penny on AI on things user didn't interact with"), kept on the phone after.)
   const ask = () => {
@@ -209,7 +209,7 @@ function reviewCard(b, now) {
       .catch(() => ((askingTip = ''), tipButton(W('AI 現在沒有回應，再試一次。', 'AI didn’t answer. Try again.'))));
   };
   const tipButton = (note = '') =>
-    tipBox.replaceChildren(
+    (tipBox.setAttribute('data-ai-only', ''), tipBox).replaceChildren(
       ...[
         h('button', { type: 'button', class: 'q-ai-tap', onclick: ask }, [h('span', { class: 'q-ai-mark', 'aria-hidden': 'true', html: icons.ai || icons.spark || '' }), h('span', { text: W('這個月怎麼調整', 'What to change this month') })]),
         note ? h('small', { class: 'mn-review-note', text: note }) : null
