@@ -17,7 +17,7 @@ export function openSay() {
   const host = h('div', { class: 'mn-say-flow', 'aria-live': 'polite' });
   const said = h('div', { class: 'mn-say-said' });
   let open = true;
-  const bar = kitAI.aiBar({ placeholder: W('早餐 45 午餐 120', 'Breakfast 45, lunch 120'), label: W('用說的記帳', 'Say what you spent'), onSend: t => go(t) });
+  const bar = kitAI.aiBar({ placeholder: W('早餐 45 午餐 120', 'Breakfast 45, lunch 120'), label: W('用說的記帳', 'Say what you spent'), code: true, onSend: t => go(t) });
   const hint = h('p', { class: 'mn-hint' }, [W('可以一次好幾筆，「昨天」也行。', 'Several at once; “yesterday” works too.')]);
   const s = sheet({ title: W('用說的記帳', 'Say it'), detent: 'medium', cls: 'mn-say', body: [hint, said, host, bar], onClose: () => (open = false) });
   // (In the tap that opened it: iOS raises its keys only then; the kit lands the sheet first.)

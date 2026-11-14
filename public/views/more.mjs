@@ -31,7 +31,8 @@ export function renderMore(box) {
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('用說的記帳', 'Say what you spent') }), h('small', { text: W('說「早餐 45 午餐 120」', 'Say “breakfast 45, lunch 120”') })])
   ]);
   // 問我的帳 (Jay 11-10): ask about your own books; the phone adds up, AI answers.
-  const askRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', onclick: () => openAsk({}) }, [
+  // (data-ai-tap: shown locked with no Orbit AI on the account, a tap says why: kit aiLock.)
+  const askRow = h('button', { class: 'q-ritem chevron mn-tool mn-snaprow', type: 'button', 'data-ai-tap': '', onclick: () => openAsk({}) }, [
     tile(glyph('chat'), '#5856d6'),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: W('問我的帳', 'Ask my books') }), h('small', { text: W('問「這個月吃飯花多少？」', 'Ask “how much on food?”') })])
   ]);
