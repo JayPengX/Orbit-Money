@@ -267,7 +267,7 @@ setInterval(() => {
 // A turn of the phone or a window resized: the page laid out again for the
 // columns it has room for now (shell.mjs columns, flow).
 let fitNow = '';
-orbitKit.onScreen?.(fit => {
+orbitKit.onScreen(fit => {
   const key = `${fit.w3}${fit.wide}${globalThis.innerHeight > 600}`;
   if (key === fitNow) return;
   fitNow = key;

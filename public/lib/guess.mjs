@@ -15,9 +15,8 @@ import { live } from './books.mjs';
 
 const { addDays } = fmt;
 // The books' days are the phone's own (wherever it is: 2026-11-06, a coffee at
-// 8 pm in California is today's, not Taiwan's tomorrow's); a phone on an older
-// kit, Taiwan's as before.
-const dayOf = t => (fmt.localDay || fmt.twDay)(t);
+// 8 pm in California is today's, not Taiwan's tomorrow's).
+const dayOf = fmt.localDay;
 // The phone's hour of a moment (0–24, minutes as a fraction).
 export const hourOf = t => {
   const d = new Date(t);

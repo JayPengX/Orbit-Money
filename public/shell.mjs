@@ -13,8 +13,8 @@ export { lang, W };
 setFormatLocale(lang);
 export const en = lang === 'en';
 
-// The phone's own day (wherever it is; kit localDay), Taiwan's on an older kit.
-export const today = () => (fmt.localDay || fmt.twDay)(Date.now());
+// The phone's own day (wherever it is; kit localDay).
+export const today = () => fmt.localDay(Date.now());
 export const state = {
   tab: 'cal',
   books: emptyBooks(),
@@ -95,10 +95,9 @@ export function payLabel(e) {
 // ---- Wide screens (Jay 2026-10-31: every screen, either way up) ----
 // How many columns a tab's page has room for: 1 on a phone upright, 2 on a
 // phone on its side or a tablet, 3 on a computer (the kit's screenFit marks).
-// (A kit without screenFit: one column, as before.)
 export function columnsHere() {
-  const fit = orbitKit.screenFit?.();
-  return fit?.w3 ? 3 : fit?.wide ? 2 : 1;
+  const fit = orbitKit.screenFit();
+  return fit.w3 ? 3 : fit.wide ? 2 : 1;
 }
 // A tab's page in columns, each laid out as on a phone: `cols` is a list of
 // lists of parts, one per column. One column: the parts as they are.
