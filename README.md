@@ -19,13 +19,14 @@ Your own books for real money: what you spend each day, what each account holds,
 
 <p align="center">
   <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month, at a glance">
-  <img src="docs/screenshots/money-2.webp" width="30%" alt="Log in seconds, category guessed">
-  <img src="docs/screenshots/money-3.webp" width="30%" alt="Where the money went">
+  <img src="docs/screenshots/money-2.webp" width="30%" alt="Where the money went">
+  <img src="docs/screenshots/money-3.webp" width="30%" alt="Log in seconds, category guessed">
 </p>
 
 <p align="center">
   <img src="docs/screenshots/money-4.webp" width="30%" alt="Banks, cards and EasyCard, all in one">
-  <img src="docs/screenshots/money-5.webp" width="30%" alt="Ask your books, see the answer">
+  <img src="docs/screenshots/money-5.webp" width="30%" alt="The whole year, month by month">
+  <img src="docs/screenshots/money-6.webp" width="30%" alt="Ask your books, see the answer">
 </p>
 
 <details>
@@ -33,13 +34,14 @@ Your own books for real money: what you spend each day, what each account holds,
 
 <p align="center">
   <img src="docs/screenshots/money-1.zh.webp" width="30%" alt="一整個月，花多少一眼看">
-  <img src="docs/screenshots/money-2.zh.webp" width="30%" alt="幾秒記一筆，分類自動猜好">
-  <img src="docs/screenshots/money-3.zh.webp" width="30%" alt="錢花到哪裡，一圈看懂">
+  <img src="docs/screenshots/money-2.zh.webp" width="30%" alt="錢花到哪裡，一圈看懂">
+  <img src="docs/screenshots/money-3.zh.webp" width="30%" alt="幾秒記一筆，分類自動猜好">
 </p>
 
 <p align="center">
   <img src="docs/screenshots/money-4.zh.webp" width="30%" alt="銀行、信用卡、悠遊卡，全都管">
-  <img src="docs/screenshots/money-5.zh.webp" width="30%" alt="問你的帳，答案畫成圖">
+  <img src="docs/screenshots/money-5.zh.webp" width="30%" alt="一整年，每個月比一比">
+  <img src="docs/screenshots/money-6.zh.webp" width="30%" alt="問你的帳，答案畫成圖">
 </p>
 
 </details>
