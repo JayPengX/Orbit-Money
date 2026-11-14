@@ -6,14 +6,16 @@
 
 <p align="center">
   <b>Every dollar, in its place.</b><br>
-  <a href="https://orbit.jaypengx.com/money/"><b>orbit.jaypengx.com/money</b></a>
+  <a href="https://orbit.jaypengx.com/app/"><b>Use it in Orbit</b></a> · on its own at <a href="https://orbit.jaypengx.com/money/">orbit.jaypengx.com/money</a>
 </p>
 
 <p align="center">
   <img alt="JavaScript" src="https://img.shields.io/badge/JavaScript-ES_modules-F7DF1E?logo=javascript&logoColor=000"> <img alt="PWA" src="https://img.shields.io/badge/PWA-works_offline-5A0FC8?logo=pwa&logoColor=fff"> <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=fff"> <img alt="Tests" src="https://img.shields.io/badge/Tests-node_--test-339933?logo=nodedotjs&logoColor=fff">
 </p>
 
-Your own books for real money: what you spend each day, what each account holds, and any receipt logged from a photo. Part of **Orbit**, a family of apps for life in Taiwan that share one sign-in, the Orbit Pass. See them all at [orbit.jaypengx.com](https://orbit.jaypengx.com/pass/).
+Your own books for real money: what you spend each day, what each account holds, and any receipt logged from a photo. Part of **Orbit**, a family of apps for life in Taiwan that share one sign-in, the Orbit Pass.
+
+> **Best in Orbit.** Add [Orbit](https://orbit.jaypengx.com/app/) to your home screen: every Orbit app in one, signed in once, switching between them without reloading. Orbit Money also works on its own at [orbit.jaypengx.com/money](https://orbit.jaypengx.com/money/) if it's the only one you want.
 
 <p align="center">
   <img src="docs/screenshots/money-1.webp" width="30%" alt="Your month, at a glance">
@@ -136,6 +138,8 @@ Push to `main`. GitHub Actions runs the tests, stamps every file with its conten
 QR reading falls back to [jsQR](https://github.com/cozmo/jsQR) (Apache-2.0), kept in `public/vendor/`.
 
 ## Part of Orbit
+
+Every app below is in **[Orbit](https://orbit.jaypengx.com/app/)**, one home-screen app for them all; each also works on its own.
 
 | App | What it is |
 | --- | --- |
