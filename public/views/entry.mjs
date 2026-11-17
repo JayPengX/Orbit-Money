@@ -277,7 +277,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   amountIn.addEventListener('keydown', e => e.key === 'Enter' && amountIn.blur());
   amountIn.addEventListener('focus', () => requestAnimationFrame(() => amountIn.setSelectionRange?.(amountIn.value.length, amountIn.value.length)));
   const catTile = h('span', { class: 'mn-amount-tile' });
-  const catText = h('span', { class: 'mn-amount-cat' });
+  const catText = h('span', { class: 'mn-amount-cat q-fit' });
   const amountRow = h('div', { class: 'mn-amount' }, [
     h('button', { class: 'mn-amount-what', type: 'button', onclick: () => amountIn.blur() }, [catTile, catText]),
     h('label', { class: 'mn-amount-n' }, [h('span', { class: 'mn-amount-cur', text: 'NT$' }), h('span', { class: 'mn-amount-box' }, [sizer, amountIn])])
