@@ -139,6 +139,7 @@ const tabNav = tabBar({
   hash: id => `#${id}`,
   // 記一筆: the app's one main thing, its own button beside the tabs, on every tab.
   action: { icon: kitUI.icons.plus, label: W('記一筆', 'Add an entry'), onTap: () => {
+    newDay();
     useBooksCats(state.books);
     openEntry({ day: state.tab === 'cal' ? state.day : today() });
   } }
@@ -242,16 +243,24 @@ function openFromHash(start = false) {
 }
 window.addEventListener('hashchange', () => state.loaded && openFromHash());
 // A new day while the app stays open: today's repeats, and today moves on.
+// (Looked at too the moment the app is back on the screen, and before 記一筆
+// opens: a phone asleep overnight runs no timer, and the next morning's
+// breakfast, logged within the minute, went under yesterday, 11-18.)
 let lastDay = today();
-setInterval(() => {
+function newDay() {
   if (today() === lastDay) return;
   if (state.day === lastDay) state.day = today();
   if (state.month === lastDay.slice(0, 7)) state.month = today().slice(0, 7);
   lastDay = today();
   stamp++;
+  if (!state.loaded) return;
   if (settle()) hooks.changed();
   else quietRefresh();
-}, 60_000);
+}
+setInterval(newDay, 60_000);
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && newDay());
+globalThis.addEventListener('pageshow', newDay);
+globalThis.addEventListener('focus', newDay);
 
 // A turn of the phone or a window resized: the page laid out again for the
 // columns it has room for now (shell.mjs columns, flow).
