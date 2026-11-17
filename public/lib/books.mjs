@@ -562,7 +562,7 @@ export function usualFor(books, { k, cat, sub = '' }, today, { days = 120, max =
 // ---- Merging and saving ------------------------------------------------------------
 
 // Two copies made one: each record the one changed last; the settings the newer
-// copy's (st, seconds); removals older than KEEP_GONE_MS let go, but never
+// copy's (st, seconds), with any only the older has; removals older than KEEP_GONE_MS let go, but never
 // one the app would make again by its fixed id: an entry a repeat made (`r-…`,
 // runRepeats: a rent removed by hand came back 120 days on) or the TPASS
 // reminder (renew.mjs upgradeRenew), 11-17.
@@ -581,8 +581,14 @@ export function mergeBooks(mine, theirs, now = Date.now()) {
     }
   }
   const newer = (theirs.st || 0) > (mine?.st || 0) ? theirs : mine || theirs;
+  const older = newer === theirs ? mine : theirs;
   out.st = newer.st || 0;
-  out.opt = { ...(newer.opt || {}) };
+  // (Each setting the newer copy's; one only the older has kept: an upgrade's
+  // mark (cats12, dig3…) set on one device, where nothing else bumped `st`,
+  // was lost to a copy with a later entry, and the upgrade ran again over
+  // what had changed since: hidden and reordered categories shown again, 11-17.)
+  out.opt = { ...(older?.opt || {}), ...(newer.opt || {}) };
+  if (older?.opt?.asked || newer.opt?.asked) out.opt.asked = { ...(older?.opt?.asked || {}), ...(newer.opt?.asked || {}) };
   return out;
 }
 

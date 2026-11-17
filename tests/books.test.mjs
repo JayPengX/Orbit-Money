@@ -575,3 +575,27 @@ test('overBy: a spend never less than its refunds, shares and the part paid anot
   // A new one: only what's being set.
   assert.equal(B.overBy(b, undefined, 100, { shares: 60, also: 40 }), 0);
 });
+
+// (11-17) An upgrade's mark set on one device survives a copy with a later
+// entry from another: the upgrade never runs twice over what changed since.
+test('merging keeps a setting only the older copy has', async () => {
+  const { upgradeCats } = await import('../public/lib/cats.mjs');
+  const lap = B.emptyBooks();
+  lap.st = 100;
+  upgradeCats(lap, T);
+  B.put(lap, 'cats', { id: 'learn', hidden: 1, order: 3 }, T + 1000);
+  lap.opt.asked = { 'food:breakfast|amt': 1 };
+  const phone = B.emptyBooks();
+  B.put(phone, 'entries', { id: 'p1', d: '2026-10-27', k: 'out', amt: 50, cat: 'food', a: 'cash' }, T + 2000);
+  phone.st = 200;
+  phone.opt = { geo: 1, asked: { 'food:lunch|pay': 1 } };
+  const m = B.mergeBooks(lap, phone, T + 3000);
+  assert.equal(m.opt.cats12, 1);
+  assert.equal(m.opt.dig3, 1);
+  assert.equal(m.opt.geo, 1);
+  assert.deepEqual(m.opt.asked, { 'food:breakfast|amt': 1, 'food:lunch|pay': 1 });
+  assert.equal(upgradeCats(m, T + 4000), 0);
+  assert.equal(m.cats.learn.hidden, 1);
+  // The newer copy's own value still wins.
+  assert.equal(B.mergeBooks({ ...B.emptyBooks(), st: 1, opt: { geo: 1 } }, { ...B.emptyBooks(), st: 2, opt: { geo: 0 } }).opt.geo, 0);
+});
