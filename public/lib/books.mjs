@@ -112,8 +112,8 @@ export const isOpen = r => Boolean(r && !r.del && !r.closed);
 
 // 轉移: everything on `from` now on `to` (an old card replaced, an account
 // moved banks): its entries (a move between the two drops, it moved nothing),
-// repeats, ways to pay, the cards paid from it, and its opening balance, so
-// every total stays the same. Then `from` is removed.
+// repeats, ways to pay, the cards paid and the cards reloaded from it, and its
+// opening balance, so every total stays the same. Then `from` is removed.
 export function moveAccount(books, from, to, now = Date.now()) {
   const a = books.accts[from];
   const b = books.accts[to];
@@ -132,7 +132,13 @@ export function moveAccount(books, from, to, now = Date.now()) {
     else put(books, 'recur', next, now);
   }
   for (const c of live(books.cards)) if (c.acct === from) put(books, 'cards', { ...c, acct: to }, now);
-  for (const x of live(books.accts)) if (x.pay === from) put(books, 'accts', { ...x, pay: to === x.id ? '' : to }, now);
+  // (A card paid from it, or reloading from it (自動加值): from `to` now. Left on
+  // `from`, gone, a 悠遊卡's next reload came in as 收入 from nobody, 11-17.)
+  for (const x of live(books.accts)) {
+    const pay = x.pay === from;
+    const reload = x.reload?.from === from;
+    if (pay || reload) put(books, 'accts', { ...x, ...(pay ? { pay: to === x.id ? '' : to } : {}), ...(reload ? { reload: { ...x.reload, from: to === x.id ? '' : to } } : {}) }, now);
+  }
   put(books, 'accts', { ...books.accts[to], open: (Number(b.open) || 0) + (Number(a.open) || 0) }, now);
   drop(books, 'accts', from, now);
 }
@@ -556,7 +562,10 @@ export function usualFor(books, { k, cat, sub = '' }, today, { days = 120, max =
 // ---- Merging and saving ------------------------------------------------------------
 
 // Two copies made one: each record the one changed last; the settings the newer
-// copy's (st, seconds); removals older than KEEP_GONE_MS let go.
+// copy's (st, seconds); removals older than KEEP_GONE_MS let go, but never
+// an entry a repeat made (`r-…`): its removal is all that keeps runRepeats
+// from making it again (a rent removed by hand came back 120 days on, 11-17).
+const keptGone = (col, id) => col === 'entries' && String(id).startsWith('r-');
 export function mergeBooks(mine, theirs, now = Date.now()) {
   if (!theirs) return mine;
   const out = emptyBooks();
@@ -567,7 +576,7 @@ export function mergeBooks(mine, theirs, now = Date.now()) {
       const x = a[id];
       const y = b[id];
       const r = !x ? y : !y ? x : (y.u || 0) > (x.u || 0) ? y : x;
-      if (r && !(r.del && now - (r.u || 0) > KEEP_GONE_MS)) out[col][id] = r;
+      if (r && !(r.del && now - (r.u || 0) > KEEP_GONE_MS && !keptGone(col, id))) out[col][id] = r;
     }
   }
   const newer = (theirs.st || 0) > (mine?.st || 0) ? theirs : mine || theirs;

@@ -522,3 +522,44 @@ test("a repeat's entry made late on another device never undoes an edit or a rem
   B.runRepeats(other, '2026-11-03', T + 50);
   assert.deepEqual(other.entries[id], ipad.entries[id]);
 });
+
+// (11-17) A repeat's entry removed by hand stays removed after its removal
+// would be let go (120 days): its mark is all that stops it being made again.
+test('a repeat entry removed by hand never comes back, however long ago', () => {
+  const now = Date.UTC(2026, 10, 17);
+  let b = B.emptyBooks();
+  B.put(b, 'accts', { id: 'bank', name: '玉山', kind: 'bank', open: 50000, inTotal: true }, now);
+  B.put(b, 'recur', { id: 'rent', k: 'out', amt: 12000, cat: 'home', a: 'bank', every: 'month', day: 1, from: '2026-11-01' }, now);
+  B.runRepeats(b, '2026-11-17', now);
+  B.drop(b, 'entries', 'r-rent-2026-11-01', now);
+  B.put(b, 'entries', { id: 'x1', d: '2026-11-02', k: 'out', amt: 50, cat: 'food', a: 'bank' }, now);
+  B.drop(b, 'entries', 'x1', now);
+  const later = now + 200 * 86_400_000;
+  b = B.mergeBooks(b, B.unpackBooks(JSON.parse(JSON.stringify(B.packBooks(b)))), later);
+  B.runRepeats(b, '2027-06-05', later);
+  assert.equal(b.entries['r-rent-2026-11-01'].del, 1);
+  assert.equal(b.entries['r-rent-2026-12-01'].amt, 12000);
+  // Any other removal is still let go.
+  assert.equal(b.entries.x1, undefined);
+});
+
+// (11-17) 轉移 of the account a 悠遊卡 reloads from: the card reloads from the new one.
+test('轉移: a card that reloaded from the old account reloads from the new one', () => {
+  const b = B.emptyBooks();
+  B.put(b, 'accts', { id: 'old', name: '舊', kind: 'bank', open: 10000, inTotal: true }, T);
+  B.put(b, 'accts', { id: 'new', name: '新', kind: 'bank', open: 10000, inTotal: true }, T);
+  B.put(b, 'accts', { id: 'ez', name: '悠遊卡', kind: 'ticket', open: 50, inTotal: true, reload: { on: true, from: 'old', amt: 500, below: 100 } }, T);
+  B.put(b, 'entries', { id: 'o1', d: '2026-10-10', k: 'out', amt: 30, cat: 'food', a: 'old' }, T);
+  B.moveAccount(b, 'old', 'new', T);
+  assert.equal(b.accts.ez.reload.from, 'new');
+  const s = B.put(b, 'entries', { id: 's1', d: '2026-10-17', k: 'out', amt: 40, cat: 'transport', a: 'ez', t: T }, T);
+  assert.equal(B.autoReload(b, s, T), 500);
+  assert.equal(b.entries['s1-r'].k, 'move');
+  assert.deepEqual(B.balances(b), { new: 19470, ez: 510 });
+  // Its own account the one it moves to: nobody in the books pays it then.
+  const c = B.emptyBooks();
+  B.put(c, 'accts', { id: 'a', name: 'a', kind: 'ticket', open: 0, inTotal: true }, T);
+  B.put(c, 'accts', { id: 'b', name: 'b', kind: 'ticket', open: 0, inTotal: true, reload: { on: true, from: 'a', amt: 500, below: 100 } }, T);
+  B.moveAccount(c, 'a', 'b', T);
+  assert.equal(c.accts.b.reload.from, '');
+});
