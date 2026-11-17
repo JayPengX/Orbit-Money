@@ -15,3 +15,10 @@ test('a new day is looked for the moment the app is back on the screen, and befo
   const tap = app.slice(app.indexOf("label: W('記一筆'"), app.indexOf('openEntry({ day:'));
   assert.match(tap, /newDay\(\);/);
 });
+
+// 統計 left open on this month still showed November on 12-01 (proven 11-18:
+// the clock moved on to 12-01 08:05, the app shown again, 2026年11月 stayed).
+test('統計 on today’s period moves on with the day', () => {
+  const body = app.slice(app.indexOf('function newDay()'), app.indexOf('setInterval(newDay'));
+  assert.match(body, /if \(state\.at === lastDay\) state\.at = today\(\);/);
+});

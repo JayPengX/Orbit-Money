@@ -251,6 +251,8 @@ function newDay() {
   if (today() === lastDay) return;
   if (state.day === lastDay) state.day = today();
   if (state.month === lastDay.slice(0, 7)) state.month = today().slice(0, 7);
+  // (統計 on today's period moves on with it: on the 1st it still showed last month.)
+  if (state.at === lastDay) state.at = today();
   lastDay = today();
   stamp++;
   if (!state.loaded) return;
