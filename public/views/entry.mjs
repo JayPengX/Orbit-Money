@@ -6,7 +6,7 @@
 // offering to merge with the same payment already logged. A 退款 has its own small sheet.
 import { h, icons, tile, segmented, sheet, menu, toast, tick } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { put, drop, live, usualFor, replayReloads, touches, alsoOf, feeOf, backsFor, overBy, newId, FEE, sameAs, balances, ntOf } from '../lib/books.mjs';
+import { put, drop, live, usualFor, replayReloads, touches, alsoOf, feeOf, backsFor, overBy, alsoOver, newId, FEE, sameAs, balances, ntOf } from '../lib/books.mjs';
 import { catsFor, shownCat, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, subFromWords, defaultsOf, saveCat, guessCats } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 import { payPic, whatTile, acctTile } from './pics.mjs';
@@ -542,8 +542,9 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     const whole = v => Math.max(0, ntOf(v));
     const shares = f.k === 'out' ? f.friends.map(fr => ({ ...fr, n: whole(fr.amt) })).filter(fr => fr.n > 0) : [];
     const alsoAmt = f.k === 'out' && f.also ? whole(f.also.amt) : 0;
-    const over = f.k === 'out' ? overBy(b, was?.id, sum, { shares: shares.reduce((n, fr) => n + fr.n, 0), also: alsoAmt }) : 0;
-    if (over > 0) return toast(refunds.length ? W('退款、分攤和另付加起來超過金額了', 'Refunds, shares and other payments come to more than the amount') : W('分攤和另付加起來超過金額了', 'The shares come to more than the amount'), { tone: 'bad' });
+    if (alsoOver(sum, alsoAmt)) return toast(W('另付的部分超過金額了', 'The other part comes to more than the amount'), { tone: 'bad' });
+    const over = f.k === 'out' ? overBy(b, was?.id, sum, { shares: shares.reduce((n, fr) => n + fr.n, 0) }) : 0;
+    if (over > 0) return toast(refunds.length ? W('退款和分攤加起來超過金額了', 'Refunds and shares come to more than the amount') : W('分攤加起來超過金額了', 'The shares come to more than the amount'), { tone: 'bad' });
     const now = Date.now();
     const rec = {
       ...(was || {}),

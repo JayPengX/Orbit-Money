@@ -569,15 +569,34 @@ test('轉移: a card that reloaded from the old account reloads from the new one
 });
 
 // (11-17) A spend edited down under what came back for it can't be saved.
-test('overBy: a spend never less than its refunds, shares and the part paid another way', () => {
+test('overBy: a spend never less than its refunds and shares', () => {
   const b = sample();
   B.put(b, 'entries', { id: 'r1', d: '2026-10-06', k: 'back', why: 'refund', of: 'e2', amt: 800, a: 'cc', cat: 'shop' }, T);
   B.put(b, 'entries', { id: 'f1', d: '2026-10-06', k: 'back', why: 'friend', of: 'e2', amt: 1000, a: 'cash', cat: 'shop' }, T);
   assert.equal(B.overBy(b, 'e2', 3000, { shares: 1000 }), -1200);
   assert.equal(B.overBy(b, 'e2', 500), 300);
-  assert.equal(B.overBy(b, 'e2', 1500, { shares: 500, also: 300 }), 100);
+  assert.equal(B.overBy(b, 'e2', 1200, { shares: 500 }), 100);
   // A new one: only what's being set.
-  assert.equal(B.overBy(b, undefined, 100, { shares: 60, also: 40 }), 0);
+  assert.equal(B.overBy(b, undefined, 100, { shares: 100 }), 0);
+});
+
+// (11-18) A part paid another way (points) is how a spend was paid, not money
+// back for it: counted with the refunds and shares, a spend paid partly with
+// points and refunded in full could never be changed again (not even its
+// note), and one split with a friend was refused with nothing over.
+test('overBy: the part paid another way is no money back', () => {
+  const b = sample();
+  // NT$500, NT$300 of it in points, all of it refunded: still the person's to edit.
+  B.put(b, 'entries', { id: 'p1', d: '2026-10-07', k: 'out', amt: 500, cat: 'shop', a: 'cc', also: [{ a: 'cash', amt: 300 }] }, T);
+  B.put(b, 'entries', { id: 'p1r', d: '2026-10-08', k: 'back', why: 'refund', of: 'p1', amt: 500, a: 'cc', cat: 'shop' }, T);
+  assert.equal(B.overBy(b, 'p1', 500, { shares: 0, also: 300 }), 0);
+  // NT$1,000 dinner, NT$600 in points, a friend owes 500: nothing over.
+  assert.ok(B.overBy(b, undefined, 1000, { shares: 500, also: 600 }) <= 0);
+  // The other part alone can't be more than the spend.
+  assert.equal(B.alsoOver(1000, 600), false);
+  assert.equal(B.alsoOver(1000, 1000), false);
+  assert.equal(B.alsoOver(1000, 1001), true);
+  assert.equal(B.alsoOver(1000, 0), false);
 });
 
 // (11-17) An upgrade's mark set on one device survives a copy with a later
