@@ -48,7 +48,8 @@ export function tableCard(t, mark = []) {
 
 // A row's picture (Jay 11-11: "icon, images… native and beautiful"): a
 // category its own tile, a way to pay its card's or account's picture, the
-// rest an emoji the table gave it.
+// rest the glyph the table named (the family draws no emoji, 10-19).
+const PIC_TINT = { pin: '#ff383c', calendar: '#0088ff', target: '#34c759', card: '#ff8d28', wallet: '#ca8a04' };
 function leadOf(r) {
   if (r.pay) {
     const [a, via] = r.pay.split('|');
@@ -56,7 +57,7 @@ function leadOf(r) {
   }
   const c = r.id && (subOf(r.id) ? catOf(subOf(r.id).parent) : catOf(r.id));
   if (c?.icon) return { glyph: glyph(c.icon), color: c.color };
-  return r.pic || null;
+  return r.pic ? { glyph: glyph(r.pic), color: PIC_TINT[r.pic] || '#8e8e93' } : null;
 }
 // The answer drawn by the kit's one look for AI answers (aiAnswer); a phone
 // on an older kit draws the tables as before.
