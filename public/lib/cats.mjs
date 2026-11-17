@@ -3,7 +3,7 @@
 // on the same 24-unit grid with round 2px strokes.
 import { icons as kitIcons } from '#kit/ui.mjs';
 import { addDays } from '#kit/format.mjs';
-import { put, drop, live, newId } from './books.mjs';
+import { put, drop, live, newId, upgradedAt } from './books.mjs';
 
 const g = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 // This app's glyphs (nothing else in the family draws these).
@@ -281,13 +281,13 @@ export function upgradeCats(books, now = Date.now()) {
   for (const col of ['entries', 'recur'])
     for (const e of live(books[col])) {
       const words = `${e.note || ''} ${e.inv?.seller || ''} ${(e.inv?.items || []).map(x => x.name).join(' ')}`;
-      if (MOVED[e.sub]) put(books, col, { ...e, cat: 'digital', sub: MOVED[e.sub] }, now), n++;
-      else if (broad && e.sub === 'digital:cloud' && STORAGE.test(words)) put(books, col, { ...e, sub: 'digital:ai' }, now), n++;
+      if (MOVED[e.sub]) put(books, col, { ...e, cat: 'digital', sub: MOVED[e.sub] }, upgradedAt(e)), n++;
+      else if (broad && e.sub === 'digital:cloud' && STORAGE.test(words)) put(books, col, { ...e, sub: 'digital:ai' }, upgradedAt(e)), n++;
       else if (!split) continue;
-      else if (e.sub === 'digital:subs' && STORAGE.test(words)) put(books, col, { ...e, sub: 'digital:ai' }, now), n++;
+      else if (e.sub === 'digital:subs' && STORAGE.test(words)) put(books, col, { ...e, sub: 'digital:ai' }, upgradedAt(e)), n++;
       else if (e.cat === 'digital' && !e.sub) {
         const sub = guessSub('digital', words);
-        if (sub) put(books, col, { ...e, sub }, now), n++;
+        if (sub) put(books, col, { ...e, sub }, upgradedAt(e)), n++;
       }
     }
   for (const [from, to] of Object.entries(MOVED)) {
@@ -295,7 +295,7 @@ export function upgradeCats(books, now = Date.now()) {
     if (!mine || mine.del) continue;
     const { id, parent, k, u, ...rest } = mine;
     // (軟體's own name or look doesn't carry onto 工具訂閱.)
-    if (from !== 'digital:apps') put(books, 'cats', { ...(books.cats[to] && !books.cats[to].del ? books.cats[to] : {}), ...rest, id: to }, now);
+    if (from !== 'digital:apps') put(books, 'cats', { ...(books.cats[to] && !books.cats[to].del ? books.cats[to] : {}), ...rest, id: to }, upgradedAt(mine, books.cats[to]));
     drop(books, 'cats', from, now);
     n++;
   }
@@ -364,7 +364,7 @@ function broadCats(books, now) {
       const [gc, gs, ...gr] = typeof e.g === 'string' ? e.g.split('|') : [];
       const gt = gc != null && movedCat({ cat: gc, sub: gs }, wordsOf(e));
       if (!to && !gt) continue;
-      put(books, col, { ...e, ...(to || {}), ...(gt ? { g: [gt.cat, gt.sub, ...gr].join('|') } : {}) }, now);
+      put(books, col, { ...e, ...(to || {}), ...(gt ? { g: [gt.cat, gt.sub, ...gr].join('|') } : {}) }, upgradedAt(e));
       n++;
     }
   // Budgets: one per category, two that became one add up.
@@ -373,8 +373,8 @@ function broadCats(books, now) {
     if (!x.cat || !OLD_TOP[x.cat]) continue;
     const to = OLD_TOP[x.cat];
     const there = kept[to] || live(books.budgets).find(y => y.cat === to && y.id !== x.id && !y.del);
-    if (there) (kept[to] = put(books, 'budgets', { ...there, amt: (Number(there.amt) || 0) + (Number(x.amt) || 0) }, now)), drop(books, 'budgets', x.id, now);
-    else kept[to] = put(books, 'budgets', { ...x, cat: to }, now);
+    if (there) (kept[to] = put(books, 'budgets', { ...there, amt: (Number(there.amt) || 0) + (Number(x.amt) || 0) }, upgradedAt(there, x))), drop(books, 'budgets', x.id, now);
+    else kept[to] = put(books, 'budgets', { ...x, cat: to }, upgradedAt(x));
     n++;
   }
   for (const r of Object.values(books.cats || {})) {
@@ -382,7 +382,7 @@ function broadCats(books, now) {
     // The person's own: a sub of a category that's gone goes with it.
     const was = r.id in OLD_TOP || r.id in OLD_SUB;
     if (!BUILT.has(r.id) && !was) {
-      if (r.parent && OLD_TOP[r.parent]) put(books, 'cats', { ...r, parent: OLD_TOP[r.parent] }, now), n++;
+      if (r.parent && OLD_TOP[r.parent]) put(books, 'cats', { ...r, parent: OLD_TOP[r.parent] }, upgradedAt(r)), n++;
       continue;
     }
     if (was) {
@@ -390,14 +390,14 @@ function broadCats(books, now) {
       // per-unit price: YouBike's NT$5 isn't every ride's), then it's let go.
       const to = OLD_SUB[r.id] || OLD_TOP_SUB[r.id] || '';
       const there = to && books.cats[to] && !books.cats[to].del ? books.cats[to] : null;
-      if (to && r.pay?.a && !there?.pay?.a) put(books, 'cats', { ...(there || {}), id: to, pay: r.pay }, now);
+      if (to && r.pay?.a && !there?.pay?.a) put(books, 'cats', { ...(there || {}), id: to, pay: r.pay }, upgradedAt(r, there));
       drop(books, 'cats', r.id, now);
       n++;
       continue;
     }
     if (r.hidden || r.order != null) {
       const { hidden, order, ...rest } = r;
-      put(books, 'cats', rest, now);
+      put(books, 'cats', rest, upgradedAt(r));
       n++;
     }
   }
@@ -463,7 +463,7 @@ export function splitMeals(books, past = null, now = Date.now()) {
         next.g = parts.join('|');
       }
       if (next.sub === e.sub && next.g === e.g) continue;
-      put(books, col, next, now);
+      put(books, col, next, upgradedAt(e));
       out.n++;
     }
   // 三餐's own settings: a way to pay goes to each meal that has none; then it goes.
@@ -472,7 +472,7 @@ export function splitMeals(books, past = null, now = Date.now()) {
     if (mine.pay?.a)
       for (const id of ['food:breakfast', 'food:lunch', 'food:dinner']) {
         const there = books.cats[id] && !books.cats[id].del ? books.cats[id] : null;
-        if (!there?.pay?.a) put(books, 'cats', { ...(there || {}), id, pay: mine.pay }, now);
+        if (!there?.pay?.a) put(books, 'cats', { ...(there || {}), id, pay: mine.pay }, upgradedAt(mine, there));
       }
     drop(books, 'cats', 'food:meals', now);
     out.n++;
@@ -501,7 +501,7 @@ function outMeals(books, now) {
         next.g = parts.join('|');
       }
       if (next.sub === e.sub && next.g === e.g) continue;
-      put(books, col, next, now);
+      put(books, col, next, upgradedAt(e));
       n++;
     }
   const mine = books.cats?.['food:out'];
@@ -509,7 +509,7 @@ function outMeals(books, now) {
     if (mine.pay?.a)
       for (const id of ['food:breakfast', 'food:lunch', 'food:dinner']) {
         const there = books.cats[id] && !books.cats[id].del ? books.cats[id] : null;
-        if (!there?.pay?.a) put(books, 'cats', { ...(there || {}), id, pay: mine.pay }, now);
+        if (!there?.pay?.a) put(books, 'cats', { ...(there || {}), id, pay: mine.pay }, upgradedAt(mine, there));
       }
     drop(books, 'cats', 'food:out', now);
     n++;

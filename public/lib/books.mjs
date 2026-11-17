@@ -74,6 +74,12 @@ export function put(books, col, rec, now = Date.now()) {
   books[col][id] = { ...rec, id, u: now };
   return books[col][id];
 }
+// When an upgrade's change to a record is dated: just after the record's own
+// last change (`rs`: the records it's made of), never now. (An upgrade runs on
+// a phone's own copy before the Pass's is read: dated now, a copy from before
+// it put its old records back over every change and removal made since on
+// another device. So dated, two phones make the very same record.)
+export const upgradedAt = (...rs) => Math.max(0, ...rs.map(r => Number(r?.u) || 0)) + 1;
 // A record removed: what's left is its id and when.
 export function drop(books, col, id, now = Date.now()) {
   if (books[col]?.[id]) books[col][id] = { id, u: now, del: 1 };
@@ -667,13 +673,13 @@ export const backsFor = (books, id) => live(books.entries).filter(e => e.k === '
 // the app's own, or logged by hand with 加值 / top up in its note.
 // → how many entries changed.
 const TOPUP = /加值|儲值|top.?up|reload/i;
-export function upgradeBooks(books, now = Date.now()) {
+export function upgradeBooks(books) {
   let n = 0;
   const all = live(books.entries);
   const back = backs(books);
   for (const e of all.sort((a, b) => a.d.localeCompare(b.d))) {
     if ((e.k === 'adj' && e.auto === 'reload') || (e.k === 'in' && e.cat === 'otherin' && (e.auto === 'reload' || TOPUP.test(e.note || '')))) {
-      put(books, 'entries', { ...e, k: 'in', cat: 'topup', sub: '' }, now);
+      put(books, 'entries', { ...e, k: 'in', cat: 'topup', sub: '' }, upgradedAt(e));
       n++;
     } else if (e.k === 'in' && e.cat === 'refund') {
       const from = addDays(e.d, -90);
@@ -681,11 +687,11 @@ export function upgradeBooks(books, now = Date.now()) {
       const best = all
         .filter(x => x.k === 'out' && x.d <= e.d && x.d >= from && netOf(x, back) >= e.amt)
         .sort((x, y) => score(y) - score(x) || y.d.localeCompare(x.d))[0];
-      put(books, 'entries', { ...e, k: 'back', why: 'refund', of: best?.id || '', cat: best?.cat || 'other', sub: best?.sub || '' }, now);
+      put(books, 'entries', { ...e, k: 'back', why: 'refund', of: best?.id || '', cat: best?.cat || 'other', sub: best?.sub || '' }, upgradedAt(e));
       if (best) back.set(best.id, (back.get(best.id) || 0) + e.amt);
       n++;
     }
   }
-  for (const r of live(books.recur)) if (r.k === 'in' && r.cat === 'refund') put(books, 'recur', { ...r, cat: 'otherin', sub: '' }, now), n++;
+  for (const r of live(books.recur)) if (r.k === 'in' && r.cat === 'refund') put(books, 'recur', { ...r, cat: 'otherin', sub: '' }, upgradedAt(r)), n++;
   return n;
 }

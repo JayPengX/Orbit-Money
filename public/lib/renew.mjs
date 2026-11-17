@@ -14,7 +14,7 @@
 //          to renew"; a TPASS renews up to 10 days ahead at a station or a store's ibon/FamiPort).
 //          Both his to choose.
 import { addDays } from '#kit/format.mjs';
-import { live, put, monthDays } from './books.mjs';
+import { live, put, monthDays, upgradedAt } from './books.mjs';
 
 export const UNITS = ['day', 'month', 'year'];
 // The usual lengths, for the picker: [n, unit].
@@ -96,21 +96,21 @@ export const renewedBy = (r, s) => (s?.due ? (r.roll ? s.due : addDays(s.due, 1)
 // transport:tpass): it becomes the first item of the list, its start still
 // following the TPASS logged. Made too for anyone who logged a TPASS. One
 // fixed id, so two phones make the same one; removed, it stays removed.
-export function upgradeRenew(books, now = Date.now()) {
+export function upgradeRenew(books) {
   let n = 0;
   books.renew ||= {};
   const mine = books.cats?.['transport:tpass'];
   const had = mine && !mine.del && (mine.days != null || mine.start || mine.remind);
   const logged = live(books.entries).some(e => e.k === 'out' && e.sub === 'transport:tpass');
   if (!books.renew.tpass && (had || logged) && !(had && Number(mine.days) === 0)) {
-    put(books, 'renew', { id: 'tpass', name: 'TPASS', start: okDay(mine?.start) ? mine.start : '', n: Number(mine?.days) > 0 ? Number(mine.days) : 30, unit: 'day', roll: false, cat: 'transport', sub: 'transport:tpass', on: mine?.remind?.on !== false, at: Array.isArray(mine?.remind?.at) ? mine.remind.at : DEFAULT_AT }, now);
+    put(books, 'renew', { id: 'tpass', name: 'TPASS', start: okDay(mine?.start) ? mine.start : '', n: Number(mine?.days) > 0 ? Number(mine.days) : 30, unit: 'day', roll: false, cat: 'transport', sub: 'transport:tpass', on: mine?.remind?.on !== false, at: Array.isArray(mine?.remind?.at) ? mine.remind.at : DEFAULT_AT }, upgradedAt(mine));
     n++;
   }
   // (The settings on a category are gone: the list holds them now.)
   for (const c of live(books.cats))
     if ('days' in c || 'start' in c || 'remind' in c) {
       const { days, start, remind, ...rest } = c;
-      put(books, 'cats', rest, now);
+      put(books, 'cats', rest, upgradedAt(c));
       n++;
     }
   return n;

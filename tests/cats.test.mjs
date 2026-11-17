@@ -357,3 +357,36 @@ test('abroad: a meal is told by the hour where the phone is', () => {
     process.env.TZ = 'Asia/Taipei';
   }
 });
+
+test('a copy from before an upgrade, brought up to date, never undoes a change or a removal made since on another device', () => {
+  const DAY = 86_400_000;
+  const old = B.emptyBooks();
+  B.put(old, 'entries', { id: 'c1', d: '2026-10-20', k: 'out', amt: 60, cat: 'drink', sub: 'drink:coffee', a: 'cash' }, T);
+  B.put(old, 'entries', { id: 'c2', d: '2026-10-21', k: 'out', amt: 70, cat: 'drink', sub: 'drink:coffee', a: 'cash' }, T);
+  B.put(old, 'entries', { id: 'rf', d: '2026-10-22', k: 'in', amt: 70, cat: 'refund', a: 'cash' }, T);
+  // One phone brought them up to date, then changed one and removed the others.
+  const phone = structuredClone(old);
+  C.upgradeCats(phone, T + 5 * DAY);
+  B.upgradeBooks(phone, T + 5 * DAY);
+  B.put(phone, 'entries', { ...phone.entries.c1, amt: 65 }, T + 10 * DAY);
+  B.drop(phone, 'entries', 'c2', T + 11 * DAY);
+  B.drop(phone, 'entries', 'rf', T + 11 * DAY);
+  // Another, its own copy from before, opens later: brought up to date first, then the Pass's copy read.
+  const other = structuredClone(old);
+  C.upgradeCats(other, T + 20 * DAY);
+  B.upgradeBooks(other, T + 20 * DAY);
+  const merged = B.mergeBooks(other, phone, T + 20 * DAY);
+  assert.equal(merged.entries.c1.amt, 65);
+  assert.equal(merged.entries.c1.sub, 'food:drink');
+  assert.equal(merged.entries.c2.del, 1);
+  assert.equal(merged.entries.rf.del, 1);
+  // Over a copy not brought up to date, the one that is wins.
+  assert.equal(B.mergeBooks(structuredClone(old), other, T + 20 * DAY).entries.c2.sub, 'food:drink');
+  // Two phones bring the same records up to date as the very same records.
+  const a = structuredClone(old);
+  const b = structuredClone(old);
+  C.upgradeCats(a, T + DAY);
+  C.upgradeCats(b, T + 9 * DAY);
+  assert.deepEqual(a.entries, b.entries);
+  C.useCats({});
+});
