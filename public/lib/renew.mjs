@@ -90,6 +90,15 @@ export const remindTimes = (r, s) => (r?.on === false || !s?.due ? [] : atOf(r).
 
 // Renewed by hand (no spend to log): the next one starts the day after this one ends.
 export const renewedBy = (r, s) => (s?.due ? (r.roll ? s.due : addDays(s.due, 1)) : '');
+// 續購 with a spend to log: { d, from }. The spend is today's, the day the money
+// went; the new one starts when this one ends (its `from`; '' when that's today
+// or gone). (Dated the start, a TPASS renewed two days early put NT$1,200 on a
+// day to come: the bank's balance short of it till then, and across a month's
+// end the next month's spending, 11-18.)
+export function renewSpend(r, s, today) {
+  const starts = s?.left >= 0 ? renewedBy(r, s) : '';
+  return { d: today, from: starts > today ? starts : '' };
+}
 
 // ---- Older books brought up ------------------------------------------------------
 // The TPASS reminder lived on the category before (days, start, remind on

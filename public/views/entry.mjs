@@ -115,7 +115,8 @@ export function subChips(cat, cur, onPick) {
 // thumb never loses what was typed).
 let draft = null;
 const DRAFT_MS = 15 * 60_000;
-export function openEntry({ entry = null, day = today(), kind = '', inv = null, amt = 0, note = '', from = '', to = '', cat = '', sub = '', pay = null } = {}) {
+// (starts: the day a pass bought now begins, 續購: kept as the spend's `from`, lib/renew.mjs.)
+export function openEntry({ entry = null, day = today(), kind = '', inv = null, amt = 0, note = '', from = '', to = '', cat = '', sub = '', pay = null, starts = '' } = {}) {
   const b = state.books;
   const was = entry ? b.entries[entry.id] : null;
   if (!entry && !amt && !note && !inv && !cat && !from && draft && draft.d === day && Date.now() - draft.t < DRAFT_MS) ({ amt, note, kind } = { ...draft, kind: kind || draft.k });
@@ -563,6 +564,7 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     // (A new one: where it was logged, when allowed, and what was guessed for it.)
     if (!was && ctx.pl) rec.pl = ctx.pl;
     if (!was && stamp) rec.g = stamp;
+    if (!was && starts && f.k === 'out' && starts > rec.d) rec.from = starts;
     if (!rec.fee) delete rec.fee;
     if (!rec.also) delete rec.also;
     const kept = put(b, 'entries', rec, now);

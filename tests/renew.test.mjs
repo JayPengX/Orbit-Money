@@ -108,3 +108,20 @@ test('the TPASS reminder removed never comes back', () => {
   assert.equal(R.upgradeRenew(b), 0);
   assert.equal(b.renew.tpass.del, 1);
 });
+
+// 續購 two days before a TPASS ended put its NT$1,200 on the day the new one
+// starts (11-21, proven 11-18): the bank short of it till then, and across a
+// month's end in the next month's spending.
+test('續購 logs the spend today; the new one still starts the day after this one ends', () => {
+  const b = B.emptyBooks();
+  B.put(b, 'renew', { id: 'tpass', name: 'TPASS', start: '', n: 30, unit: 'day', roll: false, cat: 'transport', sub: 'transport:tpass', on: true }, T);
+  B.put(b, 'entries', { id: 'e', d: '2026-10-22', k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', a: 'cash' }, T);
+  const s = R.standing(b, b.renew.tpass, '2026-11-18');
+  assert.deepEqual([s.due, s.left], ['2026-11-20', 2]);
+  const x = R.renewSpend(b.renew.tpass, s, '2026-11-18');
+  assert.deepEqual(x, { d: '2026-11-18', from: '2026-11-21' });
+  B.put(b, 'entries', { id: 'f', d: x.d, from: x.from, k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', a: 'cash' }, T);
+  assert.equal(R.standing(b, b.renew.tpass, '2026-11-18').due, '2026-12-20');
+  // Ended already: it starts today, nothing more to keep.
+  assert.deepEqual(R.renewSpend(b.renew.tpass, { due: '2026-11-10', left: -8 }, '2026-11-18'), { d: '2026-11-18', from: '' });
+});

@@ -7,7 +7,7 @@ import { h, icons, tile, sheet, toggle, toast, tick, menu } from '#kit/ui.mjs';
 import { ask, notifyOn } from '#kit/orbit.mjs';
 import { addDays } from '#kit/format.mjs';
 import { put, drop } from '../lib/books.mjs';
-import { reminders, standing, renewedBy, CYCLES, AT, DEFAULT_AT, tmOf, eveOf, timeFor } from '../lib/renew.mjs';
+import { reminders, standing, renewedBy, renewSpend, CYCLES, AT, DEFAULT_AT, tmOf, eveOf, timeFor } from '../lib/renew.mjs';
 import { catList, catOf, subOf, catName } from '../lib/cats.mjs';
 import { whatTile } from './pics.mjs';
 import { state, hooks, W, lang, money, dayLabel, today, saved } from '../shell.mjs';
@@ -210,7 +210,10 @@ export function openReminder(id, done = () => {}) {
 // Renewed by hand (月曆's 續購): a spend to log when it follows one, else the next one starts.
 export function renewNow(r, s, openEntry) {
   const day = s.left >= 0 ? renewedBy(r, s) : today();
-  if (r.cat) return openEntry({ cat: r.cat, sub: r.sub, day });
+  if (r.cat) {
+    const x = renewSpend(r, s, today());
+    return openEntry({ cat: r.cat, sub: r.sub, day: x.d, starts: x.from });
+  }
   put(state.books, 'renew', { ...r, start: day });
   saved();
   toast(W(`${r.name} 已續`, `${r.name} renewed`));
