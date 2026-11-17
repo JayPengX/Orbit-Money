@@ -93,6 +93,52 @@ test('a merge undone puts every record back', () => {
   assert.ok(C.catList('out').some(c => c.id === 'fun'));
 });
 
+// (11-18) A 到期提醒 followed the sub that was merged away: no spend under it
+// any more, so its start was gone, the days left and its notices with it.
+test('a merge keeps a reminder that followed it counting; undone, it follows again', async () => {
+  const R = await import('../public/lib/renew.mjs');
+  const b = sample();
+  B.put(b, 'renew', { id: 'tpass', name: 'TPASS', start: '', n: 30, unit: 'day', roll: false, cat: 'transport', sub: 'transport:tpass', on: true, at: [1, 0] }, T);
+  B.put(b, 'renew', { id: 'gym', name: '健身房', start: '2026-10-05', n: 1, unit: 'month', roll: true, cat: 'fun', sub: 'fun:leisure', on: true, at: [1] }, T);
+  B.put(b, 'renew', { id: 'allfun', name: '娛樂', start: '2026-09-20', n: 30, unit: 'day', roll: false, cat: 'fun', sub: '', on: true, at: [0] }, T);
+  assert.equal(R.standing(b, b.renew.tpass, '2026-10-20').due, '2026-10-30');
+  const undo = C.catUndo(b);
+  // The TPASS sub into 搭車: the pass still ends on the 30th, and a bus ride doesn't start it over.
+  assert.ok(C.mergeCat(b, 'transport:tpass', 'transport:ride', T + 1));
+  B.put(b, 'entries', { id: 'bus', d: '2026-10-18', k: 'out', amt: 15, cat: 'transport', sub: 'transport:ride', a: 'cash' }, T + 2);
+  assert.equal(R.standing(b, b.renew.tpass, '2026-10-20').due, '2026-10-30');
+  assert.deepEqual([b.renew.tpass.start, b.renew.tpass.cat, b.renew.tpass.sub], ['2026-10-01', '', '']);
+  // A whole category into another: the one on its sub goes along, the one on all of it stands where it stood.
+  assert.ok(C.mergeCat(b, 'fun', 'food', T + 3));
+  assert.deepEqual([b.renew.gym.cat, b.renew.gym.sub, b.renew.gym.start], ['food', 'fun:leisure', '2026-10-05']);
+  assert.equal(R.linkedSpend(b, b.renew.gym).e.id, 'e2');
+  assert.deepEqual([b.renew.allfun.cat, b.renew.allfun.start], ['', '2026-10-02']);
+  // Undone: each follows what it did.
+  undo(T + 4);
+  assert.deepEqual([b.renew.tpass.start, b.renew.tpass.cat, b.renew.tpass.sub], ['', 'transport', 'transport:tpass']);
+  assert.deepEqual([b.renew.gym.cat, b.renew.allfun.cat, b.renew.allfun.start], ['fun', 'fun', '2026-09-20']);
+});
+
+// (11-18) In English a built-in shows its English name: 好 on the name as it
+// stood saved "Food" as the category's name, in 中文 too.
+test('a name left as it shows is no rename, in either language', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const b = sample();
+  C.useCats(b.cats);
+  assert.equal(C.renameCat(b, C.catOf('food'), 'Food', 'en', T), null);
+  assert.equal(C.renameCat(b, C.catOf('food'), '餐飲', 'zh', T), null);
+  assert.equal(C.renameCat(b, C.catOf('food'), '', 'en', T), null);
+  assert.equal(b.cats.food, undefined);
+  assert.ok(C.renameCat(b, C.catOf('food'), 'Meals', 'en', T));
+  C.useCats(b.cats);
+  assert.deepEqual([C.catName(C.catOf('food'), 'en'), C.catName(C.catOf('food'), 'zh')], ['Meals', 'Meals']);
+  assert.equal(C.renameCat(b, C.catOf('food'), 'Meals', 'en', T), null);
+  // 分類's two name sheets go through it.
+  const src = await readFile(new URL('../public/views/cat-edit.mjs', import.meta.url), 'utf8');
+  assert.equal(src.match(/renameCat\(b, c, name, lang\)/g)?.length, 2);
+  assert.doesNotMatch(src, /name !== c\.zh/);
+});
+
 test('what a pick fills in: nothing until set, a sub’s own over its category’s', () => {
   const b = sample();
   C.useCats(b.cats);

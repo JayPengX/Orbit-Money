@@ -6,7 +6,7 @@
 // 2026-11-01): no presets.
 import { h, icons, tile, sheet, segmented, menu, toast, tick, grip, reorder } from '#kit/ui.mjs';
 import { ask } from '#kit/orbit.mjs';
-import { catList, catOf, subsOf, subOf, catName, glyph, usesOf, saveCat, addCat, orderCats, mergeCat, removeCat, isBuiltIn, catUndo, useBooksCats, CAT_ICONS, CAT_COLORS } from '../lib/cats.mjs';
+import { catList, catOf, subsOf, subOf, catName, glyph, usesOf, saveCat, renameCat, addCat, orderCats, mergeCat, removeCat, isBuiltIn, catUndo, useBooksCats, CAT_ICONS, CAT_COLORS } from '../lib/cats.mjs';
 import { state, W, lang, saved, money, acct, card } from '../shell.mjs';
 import { payOptions } from './entry.mjs';
 import { ntOf } from '../lib/books.mjs';
@@ -86,7 +86,7 @@ export function openCats(kind = 'out') {
       h('button', { class: 'mn-cathead-t', type: 'button', 'aria-label': W('顏色和圖示', 'Colour and icon'), 'aria-expanded': String(lookOpen), onclick: () => ((lookOpen = !lookOpen), paint()) }, [tile(glyph(c.icon), c.color, 'lg'), h('span', { class: 'mn-cathead-edit', html: icons.pencil })]),
       h('button', { class: 'mn-pill mn-catname', type: 'button', onclick: async () => {
         const name = await nameAsk(W('名稱', 'Name'), catName(c, lang));
-        if (name && name !== c.zh) (saveCat(b, { id, zh: name }), changed(), paint());
+        if (renameCat(b, c, name, lang)) (changed(), paint());
       } }, [h('span', { class: 'mn-pill-t', text: catName(c, lang) }), h('span', { html: icons.pencil })]),
       h('button', { class: 'q-btn tinted small', type: 'button', 'aria-label': W('更多', 'More'), text: '⋯', onclick: e => actions(e.currentTarget, c) })
     ]);
@@ -127,7 +127,7 @@ export function openCats(kind = 'out') {
     menu(anchor, [
       sub ? { label: W('改名', 'Rename'), onClick: async () => {
         const name = await nameAsk(W('名稱', 'Name'), catName(c, lang));
-        if (name && name !== c.zh) (saveCat(b, { id: c.id, zh: name }), changed(), paint());
+        if (renameCat(b, c, name, lang)) (changed(), paint());
       } } : null,
       sub ? { label: W('自動帶入⋯', 'Fill in…'), onClick: () => openDefaults(c, paint) } : null,
       { label: c.hidden ? W('顯示', 'Show') : W('隱藏', 'Hide'), onClick: () => (saveCat(b, { id: c.id, hidden: !c.hidden }), changed(), paint()) },

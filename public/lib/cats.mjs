@@ -4,6 +4,7 @@
 import { icons as kitIcons } from '#kit/ui.mjs';
 import { addDays } from '#kit/format.mjs';
 import { put, drop, live, newId, upgradedAt } from './books.mjs';
+import { linkedSpend } from './renew.mjs';
 
 const g = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 // This app's glyphs (nothing else in the family draws these).
@@ -123,6 +124,10 @@ export const catsFor = kind => catList(kind === 'in' ? 'in' : 'out');
 export const usesOf = (books, id) => [...live(books.entries), ...live(books.recur)].filter(e => e.cat === id || e.sub === id).length;
 const mineOf = (books, id) => (books.cats?.[id] && !books.cats[id].del ? books.cats[id] : {});
 export const saveCat = (books, rec, now = Date.now()) => put(books, 'cats', { ...mineOf(books, rec.id), ...rec }, now);
+// A name typed for one: the name it shows now is no change (null). (In English
+// a built-in shows its English name, and 好 on it as it stood saved "Food" as
+// its name in 中文 too, 11-18.)
+export const renameCat = (books, c, name, lang, now = Date.now()) => (name && name !== catName(c, lang) ? saveCat(books, { id: c.id, zh: name }, now) : null);
 // A new one (a sub under `parent`), last in its list.
 export function addCat(books, { k, parent = '', zh, icon = 'grid', color = '#8e8e93' }, now = Date.now()) {
   useBooksCats(books);
@@ -139,12 +144,22 @@ export function orderCats(books, ids, now = Date.now()) {
 // `from` folded into `into`: its entries, repeats and subs move there, its
 // budget goes; then it's gone (a built-in hidden). A sub into its own parent
 // is the sub let go (its entries just the category).
+// A 到期提醒 that followed it keeps counting from where it stood, following
+// nothing now (the person's to link again). (It was left on what no spend is
+// under any more: its start gone, the days left and its notices with it,
+// 11-18. Following what that merged into, any spend there would start it
+// over: a TPASS at every bus ride.) One on a sub that moves with its category
+// goes with it.
 export function mergeCat(books, from, into, now = Date.now()) {
   useBooksCats(books);
   const a = table.get(from);
   const b = table.get(into);
   if (!a || !b || from === into) return false;
   const top = b.parent || b.id;
+  for (const r of live(books.renew)) {
+    if (!a.parent && r.cat === from && r.sub) put(books, 'renew', { ...r, cat: top }, now);
+    else if (a.parent ? r.sub === from : r.cat === from) put(books, 'renew', { ...r, start: [r.start, linkedSpend(books, r)?.start].filter(Boolean).sort().pop() || '', cat: '', sub: '' }, now);
+  }
   for (const col of ['entries', 'recur'])
     for (const e of live(books[col])) {
       if (a.parent ? e.sub === from : e.cat === from) put(books, col, { ...e, cat: top, sub: a.parent ? (b.parent ? into : '') : e.sub || '' }, now);
@@ -159,7 +174,7 @@ export function mergeCat(books, from, into, now = Date.now()) {
 // Every record a change to the categories can touch, as it is now: the
 // function puts them back (one a change made, removed).
 export function catUndo(books) {
-  const cols = ['entries', 'recur', 'budgets', 'cats'];
+  const cols = ['entries', 'recur', 'budgets', 'cats', 'renew'];
   const keep = Object.fromEntries(cols.map(c => [c, { ...(books[c] || {}) }]));
   return (now = Date.now()) => {
     for (const c of cols)
