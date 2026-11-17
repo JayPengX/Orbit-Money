@@ -95,7 +95,7 @@ export function catTiles(kind, cur, onPick) {
   // (An older entry's category the set doesn't show stays in view while it's picked.)
   const list = catsFor(kind);
   if (cur && !list.some(c => c.id === cur) && catOf(cur).id === cur && catOf(cur).k === kind) list.push(catOf(cur));
-  return list.map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { text: catName(c, lang) })]));
+  return list.map(c => h('button', { class: 'mn-cat', type: 'button', role: 'radio', 'data-cat': c.id, 'aria-checked': String(c.id === cur), onclick: () => (tick(), onPick(c.id)) }, [tile(glyph(c.icon), c.color), h('span', { class: 'q-fit', text: catName(c, lang) })]));
 }
 
 // A category's subs as chips under the tiles: one lit, tapped again to let go
