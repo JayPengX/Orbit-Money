@@ -6,7 +6,7 @@
 import { h, toast, sheet, toggle, tile, icons as kitIcons } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph, guessCats } from '../lib/cats.mjs';
-import { reminders } from '../lib/renew.mjs';
+import { reminders, soonWords } from '../lib/renew.mjs';
 import { evenRows } from '../lib/columns.mjs';
 import { guessScore, guessReplay } from '../lib/guess.mjs';
 import { openRenewals } from './renew.mjs';
@@ -52,7 +52,6 @@ export function renderMore(box) {
       h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: label }), sub ? h('small', { text: sub }) : null]),
       value ? h('span', { class: 'q-ritem-value num', text: value }) : null
     ]);
-  const dueIn = next?.due ? Math.round((Date.parse(next.due) - Date.parse(today())) / 86_400_000) : null;
   const tools = h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head q-list-head' }, [h('h2', { text: W('工具', 'Tools') })]),
     h('div', { class: `q-rowcard${wide ? ' mn-tool-grid' : ''}` }, [
@@ -63,7 +62,7 @@ export function renderMore(box) {
       // (How often 記一筆's guesses were right, once there are a few.)
       tool(glyph(kitIcons.ai ? 'ai' : 'spark'), '#5856d6', W('智慧帶入', 'Smart fill'), W('先選好分類和付款', 'Your usual picks'), score.of >= 10 ? W(`猜中 ${pct(score.what, score.of)}`, `${pct(score.what, score.of)} right`) : '', () => openGuessing()),
       // (TPASS, subscriptions, memberships: the soonest one.)
-      tool(glyph('bell'), '#ff9500', W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : W('TPASS、訂閱、會員到期前提醒', 'TPASS, subscriptions, memberships'), dueIn == null ? '' : dueIn <= 0 ? W('今天', 'Today') : W(`${dueIn} 天後`, `in ${dueIn} d`), () => openRenewals()),
+      tool(glyph('bell'), '#ff9500', W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : W('TPASS、訂閱、會員到期前提醒', 'TPASS, subscriptions, memberships'), W(...soonWords(next?.due ? next.left : null)), () => openRenewals()),
       // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
       tool(glyph('repeat'), '#30b0c7', W('固定收支', 'Repeats'), W('房租、薪水，到日子自動記', 'Rent, pay: logged on the day'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : '', () => openRepeats()),
       live(state.books.budgets).length ? null : tool(glyph('target'), '#ff3b30', W('預算', 'Budget'), W('每月上限，統計裡看剩多少', 'A monthly cap, tracked in Stats'), '', () => openBudgets()),

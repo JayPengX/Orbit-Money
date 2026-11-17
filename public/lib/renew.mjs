@@ -77,6 +77,10 @@ export const reminders = (books, today) =>
     .map(r => ({ r, ...standing(books, r, today) }))
     .sort((a, b) => (a.left ?? 1e9) - (b.left ?? 1e9) || String(a.r.name).localeCompare(String(b.r.name)));
 
+// How soon one is, in a word for a short row: [中文, English], ['', ''] with
+// no day set. (更多's 到期提醒 said 今天 for one that ended days ago, 11-18.)
+export const soonWords = left => (left == null ? ['', ''] : left < 0 ? ['已到期', 'Ended'] : left === 0 ? ['今天', 'Today'] : [`${left} 天後`, `in ${left} d`]);
+
 // How many days before it's told (0 that morning), largest first.
 export const atOf = r => (Array.isArray(r?.at) ? r.at : DEFAULT_AT).filter(n => AT.includes(n)).sort((a, b) => b - a);
 // The time of day it's told: that day, the one set or 08:00; a day or more

@@ -125,3 +125,22 @@ test('續購 logs the spend today; the new one still starts the day after this o
   // Ended already: it starts today, nothing more to keep.
   assert.deepEqual(R.renewSpend(b.renew.tpass, { due: '2026-11-10', left: -8 }, '2026-11-18'), { d: '2026-11-18', from: '' });
 });
+
+// (11-18) 更多's 到期提醒 row said 今天 for a pass that ended days ago (the
+// soonest is the one furthest past its day).
+test('how soon, in a word: one that ended is 已到期, never 今天', async () => {
+  const b = B.emptyBooks();
+  B.put(b, 'renew', { id: 'tpass', name: 'TPASS', start: '2026-10-01', n: 30, unit: 'day', roll: false, cat: '', sub: '' }, T);
+  const first = R.reminders(b, '2026-11-18')[0];
+  assert.equal(first.left, -19);
+  assert.deepEqual(R.soonWords(first.left), ['已到期', 'Ended']);
+  assert.deepEqual(R.soonWords(0), ['今天', 'Today']);
+  assert.deepEqual(R.soonWords(3), ['3 天後', 'in 3 d']);
+  assert.deepEqual(R.soonWords(null), ['', '']);
+  // 更多's row uses it.
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(new URL('../public/views/more.mjs', import.meta.url), 'utf8');
+  assert.match(src, /W\(\.\.\.soonWords\(next\?\.due \? next\.left : null\)\)/);
+  assert.doesNotMatch(src, /dueIn/);
+});
+
