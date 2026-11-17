@@ -15,6 +15,7 @@ import { state, hooks, W, en, lang, money, short, monthLabel, dayLabel, today, c
 import { entryRow, openEntry } from './entry.mjs';
 import { reviewMonth, reviewOf, reviewFacts } from '../lib/month.mjs';
 import { rideOffer } from '../lib/ride.mjs';
+import { commas } from '../lib/ask.mjs';
 import { catName, catOf, subOf, glyph } from '../lib/cats.mjs';
 import { testBudget, testTpass, testRide } from '../testing.mjs';
 
@@ -191,7 +192,7 @@ function reviewCard(b, now) {
   const tipBox = h('div', { class: 'mn-review-tip', 'aria-live': 'polite' });
   const saved = kept(REVIEW(ym));
   // (The AI writes the figures as given, 12169: shown as the app writes money, 12,169.)
-  const showTip = tip => (tipBox.removeAttribute('data-ai-only'), tipBox).replaceChildren(h('span', { class: 'q-ai-mark', 'aria-hidden': 'true', html: icons.ai || icons.spark || '' }), h('span', { text: tip.replace(/\d{4,}/g, n => (/^(19|20)\d\d$/.test(n) ? n : Number(n).toLocaleString('en-US'))) }));
+  const showTip = tip => (tipBox.removeAttribute('data-ai-only'), tipBox).replaceChildren(h('span', { class: 'q-ai-mark', 'aria-hidden': 'true', html: icons.ai || icons.spark || '' }), h('span', { text: commas(tip) }));
   // (The AI's tip on a tap (Jay 11-14: "make AI feature like this a button to click like we do in
   // orbit law, never spend a penny on AI on things user didn't interact with"), kept on the phone after.)
   const ask = () => {

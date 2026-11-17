@@ -64,3 +64,22 @@ test('每月回顧: last month in the first week, against the month before; the 
   assert.match(f, /The biggest single buy: 1290/);
   assert.equal(reviewOf(b, '2026-08'), null, 'nothing spent: no review');
 });
+
+// (11-18) An amount from 1,900 to 2,099 was taken for a year and left bare.
+test('the AI’s line: figures as the app writes money, a year only where it reads as one', async () => {
+  const { commas } = await import('../public/lib/ask.mjs');
+  assert.equal(commas('這個月餐飲花了 2050 元，比上個月多 1980。'), '這個月餐飲花了 2,050 元，比上個月多 1,980。');
+  assert.equal(commas('Food took 2050 of the 12169 spent.'), 'Food took 2,050 of the 12,169 spent.');
+  assert.equal(commas('Decathlon 2050, Income 1999, Market 2000'), 'Decathlon 2,050, Income 1,999, Market 2,000');
+  assert.equal(commas('從 2026 年 11 月 1 日開始記，到今天花了 2026。'), '從 2026 年 11 月 1 日開始記，到今天花了 2,026。');
+  for (const t of ['帳本從 2026-11-01 開始', '2026/11/1 起', 'Since Nov 1, 2026 you logged 12 entries', 'In 2026 so far', 'November 2026 was lighter', '花了 300 元'])
+    assert.equal(commas(t), t, t);
+  // Both places the AI's words are shown use it.
+  const { readFile } = await import('node:fs/promises');
+  for (const f of ['ask.mjs', 'calendar.mjs']) {
+    const src = await readFile(new URL(`../public/views/${f}`, import.meta.url), 'utf8');
+    assert.match(src, /commas\(/, f);
+    assert.doesNotMatch(src, /\(19\|20\)/, f);
+  }
+});
+

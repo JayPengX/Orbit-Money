@@ -120,3 +120,12 @@ export function booksFacts(books, today, { lang = 'zh', months = 3 } = {}) {
   for (const [id, x] of Object.entries(tables)) out.push(`[${id}] ${x.title}: ${x.rows.map(r => `${r.label} ${r.amt}${r.n ? ` (${r.n} times)` : ''}${r.was != null ? ` (was ${r.was})` : ''}`).join('; ')}`);
   return out.join('\n').slice(0, 4800);
 }
+
+// The AI's line with its figures as the app writes money (12169 → 12,169). A
+// year stays a year, but only where it reads as one: 2026 年, 2026-11,
+// 2026/11, Nov 1, 2026, in 2026. (Any four digits from 1900 to 2099 were taken
+// for a year: 餐飲花了 2050 stayed 2050 beside NT$2,050 in the rows under it, 11-18.)
+const YEAR_NEXT = /^\s?(?:年|[-/.]\d)/;
+const YEAR_PREV = /(?:\b(?:in|since|during|year|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?,?)\s+(?:\d{1,2}(?:st|nd|rd|th)?,?\s+)?|\d[-/.])$/i;
+export const commas = t =>
+  String(t ?? '').replace(/\d{4,}/g, (n, i, all) => (/^(19|20)\d\d$/.test(n) && (YEAR_NEXT.test(all.slice(i + n.length)) || YEAR_PREV.test(all.slice(0, i))) ? n : Number(n).toLocaleString('en-US')));

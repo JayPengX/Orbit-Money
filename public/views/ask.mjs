@@ -11,7 +11,7 @@
 // sent until a question is.
 import { h, sheet } from '#kit/ui.mjs';
 import * as kitAI from '#kit/ai.mjs';
-import { askTables, booksFacts } from '../lib/ask.mjs';
+import { askTables, booksFacts, commas } from '../lib/ask.mjs';
 import { catOf, subOf, glyph } from '../lib/cats.mjs';
 import { payPic } from './pics.mjs';
 import { state, W, en, today, lang, money } from '../shell.mjs';
@@ -23,8 +23,7 @@ const STARTERS = [
   W('預算還剩多少？', 'How much budget is left?')
 ];
 
-// (The AI writes the figures as given, 12169: shown as the app writes money, 12,169.)
-const commas = t => t.replace(/\d{4,}/g, n => (/^(19|20)\d\d$/.test(n) ? n : Number(n).toLocaleString('en-US')));
+// (The AI writes the figures as given, 12169: shown as the app writes money, 12,169: lib/ask.mjs commas.)
 
 // One table as rows: the label, the amount, how many times or what it was, a bar to the largest.
 export function tableCard(t, mark = []) {
