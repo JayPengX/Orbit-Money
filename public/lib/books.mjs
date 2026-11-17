@@ -671,6 +671,13 @@ export const owed = books =>
     .map(e => ({ e, of: books.entries[e.of] && !books.entries[e.of].del ? books.entries[e.of] : null }));
 // What's come back for one spend, each back entry.
 export const backsFor = (books, id) => live(books.entries).filter(e => e.k === 'back' && e.of === id);
+// What a spend of `amt` would have spoken for past itself: its 退款 already
+// logged (not its friends' shares: `shares`, as they're being set), the shares
+// and a part paid another way (`also`). Above 0, it can't be saved: a spend
+// edited down to under its refund put the rest into the account as money from
+// nowhere (NT$500 refunded NT$800: +300), 11-17.
+export const overBy = (books, id, amt, { shares = 0, also = 0 } = {}) =>
+  (id ? backsFor(books, id).filter(x => x.why !== 'friend').reduce((n, x) => n + (Number(x.amt) || 0), 0) : 0) + shares + also - amt;
 
 // ---- Older books brought up to date (on every open; nothing done twice) ------------
 

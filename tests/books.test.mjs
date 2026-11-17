@@ -563,3 +563,15 @@ test('轉移: a card that reloaded from the old account reloads from the new one
   B.moveAccount(c, 'a', 'b', T);
   assert.equal(c.accts.b.reload.from, '');
 });
+
+// (11-17) A spend edited down under what came back for it can't be saved.
+test('overBy: a spend never less than its refunds, shares and the part paid another way', () => {
+  const b = sample();
+  B.put(b, 'entries', { id: 'r1', d: '2026-10-06', k: 'back', why: 'refund', of: 'e2', amt: 800, a: 'cc', cat: 'shop' }, T);
+  B.put(b, 'entries', { id: 'f1', d: '2026-10-06', k: 'back', why: 'friend', of: 'e2', amt: 1000, a: 'cash', cat: 'shop' }, T);
+  assert.equal(B.overBy(b, 'e2', 3000, { shares: 1000 }), -1200);
+  assert.equal(B.overBy(b, 'e2', 500), 300);
+  assert.equal(B.overBy(b, 'e2', 1500, { shares: 500, also: 300 }), 100);
+  // A new one: only what's being set.
+  assert.equal(B.overBy(b, undefined, 100, { shares: 60, also: 40 }), 0);
+});
