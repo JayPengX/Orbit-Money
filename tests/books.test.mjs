@@ -497,3 +497,28 @@ test('自動加值: an earlier spend deleted or changed, every later one is run 
   const spent = B.live(b.entries).filter(e => e.k === 'out' && e.a === 'ez').reduce((n, e) => n + e.amt, 0);
   assert.equal(B.balances(b).ez, 50 + reloads - spent);
 });
+
+// A device whose own copy is from before the 1st makes the 1st's rent as it opens,
+// before it reads the Pass's copy: it never wins over the rent changed or removed
+// on another device since, and two devices make the very same record.
+test("a repeat's entry made late on another device never undoes an edit or a removal made since", () => {
+  const base = B.emptyBooks();
+  B.put(base, 'accts', { id: 'cash', name: '現金', kind: 'cash', open: 0, inTotal: true }, T);
+  B.put(base, 'recur', { id: 'rent', k: 'out', amt: 10000, cat: 'home', a: 'cash', every: 'month', day: 1, from: '2026-10-01' }, T);
+  B.runRepeats(base, '2026-10-30', T + 1);
+  const id = 'r-rent-2026-11-01';
+  const phone = structuredClone(base);
+  B.runRepeats(phone, '2026-11-01', T + 10);
+  B.put(phone, 'entries', { ...phone.entries[id], amt: 9500 }, T + 20);
+  const ipad = structuredClone(base);
+  B.runRepeats(ipad, '2026-11-05', T + 30);
+  assert.equal(B.mergeBooks(ipad, phone, T + 40).entries[id].amt, 9500);
+  const gone = structuredClone(base);
+  B.runRepeats(gone, '2026-11-01', T + 10);
+  B.drop(gone, 'entries', id, T + 20);
+  assert.equal(B.mergeBooks(ipad, gone, T + 40).entries[id].del, 1);
+  // Made on both: the same record, so the two copies agree (nothing to write back and forth).
+  const other = structuredClone(base);
+  B.runRepeats(other, '2026-11-03', T + 50);
+  assert.deepEqual(other.entries[id], ipad.entries[id]);
+});

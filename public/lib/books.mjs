@@ -405,10 +405,15 @@ export const repeatEntryId = (r, day) => `r-${r.id}-${day}`;
 // moved from the 5th to the 1st added the 1st of every month gone by again,
 // ten rents twice. A period with none, a start moved earlier, still fills.)
 const periodOf = (every, d) => (every === 'year' ? d.slice(0, 4) : every === 'week' ? addDays(d, -((new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7)) : d.slice(0, 7));
+// (Each entry is dated by the repeat, never by this opening: a device whose own
+// copy was from before the 1st made the 1st's rent dated now, before it read
+// the Pass's copy, and so put it back over the rent changed or removed on
+// another device since. Two devices make the very same record.)
 export function runRepeats(books, today, now = Date.now()) {
   let n = 0;
   for (const r of live(books.recur)) {
     if (!books.accts[r.a] || books.accts[r.a].del) continue;
+    const at = Math.min(now, Number(r.u) || now);
     const mine = `r-${r.id}-`;
     // (A removed one keeps only its id, its day in it.)
     const dayOf = e => (e?.rec === r.id && e.d) || (String(e?.id).startsWith(mine) && /^\d{4}-\d\d-\d\d$/.test(String(e.id).slice(mine.length)) ? String(e.id).slice(mine.length) : '');
@@ -416,7 +421,7 @@ export function runRepeats(books, today, now = Date.now()) {
     for (const d of repeatDays(r, r.from, today)) {
       const id = repeatEntryId(r, d);
       if (books.entries[id] || had.has(periodOf(r.every, d))) continue;
-      put(books, 'entries', { id, d, k: r.k, amt: r.amt, cat: r.k === 'move' ? '' : r.cat, sub: r.k === 'move' ? '' : r.sub || '', note: r.note || '', a: r.a, via: r.via || '', to: r.k === 'move' ? r.to : '', rec: r.id, t: now }, now);
+      put(books, 'entries', { id, d, k: r.k, amt: r.amt, cat: r.k === 'move' ? '' : r.cat, sub: r.k === 'move' ? '' : r.sub || '', note: r.note || '', a: r.a, via: r.via || '', to: r.k === 'move' ? r.to : '', rec: r.id, t: at }, at);
       n++;
     }
   }

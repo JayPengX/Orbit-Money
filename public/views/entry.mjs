@@ -570,7 +570,10 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
       const id = fr.id || newId(now);
       keep.add(id);
       const received = !fr.wait && fr.was && !fr.was.wait;
-      put(b, 'entries', { id, d: received ? fr.d : f.d, k: 'back', why: 'friend', who: fr.who.trim(), of: kept.id, amt: fr.n, a: fr.a || 'cash', wait: fr.wait ? 1 : 0, cat: rec.cat, sub: rec.sub, t: now }, now);
+      // (Handed over only now: its cash comes in today, as 朋友還沒給's 收到了 dates it,
+      // never back on the spend's day.)
+      const handed = !fr.wait && fr.was?.wait;
+      put(b, 'entries', { id, d: received ? fr.d : handed && today() > f.d ? today() : f.d, k: 'back', why: 'friend', who: fr.who.trim(), of: kept.id, amt: fr.n, a: fr.a || 'cash', wait: fr.wait ? 1 : 0, cat: rec.cat, sub: rec.sub, t: now }, now);
     }
     // (No longer a spend: nothing can come back for it.)
     for (const x of backsFor(b, kept.id)) if (x.why === 'friend' ? !keep.has(x.id) : f.k !== 'out') drop(b, 'entries', x.id, now);
