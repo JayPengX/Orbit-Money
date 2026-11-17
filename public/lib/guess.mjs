@@ -389,3 +389,31 @@ export function guessMove(books, { day }) {
   }
   return best(pairs).map(({ a, to, s, amts }) => ({ a, to, s, amts: best(amts).filter(x => x.n >= 2).slice(0, 4).map(x => x.key) }));
 }
+
+// A transfer's two accounts as its sheet opens → { a, to }.
+//   moves: guessMove's pairs; accts: the accounts in use, in their order
+//   ({ id, kind, pay, reload }); from: the account whose page it was opened
+//   from ('': the +, or a kind switched to 轉帳); a, to: what the sheet has.
+// Opened from an account, that account is one of the two. (It wasn't: the
+// person's usual pair took over, so 轉帳 on 郵局's page opened 台新 → 悠遊卡, and
+// with no usual pair a credit card's page left the card out, 11-18.) The usual
+// pair it's in, likeliest first; else out of it, or into it when it's a card
+// that's paid or loaded (a credit card from the account that pays it, a 儲值卡
+// from the one that reloads it, else a bank).
+export function movePair(moves, accts, { from = '', a = '', to = '' } = {}) {
+  const of = id => accts.find(x => x.id === id);
+  const usual = moves.filter(x => of(x.a) && of(x.to) && x.a !== x.to);
+  const bank = not => accts.find(x => x.kind === 'bank' && x.id !== not)?.id;
+  const other = not => accts.find(x => x.id !== not && x.kind !== 'credit')?.id || accts.find(x => x.id !== not)?.id || '';
+  if (of(from)) {
+    const p = usual.find(x => x.a === from || x.to === from);
+    if (p) return { a: p.a, to: p.to };
+    const me = of(from);
+    if (me.kind !== 'credit' && me.kind !== 'ticket') return { a: from, to: other(from) };
+    const pays = me.kind === 'credit' ? me.pay : me.reload?.from;
+    return { a: (pays !== from && of(pays)?.id) || bank(from) || other(from), to: from };
+  }
+  if (usual[0]) return { a: usual[0].a, to: usual[0].to };
+  const src = of(a) && of(a).kind !== 'credit' ? a : bank('') || accts[0]?.id || a;
+  return { a: src, to: to && to !== src && of(to) ? to : other(src) };
+}

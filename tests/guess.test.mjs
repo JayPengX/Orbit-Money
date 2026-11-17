@@ -207,6 +207,50 @@ test('a transfer: the accounts the person usually moves between, and that pair�
   assert.deepEqual(G.guessMove(B.emptyBooks(), { day: '2026-10-29' }), []);
 });
 
+// (11-18) 轉帳 opened from an account's page: that account is one of the two.
+// The person's usual pair took its place (郵局's page opened 台新 → 悠遊卡), and
+// a credit card's page never had the card in it.
+test('a transfer opened from an account has that account in it', async () => {
+  const accts = [
+    { id: 'cash', kind: 'cash' },
+    { id: 'taishin', kind: 'bank' },
+    { id: 'post', kind: 'bank' },
+    { id: 'cc', kind: 'credit', pay: 'post' },
+    { id: 'cc2', kind: 'credit' },
+    { id: 'ez', kind: 'ticket' },
+    { id: 'ez2', kind: 'ticket', reload: { on: true, from: 'post' } },
+    { id: 'line', kind: 'wallet' }
+  ];
+  const moves = [
+    { a: 'taishin', to: 'ez', s: 3, amts: [500] },
+    { a: 'taishin', to: 'post', s: 2, amts: [] },
+    { a: 'gone', to: 'line', s: 1, amts: [] }
+  ];
+  const pair = (from, m = moves, now = {}) => G.movePair(m, accts, { from, ...now });
+  // Not from an account's page: the usual pair, as before.
+  assert.deepEqual(pair(''), { a: 'taishin', to: 'ez' });
+  // From one: the usual pair it's in, whichever side it's on.
+  assert.deepEqual(pair('post'), { a: 'taishin', to: 'post' });
+  assert.deepEqual(pair('ez'), { a: 'taishin', to: 'ez' });
+  // In no usual pair (an account put away isn't one): out of it…
+  assert.deepEqual(pair('line'), { a: 'line', to: 'cash' });
+  assert.deepEqual(pair('cash'), { a: 'cash', to: 'taishin' });
+  // …or into it: a credit card from the account that pays it (else a bank), a 儲值卡 from the one that reloads it.
+  assert.deepEqual(pair('cc'), { a: 'post', to: 'cc' });
+  assert.deepEqual(pair('cc2'), { a: 'taishin', to: 'cc2' });
+  assert.deepEqual(pair('ez2'), { a: 'post', to: 'ez2' });
+  // No transfers yet and no page: from what the sheet has (never a credit card), to another account.
+  assert.deepEqual(pair('', [], { a: 'line' }), { a: 'line', to: 'cash' });
+  assert.deepEqual(pair('', [], { a: 'cc' }), { a: 'taishin', to: 'cash' });
+  assert.deepEqual(G.movePair([], [{ id: 'cash', kind: 'cash' }], { a: 'cash' }), { a: 'cash', to: '' });
+  // (An account put away, its page's 轉帳: no usual pair with it, as with none given.)
+  assert.deepEqual(pair('gone'), { a: 'taishin', to: 'ez' });
+  // The sheet hands the page's account on.
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile(new URL('../public/views/entry.mjs', import.meta.url), 'utf8');
+  assert.match(src, /movePair\(moves, openAccounts\(\), \{ from, /);
+});
+
 // Outside Taiwan (2026-11-06): the hour and the day are the phone's own, never Taiwan's.
 test('abroad: the hour and the day are where the phone is', () => {
   const was = process.env.TZ;

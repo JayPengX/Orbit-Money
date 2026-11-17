@@ -10,7 +10,7 @@ import { put, drop, live, usualFor, replayReloads, touches, alsoOf, feeOf, backs
 import { catsFor, shownCat, catOf, catName, glyph, lookOf, subsOf, subOf, guessSub, subFromWords, defaultsOf, saveCat, guessCats } from '../lib/cats.mjs';
 import { state, W, en, lang, money, plain, dayLabel, today, saved, acct, acctName, card, allAccounts, openAccounts, cardsOf, payLabel, kindName } from '../shell.mjs';
 import { payPic, whatTile, acctTile } from './pics.mjs';
-import { cluesFor, guessWhat, guessNew, guessSubIn, guessPay, guessAmts, guessMove, guessStamp, cellOf } from '../lib/guess.mjs';
+import { cluesFor, guessWhat, guessNew, guessSubIn, guessPay, guessAmts, guessMove, movePair, guessStamp, cellOf } from '../lib/guess.mjs';
 import { snap, openReceipt, receiptLabel, mergeInto } from './photo.mjs';
 import { openSay } from './say.mjs';
 
@@ -244,17 +244,14 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   guessAll();
   // A transfer: the two accounts the person usually moves money between
   // (lib/guess.mjs guessMove), until they pick; else from a bank (not a card
-  // being paid with) to another account.
+  // being paid with) to another account. Opened from an account's page, that
+  // account is one of the two (movePair).
   const moves = guessMove(b, { day: f.d });
   let movePicked = Boolean(was || (from && to));
   function guessPair() {
     if (movePicked) return;
-    const open = id => acct(id) && !acct(id).closed;
-    const p = moves.find(x => open(x.a) && open(x.to));
-    if (p) return (f.a = p.a), (f.to = p.to), (f.via = '');
+    ({ a: f.a, to: f.to } = movePair(moves, openAccounts(), { from, a: f.a, to: f.to }));
     f.via = '';
-    if (!open(f.a) || acct(f.a).kind === 'credit') f.a = openAccounts().find(x => x.kind === 'bank')?.id || openAccounts()[0]?.id || f.a;
-    if (!f.to || f.to === f.a || !open(f.to)) f.to = openAccounts().find(x => x.id !== f.a && x.kind !== 'credit')?.id || openAccounts().find(x => x.id !== f.a)?.id || '';
   }
   if (f.k === 'move') guessPair();
 
