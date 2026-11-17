@@ -81,8 +81,7 @@ function answerOf(line, shown, mark) {
   return kitAI.aiAnswer({ line: commas(line), sections, note });
 }
 
-// `ask`: a question already said (問 Orbit's, #ask=…), asked at once.
-export function openAsk({ ask = '' } = {}) {
+export function openAsk() {
   const talk = h('div', { class: 'mn-ask-talk', 'aria-live': 'polite' });
   let open = true;
   const bar = kitAI.aiBar({ placeholder: W('問你的帳…', 'Ask your books…'), label: W('問我的帳', 'Ask my books'), max: 200, onSend: q => go(q) });
@@ -90,9 +89,8 @@ export function openAsk({ ask = '' } = {}) {
   const hint = h('p', { class: 'mn-hint', text: W('從你的帳算，不會改動任何一筆。', 'From your own entries; nothing is changed.') });
   const foot = h('div', { class: 'q-sheet-foot mn-ask-foot' }, [bar]);
   sheet({ title: W('問我的帳', 'Ask my books'), detent: 'large', cls: 'mn-say mn-ask', body: [hint, starters, talk], foot, onClose: () => (open = false) });
-  if (ask) requestAnimationFrame(() => go(String(ask).slice(0, 200)));
   // (In the tap that opened it: iOS raises its keys only then; the kit lands the sheet first.)
-  else bar.input.focus();
+  bar.input.focus();
 
   async function go(q) {
     if (bar.classList.contains('busy')) return;
