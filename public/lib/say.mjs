@@ -2,7 +2,8 @@
 // a line like "早餐 45 午餐 120 捷運 30" or "昨天 全聯 356、星巴克 150" read
 // here, on the phone, for nothing. Only a line this can't read whole goes
 // to the AI (the Worker's money-say): words for numbers (三百五), a sentence
-// (跟同學吃火鍋花了…), income, a way to pay, a date that isn't 今天/昨天/前天.
+// (跟同學吃火鍋花了…), income, a way to pay, a date that isn't 今天/昨天/前天,
+// a count (2個, 2 杯, x2), a time (8點), a day said after the first words.
 //
 //   readSay(text, today) → [{ k, day, store, total, items, cat, pay, invoice }] | null
 //   a meal whose words don't say which (便當 110) is left 'food': the view asks
@@ -26,6 +27,15 @@ const MEALS = [
 // Anything that needs judgment goes to the AI: income, a way to pay, a refund, a split.
 const HARD = /薪水|薪資|零用錢|收到|收入|紅包|獎金|退款|退費|轉帳|借|還我|還給|分攤|平分|每人|一人|付的|刷卡|刷了|刷台|用.{0,8}付|pay|現金|悠遊|信用卡|一卡通|街口|全支付|[一二三四五六七八九十百千萬兩]{2,}|[月號日]|週|禮拜|星期|上個|下個/i;
 
+// A count is no amount (便當 2個 200 was read as 便當 NT$2 and 個 NT$200, 停車
+// 2小時 80 as 停車 NT$2), nor is a time (早上 8點 早餐 45), and a day said later
+// is no store (早餐 45 昨天 晚餐 100 put 昨天 晚餐 under today): the AI's, 11-18.
+// Words that are only a measure word, or begin with one after a small number.
+const ALONE = /^(?:個|杯|瓶|份|件|張|顆|罐|盒|支|雙|隻|碗|包|條|片|本|串|袋|組|台|臺|輛|套|粒|根|把|箱|打|桶|斤|趟|次|站|晚|天|人|位|樓|折|小時|鐘頭|分鐘|公斤|公里|公升|人份|[x×*]|乘)$/i;
+const COUNT = /^(?:個|杯|瓶|份|件|張|顆|罐|盒|支|雙|隻|碗|小時|鐘頭|分鐘|公斤|公里|公升|人份)/;
+const CLOCK = /\d ?點(?!心)/;
+const DAY_WORD = /今天|今日|昨天|昨日|前天|明天|明日|後天/;
+
 export function readSay(text, today) {
   let s = narrow(String(text || '')).replace(/\s+/g, ' ').trim();
   if (!s || s.length > 200 || HARD.test(s)) return null;
@@ -35,14 +45,18 @@ export function readSay(text, today) {
       day = addDays(today, n);
       s = s.replace(re, '').trim();
     }
+  if (DAY_WORD.test(s) || CLOCK.test(s)) return null;
   // Each "words amount" pair, nothing else left over but separators.
   const PAIR = /([^\d,，、;；+$]{1,16}?)\s*\$?\s*(\d{1,7}(?:\.\d+)?)\s*(?:元|塊|圓)?/g;
   const out = [];
   let meal = '';
+  let last = 0;
   for (const m of s.matchAll(PAIR)) {
     const words = m[1].trim();
     const amt = Math.round(Number(m[2]));
     if (!(amt > 0) || !words) return null;
+    if (ALONE.test(words) || (last && last <= 20 && COUNT.test(words))) return null;
+    last = amt;
     const hit = MEALS.find(([re]) => re.test(words));
     if (hit) meal = hit[1];
     const store = words.replace(/^(早餐|午餐|中餐|晚餐|宵夜|消夜|早上|中午|晚上|早午餐)\s*/, '').trim() || words;
