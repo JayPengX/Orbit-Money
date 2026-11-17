@@ -266,8 +266,9 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
   const amountIn = h('input', { class: 'num mn-amount-in', type: 'text', inputmode: 'numeric', pattern: '[0-9]*', enterkeyhint: 'done', autocomplete: 'off', placeholder: '0', 'aria-label': W('金額', 'Amount') });
   const sizer = h('span', { class: 'num mn-amount-size', 'aria-hidden': 'true' });
   amountIn.addEventListener('input', () => {
-    // (A pasted 「1,234.00」 is 1234: what's after a point never becomes more digits.)
-    f.amt = amountIn.value.replace(/\..*$/, '').replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
+    // (A pasted 「1,234.00」 is 1234: what's after a point never becomes more digits; a
+    // full-width １２０ is 120.)
+    f.amt = amountIn.value.normalize('NFKC').replace(/\..*$/, '').replace(/\D/g, '').replace(/^0+/, '').slice(0, 9);
     f.auto = false;
     touched = true;
     paintAmount();

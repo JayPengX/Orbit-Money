@@ -435,6 +435,10 @@ test('ntOf: whole NT$ from what was typed or pasted', () => {
   assert.equal(B.ntOf('NT$ 1,234.50'), 1235);
   assert.equal(B.ntOf('33.5'), 34);
   assert.equal(B.ntOf('-500'), 500);
+  // (11-17) The app's own minus and full-width digits as pasted.
+  assert.equal(B.ntOf('−NT$500', { neg: true }), -500);
+  assert.equal(B.ntOf('－１，２００', { neg: true }), -1200);
+  assert.equal(B.ntOf('１２０元'), 120);
   assert.equal(B.ntOf('-1,500.4', { neg: true }), -1500);
   assert.equal(B.ntOf('12-3', { neg: true }), 123);
   assert.equal(B.ntOf(''), 0);

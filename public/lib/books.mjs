@@ -200,9 +200,11 @@ export function alsoOf(e) {
   return out;
 }
 // Whole NT$ from what was typed or pasted: 「NT$ 1,234.50」 is 1,235, never 123,450 (the
-// point kept, the rest dropped); `neg`: a minus kept. Nothing there: 0.
+// point kept, the rest dropped); `neg`: a minus kept, the app's own − (−NT$500)
+// and a full-width －１２０ too (they were dropped: −500 became 500, １２０ 0).
+// Nothing there: 0.
 export function ntOf(v, { neg = false } = {}) {
-  const s = String(v ?? '').replace(neg ? /[^\d.-]/g : /[^\d.]/g, '');
+  const s = String(v ?? '').normalize('NFKC').replace(/\u2212/g, '-').replace(neg ? /[^\d.-]/g : /[^\d.]/g, '');
   const n = parseFloat(s.replace(/(?!^)-/g, ''));
   return Number.isFinite(n) ? Math.round(n) || 0 : 0;
 }
