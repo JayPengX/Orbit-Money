@@ -94,3 +94,17 @@ test('older books: the TPASS settings on the category become the list’s TPASS;
   assert.equal(R.upgradeRenew(c, T), 1);
   assert.equal(R.standing(c, c.renew.tpass, '2026-11-02').due, '2026-11-30');
 });
+
+// (11-17) The TPASS reminder removed stays removed, however long ago: its mark
+// outlives the 120 days other removals are kept, or a TPASS logged made it again.
+test('the TPASS reminder removed never comes back', () => {
+  const now = Date.UTC(2026, 10, 17);
+  let b = B.emptyBooks();
+  B.put(b, 'accts', { id: 'cash', name: '現金', kind: 'cash', open: 0, inTotal: true }, now);
+  B.put(b, 'entries', { id: 'e1', d: '2026-11-01', k: 'out', amt: 1200, cat: 'transport', sub: 'transport:tpass', a: 'cash' }, now);
+  R.upgradeRenew(b);
+  B.drop(b, 'renew', 'tpass', now);
+  b = B.mergeBooks(b, B.unpackBooks(JSON.parse(JSON.stringify(B.packBooks(b)))), now + 200 * 86_400_000);
+  assert.equal(R.upgradeRenew(b), 0);
+  assert.equal(b.renew.tpass.del, 1);
+});

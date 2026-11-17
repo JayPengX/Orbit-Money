@@ -563,9 +563,10 @@ export function usualFor(books, { k, cat, sub = '' }, today, { days = 120, max =
 
 // Two copies made one: each record the one changed last; the settings the newer
 // copy's (st, seconds); removals older than KEEP_GONE_MS let go, but never
-// an entry a repeat made (`r-…`): its removal is all that keeps runRepeats
-// from making it again (a rent removed by hand came back 120 days on, 11-17).
-const keptGone = (col, id) => col === 'entries' && String(id).startsWith('r-');
+// one the app would make again by its fixed id: an entry a repeat made (`r-…`,
+// runRepeats: a rent removed by hand came back 120 days on) or the TPASS
+// reminder (renew.mjs upgradeRenew), 11-17.
+const keptGone = (col, id) => (col === 'entries' && String(id).startsWith('r-')) || (col === 'renew' && id === 'tpass');
 export function mergeBooks(mine, theirs, now = Date.now()) {
   if (!theirs) return mine;
   const out = emptyBooks();
