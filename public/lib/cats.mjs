@@ -35,8 +35,9 @@ const icon = name => GLYPHS[name] || kitIcons[name] || kitIcons.grid;
 const S = (cat, list) => list.map(([key, zh, en]) => ({ id: `${cat}:${key}`, zh, en, parent: cat }));
 export const OUT = [
   { id: 'food', zh: '餐飲', en: 'Food', icon: 'food', color: '#ff8d28', subs: S('food', [['breakfast', '早餐', 'Breakfast'], ['lunch', '午餐', 'Lunch'], ['dinner', '晚餐', 'Dinner'], ['drink', '飲料點心', 'Drinks & snacks']]) },
-  // (The family's Orbit Transit: TPASS on its own, Jay 2026-10-27.)
-  { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['ride', '搭車', 'Rides'], ['long', '長途', 'Long trips'], ['car', '汽機車', 'Car & scooter']]) },
+  // (The family's Orbit Transit: TPASS on its own, Jay 2026-10-27; YouBike
+  // on its own again, Jay 2026-11-19: priced by the half hour, not a ride.)
+  { id: 'transport', zh: '交通', en: 'Transport', icon: 'bus', color: '#0088ff', subs: S('transport', [['tpass', 'TPASS', 'TPASS'], ['ride', '搭車', 'Rides'], ['youbike', 'YouBike', 'YouBike'], ['long', '長途', 'Long trips'], ['car', '汽機車', 'Car & scooter']]) },
   { id: 'shop', zh: '購物', en: 'Shopping', icon: 'bag', color: '#ff2d55', subs: S('shop', [['style', '服飾美妝', 'Clothes & beauty'], ['tech', '3C 家電', 'Tech'], ['daily', '日用品', 'Household']]) },
   { id: 'home', zh: '居住', en: 'Housing', icon: 'home', color: '#6155f5', subs: S('home', [['rent', '房租房貸', 'Rent & mortgage'], ['bills', '水電瓦斯', 'Utilities'], ['net', '電信網路', 'Phone & internet'], ['fix', '管理修繕', 'Upkeep']]) },
   { id: 'fun', zh: '娛樂', en: 'Fun', icon: 'tv', color: '#cb30e0', subs: S('fun', [['leisure', '休閒', 'Going out'], ['travel', '旅遊', 'Travel'], ['sport', '運動', 'Sport']]) },
@@ -210,7 +211,7 @@ export const lookOf = e => (e.k === 'move' ? MOVE : e.k === 'adj' ? ADJ : catOf(
 // invoice): '' when nothing fits, for the caller's own default.
 const GUESS = [
   ['food', /咖啡|星巴克|路易莎|cama|85度C|清心|50嵐|迷客夏|可不可|茶湯會|麻古|鮮茶|手搖|飲料|coffee|starbucks|louisa/i],
-  ['transport', /tpass|定期票|月票|youbike|捷運|高鐵|台鐵|臺鐵|鐵路|客運|公車|悠遊卡|一卡通|uber|計程車|台灣大車隊|加油|中油|台塑石化|全國加油|停車|輪胎|機車行|保養|遠通電收/i],
+  ['transport', /tpass|定期票|月票|u-?bike|微笑單車|捷運|高鐵|台鐵|臺鐵|鐵路|客運|公車|悠遊卡|一卡通|uber|計程車|台灣大車隊|加油|中油|台塑石化|全國加油|停車|輪胎|機車行|保養|遠通電收/i],
   ['shop', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市|寶雅|屈臣氏|康是美|小北百貨|日藥本舖|文具|文化用品/i],
   ['health', /藥局|藥房|醫院|診所|牙醫|醫療|大樹藥|丁丁藥|保險|人壽|產險/i],
   ['home', /中華電信|台灣大哥大|遠傳|台灣之星|亞太電信|電信|台灣電力|台電|自來水|瓦斯|天然氣|房租|租金|管理費|房貸/i],
@@ -226,13 +227,16 @@ export function guessCat(text) {
   for (const [id, re] of GUESS) if (re.test(s) && !table.get(id)?.hidden) return id;
   return '';
 }
+// (Ubike, U-bike and YouBike all.)
+const YOUBIKE = /u-?bike|微笑單車/i;
 // The finer kind too, where the words say it ('' when not, or when the person hid it).
 const SUB_GUESS = [
   ['food:drink', /咖啡|星巴克|路易莎|cama|coffee|starbucks|louisa|50嵐|清心|迷客夏|可不可|茶湯會|麻古|鮮茶|手搖|飲料|甜點|蛋糕|麵包/i],
   ['transport:tpass', /tpass|定期票|月票/i],
   ['transport:long', /高鐵|台鐵|臺鐵|客運|國光|統聯|和欣/],
   ['transport:car', /加油|中油|台塑石化|停車|輪胎|機車行|保養|遠通電收|\betc\b/i],
-  ['transport:ride', /捷運|公車|youbike|微笑單車|uber|計程車|大車隊|55688|yoxi/i],
+  ['transport:youbike', YOUBIKE],
+  ['transport:ride', /捷運|公車|uber|計程車|大車隊|55688|yoxi/i],
   ['shop:daily', /全聯|家樂福|大潤發|好市多|costco|愛買|美聯社|頂好|超市|寶雅|小北百貨|文具|文化用品|生活用品/i],
   ['shop:style', /uniqlo|zara|h&m|\bgu\b|net服飾|服飾|美妝|化妝|屈臣氏|康是美|日藥本舖/i],
   ['shop:tech', /3c|燦坤|全國電子|順發|apple store|小米|光華/i],
@@ -316,6 +320,7 @@ export function upgradeCats(books, now = Date.now()) {
   }
   n += broadCats(books, now);
   n += outMeals(books, now);
+  n += bikesBack(books);
   if (books.cats?.refund && !books.cats.refund.del) drop(books, 'cats', 'refund', now), n++;
   if (split) (books.opt ||= {}).dig2 = 1, n++;
   if (broad) (books.opt ||= {}).dig3 = 1, n++;
@@ -338,7 +343,7 @@ const OLD_SUB = {
   // (早餐, 午餐 and 晚餐 stay: they're three subs again, Jay 2026-11-01.)
   'food:late': 'food:dinner', 'food:snack': 'food:drink',
   'drink:coffee': 'food:drink', 'drink:tea': 'food:drink',
-  'transport:mrt': 'transport:ride', 'transport:bus': 'transport:ride', 'transport:youbike': 'transport:ride', 'transport:taxi': 'transport:ride',
+  'transport:mrt': 'transport:ride', 'transport:bus': 'transport:ride', 'transport:taxi': 'transport:ride',
   'transport:thsr': 'transport:long', 'transport:tra': 'transport:long', 'transport:coach': 'transport:long',
   'car:fuel': 'transport:car', 'car:park': 'transport:car', 'car:toll': 'transport:car', 'car:service': 'transport:car',
   'shop:clothes': 'shop:style', 'shop:beauty': 'shop:style', 'shop:online': '',
@@ -530,4 +535,24 @@ function outMeals(books, now) {
     n++;
   }
   return n;
+}
+
+// ---- YouBike on its own again (2026-11-19) ----------------------------------------------
+// Jay: YouBike isn't a ride like the others (NT$5 a half hour, on the 儲值卡),
+// so it's 交通's own sub again. What sat under 搭車 since the twelve and says
+// YouBike in its note, store or name moves back, once (books.opt.yb); a ride
+// that doesn't say is left under 搭車 (never guessed from its amount). Amounts,
+// days and everything else stay.
+function bikesBack(books) {
+  if (books.opt?.yb) return 0;
+  let n = 0;
+  const words = e => `${e.note || ''} ${e.name || ''} ${e.inv?.seller || ''}`;
+  for (const col of MEAL_COLS)
+    for (const e of live(books[col] || {})) {
+      if (e.sub !== 'transport:ride' || !YOUBIKE.test(words(e))) continue;
+      put(books, col, { ...e, sub: 'transport:youbike' }, upgradedAt(e));
+      n++;
+    }
+  (books.opt ||= {}).yb = 1;
+  return n + 1;
 }

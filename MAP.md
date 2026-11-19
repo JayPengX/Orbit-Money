@@ -21,7 +21,8 @@ Jay's, dated (Taiwan day), newest wins; the family's are in Orbit-Core `docs/RUL
 
 **Categories.**
 - 10-27 Categories have subs and are the person's to edit (add, rename, hide, merge); 自動帶入 is set per person, never hardcoded.
-- 11-01 One set for everyone: twelve broad spending categories, two to four broad subs each (餐飲 早餐/午餐/晚餐/飲料點心; 交通 TPASS/搭車/長途/汽機車, YouBike, 捷運, 公車 and 計程車 all under 搭車; 購物 服飾美妝/3C 家電/日用品; 居住 房租房貸/水電瓦斯/電信網路/管理修繕; 娛樂 休閒/旅遊/運動; 數位; 醫療 看診/藥品/保險; 學習; 人情; 家人 孝親/育兒/寵物; 稅費; 其他). What was logged under an old set moves once, amounts untouched.
+- 11-01 One set for everyone: twelve broad spending categories, two to four broad subs each (餐飲 早餐/午餐/晚餐/飲料點心; 交通 TPASS/搭車/長途/汽機車, 捷運, 公車 and 計程車 all under 搭車; 購物 服飾美妝/3C 家電/日用品; 居住 房租房貸/水電瓦斯/電信網路/管理修繕; 娛樂 休閒/旅遊/運動; 數位; 醫療 看診/藥品/保險; 學習; 人情; 家人 孝親/育兒/寵物; 稅費; 其他). What was logged under an old set moves once, amounts untouched.
+- 11-19 YouBike is 交通's own sub again, beside 搭車 (Jay: it fits none of the others; NT$5 a half hour on the 儲值卡). A 搭車 whose words say YouBike moves back once (`bikesBack`); one that doesn't say stays.
 - 11-01 Meals stay three: 早餐/午餐/晚餐 apart; 宵夜 counts as 晚餐; no 三餐 sub. 11-03 No 聚餐 sub: a meal out counts as its meal.
 - 10-31 Subs stay broad, because 統計 is built on them. 數位 (digital things: domains, AI plans, cloud, games) has four: 專案維運 (a project's running costs: TDX, domains, hosting), 工具訂閱, 影音串流, 遊戲. Upkeep and fun stay apart.
 

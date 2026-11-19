@@ -7,7 +7,8 @@ To remove a feature on purpose, delete its line here in the same commit and say 
 - 餐飲's 早餐, 午餐, 晚餐 apart (Jay 11-01) — `public/lib/cats.mjs`: `'breakfast', '早餐'`, `'lunch', '午餐'`, `'dinner', '晚餐'`, `splitMeals`
 - The twelve categories, old books moved once — `public/lib/cats.mjs`: `broadCats`
 - 收入's 中獎 — `public/lib/cats.mjs`: `id: 'prize'`
-- TPASS and YouBike show their own logos — `public/views/pics.mjs`: `'transport:tpass': 'tpass'`, `YOUBIKE`
+- TPASS and YouBike show their own logos — `public/views/pics.mjs`: `'transport:tpass': 'tpass'`, `'transport:youbike': 'youbike'`
+- YouBike is 交通's own sub (Ubike, U-bike, 微笑單車 in the words pick it) — `public/lib/cats.mjs`: `['youbike', 'YouBike', 'YouBike']`
 - 拍照記帳, a match offered to merge — `public/views/photo.mjs`: `拍照記帳`, `mergeInto`
 - A paper 電子發票's QR codes read on the phone before the AI — `public/views/photo.mjs`, `public/lib/receipt-qr.mjs`: `fromQr`, `readInvoices`
 - 自動帶入 per category, guesses from your own entries — `public/lib/cats.mjs`, `public/views/more.mjs`: `智慧帶入`

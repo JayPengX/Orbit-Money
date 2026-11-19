@@ -159,7 +159,7 @@ test('訂閱 and 遊戲 moved to 數位: entries, repeats and the person’s own
   C.saveCat(b, { id: 'fun:subs', zh: '串流', amt: 390 }, T);
   C.saveCat(b, { id: 'refund', hidden: true }, T);
   b.opt = { ...b.opt, cats12: 1 };
-  assert.equal(C.upgradeCats(b, T + 1), 6);
+  assert.equal(C.upgradeCats(b, T + 1), 7);
   assert.equal(b.entries.g.cat, 'digital');
   assert.equal(b.entries.g.sub, 'digital:games');
   assert.equal(b.recur.n.sub, 'digital:subs');
@@ -238,7 +238,7 @@ test('the twelve (Jay 2026-11-01): what was logged under the old set moves once,
   assert.equal(at('sn'), 'food food:drink');
   assert.equal(at('tea'), 'food food:drink');
   assert.equal(at('dr'), 'food food:drink');
-  assert.equal(at('yb'), 'transport transport:ride');
+  assert.equal(at('yb'), 'transport transport:youbike'); // its own again (2026-11-19)
   assert.equal(at('hsr'), 'transport transport:long');
   assert.equal(at('tp'), 'transport transport:tpass');
   assert.equal(at('gas'), 'transport transport:car');
@@ -259,9 +259,9 @@ test('the twelve (Jay 2026-11-01): what was logged under the old set moves once,
   assert.equal(B.live(b.budgets).find(x => x.cat === 'food').amt, 7500);
   assert.equal(B.live(b.budgets).find(x => x.cat === 'transport').amt, 2000);
   assert.equal(B.live(b.budgets).length, 2);
-  // YouBike's card goes to 搭車, its NT$5 doesn't; the old record goes.
-  assert.deepEqual(C.defaultsOf('transport', 'transport:ride'), { pay: { a: 'easy', via: '' }, amt: 0, unit: 0 });
-  assert.equal(b.cats['transport:youbike'].del, 1);
+  // YouBike stays its own (2026-11-19): its card and its NT$5 a unit with it.
+  assert.deepEqual(C.defaultsOf('transport', 'transport:youbike'), { pay: { a: 'easy', via: '' }, unit: 5, amt: 0 });
+  assert.deepEqual(C.defaultsOf('transport', 'transport:ride'), { pay: null, amt: 0, unit: 0 });
   // The person's own sub goes along with its category; their entry too.
   assert.equal(C.subOf(mine.id).parent, 'food');
   assert.equal(at('bean'), `food ${mine.id}`);
@@ -435,4 +435,33 @@ test('a copy from before an upgrade, brought up to date, never undoes a change o
   C.upgradeCats(b, T + 9 * DAY);
   assert.deepEqual(a.entries, b.entries);
   C.useCats({});
+});
+
+test('YouBike on its own again (Jay 2026-11-19): a 搭車 that says YouBike moves back once, nothing else does', () => {
+  const b = B.emptyBooks();
+  b.opt = { ...b.opt, cats12: 1, dig2: 1, dig3: 1 };
+  const e = (id, note, more = {}) => B.put(b, 'entries', { id, d: '2026-11-10', k: 'out', amt: 10, cat: 'transport', sub: 'transport:ride', a: 'ez', note, ...more }, T);
+  e('yb', 'YouBike');
+  e('ub', '騎 Ubike 回家');
+  e('wx', '', { inv: { seller: '微笑單車股份有限公司' } });
+  e('mrt', '捷運');
+  e('none', '');
+  B.put(b, 'recur', { id: 'r', k: 'out', amt: 10, cat: 'transport', sub: 'transport:ride', a: 'ez', note: 'U-bike', every: 'month', day: 1, from: '2026-11-01' }, T);
+  C.upgradeCats(b, T + 1);
+  C.useBooksCats(b);
+  for (const id of ['yb', 'ub', 'wx']) assert.equal(b.entries[id].sub, 'transport:youbike', id);
+  assert.equal(b.recur.r.sub, 'transport:youbike');
+  // (Not guessed from an amount: a ride that doesn't say stays 搭車.)
+  assert.equal(b.entries.mrt.sub, 'transport:ride');
+  assert.equal(b.entries.none.sub, 'transport:ride');
+  assert.equal(b.entries.yb.amt, 10);
+  assert.equal(b.opt.yb, 1);
+  // Once: a later pick of 搭車 stands.
+  B.put(b, 'entries', { ...b.entries.yb, sub: 'transport:ride' }, T + 5);
+  C.upgradeCats(b, T + 6);
+  assert.equal(b.entries.yb.sub, 'transport:ride');
+  // It's offered, and the words pick it.
+  assert.ok(C.subsOf('transport').some(x => x.id === 'transport:youbike'));
+  assert.equal(C.subFromWords('ubike 10'), 'transport:youbike');
+  assert.equal(C.guessSub('transport', 'YouBike'), 'transport:youbike');
 });

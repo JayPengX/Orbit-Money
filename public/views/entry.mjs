@@ -46,7 +46,7 @@ export function entryRow(e, { day = false, inAcct = false, inCat = false, line =
   const cost = line ? line.amt : e.k === 'out' ? Math.max(0, e.amt - got) + fee : e.amt;
   const amt = e.k === 'in' ? money(e.amt, { sign: true }) : e.k === 'adj' ? money(e.amt, { sign: true }) : money(cost);
   return h('button', { class: 'q-ritem chevron mn-row', type: 'button', onclick: () => openEntry({ entry: e }) }, [
-    whatTile(look, line?.fee ? '' : fine?.id, 40, `${e.note || ''} ${e.inv?.seller || ''}`),
+    whatTile(look, line?.fee ? '' : fine?.id, 40),
     h('span', { class: 'q-ritem-text' }, [h('span', { class: 'q-ritem-title', text: title }), h('small', {}, [sub, e.inv ? h('i', { class: 'mn-inv-mark', 'aria-label': W('有發票', 'Has invoice'), html: glyph('receipt') }) : null])]),
     h('span', { class: `q-ritem-value num mn-amt ${sign}`, text: amt })
   ]);
@@ -390,12 +390,14 @@ export function openEntry({ entry = null, day = today(), kind = '', inv = null, 
     catTile.replaceChildren(whatTile(look, fine?.id, 44));
     catText.textContent = f.k === 'move' ? W('轉帳', 'Transfer') : f.k === 'adj' ? W('調整餘額', 'Balance fix') : catName(fine || look, lang);
   }
+  const nameWidth = t => [...t].reduce((n, c) => n + (c.charCodeAt(0) < 0x2e80 ? 0.55 : 1), 0);
   function paintSubs() {
     const list = cats.hidden ? [] : subChips(f.cat, f.sub, id => ((touched = chose = true), (f.sub = id), guessPayFor(), applyDefaults(), paintAmount(), paintPay(), paintSubs(), paintWhat()));
     subs.hidden = !list.length;
     subs.style.setProperty('--n', subCols(list.length));
-    // (Four short ones fit one line too: 早餐 午餐 晚餐 飲料點心 at 320.)
-    subs.classList.toggle('few', list.length <= 4 || (list.length <= 5 && list.reduce((n, x) => n + x.textContent.length, 0) <= 12));
+    // (Five short ones fit one line too, at 320: 交通's TPASS 搭車 YouBike 長途 汽機車.
+    // Measured in Chinese characters' widths, a Latin letter about half of one.)
+    subs.classList.toggle('few', list.length <= 4 || (list.length <= 5 && list.reduce((n, x) => n + nameWidth(x.textContent), 0) <= 14));
     subs.replaceChildren(...list);
   }
   let catsKind = '';
