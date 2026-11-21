@@ -27,7 +27,7 @@ Jay's, dated (Taiwan day), newest wins; the family's are in Orbit-Core `docs/RUL
 - 10-31 Subs stay broad, because 統計 is built on them. 數位 (digital things: domains, AI plans, cloud, games) has four: 專案維運 (a project's running costs: TDX, domains, hosting), 工具訂閱, 影音串流, 遊戲. Upkeep and fun stay apart.
 
 **Entering.**
-- 10-27 記一筆: the amount is a field (the iPhone's keys, no keypad of our own); every category in view, no pages to swipe; something not set shows nothing (no example values). 預算 sits in 更多 until one is set, then in 統計.
+- 10-27 記一筆: the amount is a field (the iPhone's keys, no keypad of our own); every category in view, no pages to swipe; something not set shows nothing (no example values). 預算 sits in 更多 until one is set, then in 統計 (11-21: and stays in 更多 too, its count beside it; a row that vanished confused).
 - 10-30 記一筆 guesses kind, category, sub and way to pay from the person's own entries (time of day, weekday/weekend, place when allowed, past picks); the amount is only offered and fills on a tap. Location is opt-in (更多 › 智慧帶入), kept to about 100 m.
 - 11-03 The guesses must be right far more often: a first week guesses from the hour as most people live it until their own entries outweigh it; a catch-up goes through the day in order; pay and bills on their day of the month; 智慧帶入's 猜中 counts only guesses made the current way. Any change is measured first: `TZ=Asia/Taipei node scripts/backtest-guess.mjs --against <ref>`.
 - 11-03 轉帳 shows only what a transfer has: the amount, 從 and 到 (logo and balance, a swap), the day, 手續費, a note; it opens on the accounts usually moved between.

@@ -857,7 +857,7 @@ function openPlace(kind, name, p) {
 function budgetCard(ym, now, redraw) {
   const list = budgetState(state.books, ym, now);
   const edit = h('button', { type: 'button', text: W('編輯', 'Edit'), onclick: () => openBudgets(redraw) });
-  // (None set: nothing here; 預算 waits in 更多 until there's one. Jay 2026-10-27: "I don't use it and it's bothering me".)
+  // (None set: nothing here; 預算 is set from 更多, where its row always is.)
   if (!list.length) return null;
   return h('section', { class: 'q-section' }, [
     h('div', { class: 'q-section-head' }, [h('h2', { text: W('預算', 'Budget') }), edit]),

@@ -1,8 +1,8 @@
 // 更多: everything that isn't the books themselves. First 拍照記帳 (any
 // receipt, bill or screenshot into an entry: views/photo.mjs; Jay 2026-10-31,
 // in place of the 發票 tools), then the tools as rows: the categories, 智慧帶入,
-// 到期提醒, the repeats, 預算 (only while none is set: once one is, it lives in
-// 統計), the accounts put away (when there are any), the books as a file.
+// 到期提醒, the repeats, 預算 (always here, set or not: Jay 2026-11-21, a row
+// that vanished once set confused; 統計 shows it too), the accounts put away (when there are any), the books as a file.
 import { h, toast, sheet, toggle, tile, icons as kitIcons } from '#kit/ui.mjs';
 import { live } from '../lib/books.mjs';
 import { catList, catName, subOf, catOf, glyph, guessCats } from '../lib/cats.mjs';
@@ -42,6 +42,7 @@ export function renderMore(box) {
 
   const reps = repeatsOf();
   const closed = allAccounts().filter(a => a.closed);
+  const budgets = live(state.books.budgets).length;
   const cats = catList('out').length + catList('in').length;
   const next = reminders(state.books, today())[0];
   const score = guessRate(state.books);
@@ -65,7 +66,7 @@ export function renderMore(box) {
       tool(glyph('bell'), '#ff9500', W('到期提醒', 'Reminders'), next?.due ? `${next.r.name} ${Number(next.due.slice(5, 7))}/${Number(next.due.slice(8))}` : W('TPASS、訂閱、會員到期前提醒', 'TPASS, subscriptions, memberships'), W(...soonWords(next?.due ? next.left : null)), () => openRenewals()),
       // (Nothing set: no value at all; examples there read as if set. Jay 2026-10-27.)
       tool(glyph('repeat'), '#30b0c7', W('固定收支', 'Repeats'), W('房租、薪水，到日子自動記', 'Rent, pay: logged on the day'), reps.length ? W(`${reps.length} 個`, `${reps.length}`) : '', () => openRepeats()),
-      live(state.books.budgets).length ? null : tool(glyph('target'), '#ff3b30', W('預算', 'Budget'), W('每月上限，統計裡看剩多少', 'A monthly cap, tracked in Stats'), '', () => openBudgets()),
+      tool(glyph('target'), '#ff3b30', W('預算', 'Budget'), W('每月上限，統計裡看剩多少', 'A monthly cap, tracked in Stats'), budgets ? W(`${budgets} 個`, `${budgets}`) : '', () => openBudgets()),
       closed.length ? tool(glyph('lock'), '#8e8e93', W('已封存', 'Put away'), W('不用的帳戶', 'Accounts no longer used'), W(`${closed.length} 個`, `${closed.length}`), () => openClosed()) : null,
       tool(glyph('share'), '#0088ff', W('匯出', 'Export'), W('整本帳本存成試算表', 'All your entries'), 'CSV', () => exportCsv())
     ])
